@@ -113,7 +113,12 @@ import sysconfig as _sysconfig
 PYTHON_DIR          = _sysconfig.get_config_var('prefix')
 PYTHON_INCLUDE_DIR  = PYTHON_DIR + "/include"
 PYTHON_LIBRARY_DIR  = PYTHON_DIR + "/libs"
+PYTHON_LIBRARY      = 'python32'
 
+BOOST_INCLUDE_DIR           = None
+BOOST_LIBRARY_DIR           = None
+
+BOOST_PYTHON_LIBRARY        = None
 
 """
 
@@ -145,11 +150,13 @@ SOURCE_DIR = $(BUILD_DIR)/..
 CC = {CC}
 CXX = {CXX}
 
-CFLAGS      +=  -I{PYTHON_INCLUDE_DIR}
+CFLAGS      +=  -I{PYTHON_INCLUDE_DIR} -I{BOOST_INCLUDE_DIR}
 CXXFLAGS    +=  -std=c++0x
-LDFLAGS     +=  -L{PYTHON_LIBRARY_DIR} -lpython32
+LDFLAGS     +=  -L{PYTHON_LIBRARY_DIR} -Wl,-static -l{PYTHON_LIBRARY} \\
+                -L{BOOST_LIBRARY_DIR}  -Wl,-static -l{BOOST_PYTHON_LIBRARY} \\
+
 !make_cpp_object = |> $(CXX) $(CFLAGS) $(CXXFLAGS) $(CXXFLAGS_%f) -c %f -o %o |> %b.o
-!link_cpp_executable = |> $(CXX) %f $(LDFLAGS) $(LDFLAGS_%f) -o %o |>
+!link_cpp_executable = |> $(CXX) $(LDFLAGS) %f $(LDFLAGS) $(LDFLAGS_%f) -o %o |>
 
 """
 
@@ -185,32 +192,42 @@ def bootstrap():
     print("Please edit %s and re-run the configure script" % PROJECT_CONF_FILE)
 
 class ConfProxy:
-    def __init__(self, module):
+    def __init__(self, module, globals_):
         self._module = module
+        self._dict = {}
+        for k, v in globals_.items():
+            if getattr(self._module, k) is None:
+                self._dict[k] = v
 
     @staticmethod
     def _executeCommand(cmd):
         return None
 
     def __getattr__(self, key):
-        var = getattr(self._module, key)
+        var = self._dict.get(key)
         if var is None:
-            cmd = getattr(self._module, key + '_CMD')
-            if cmd is None:
-                raise KeyError("both %s and %s_CMD are None" % (key, key))
-            var = self._executeCommand(cmd)
+            var = getattr(self._module, key)
             if var is None:
-                raise ValueError("Result of command %s_CMD is None" % key)
-        if isinstance(var, str):
-            return cleanpath(var)
+                cmd = getattr(self._module, key + '_CMD')
+                if cmd is None:
+                    raise KeyError("both %s and %s_CMD are None" % (key, key))
+                var = self._executeCommand(cmd)
+                if var is None:
+                    raise ValueError("Result of command %s_CMD is None" % key)
+            if isinstance(var, str):
+                var = cleanpath(var)
+            self._dict[key] = var
         return var
 
     def __getitem__(self, key):
         return self.__getattr__(key)
 
+    def __setitem__(self, key, value):
+        self._dict[key] = value
+
     def __iter__(self):
         for k in dir(self._module):
-            if k.startswith('__') or k.endswith('_CMD'):
+            if k.startswith('_') or k.endswith('_CMD'):
                 continue
             try:
                 v = self.__getattr__(k)
@@ -219,34 +236,6 @@ class ConfProxy:
             yield (k, v)
 
 
-def getConf(module_name):
-    backup = sys.path[:]
-    try:
-        sys.path.insert(0, PROJECT_CONF_DIR)
-        imported_module = __import__(module_name)
-    finally:
-        sys.path = backup
-
-    return ConfProxy(imported_module)
-
-
-def parseArguments(project):
-    parser = argparse.ArgumentParser(
-        description="Configure '%s' project" % project.NAME
-    )
-    parser.add_argument('--build-type',
-                        default=project.DEFAULT_BUILD_TYPE,
-                        help="Enable a build type")
-    parser.add_argument('build_dir', action="store",
-                        help="Where to build your project")
-    #parser.add_argument('--release', action='store_true')
-    #parser.add_argument('--version-major', type=int, default=VERSION_MAJOR)
-    #parser.add_argument('--version-name', default=VERSION_NAME)
-    #parser.add_argument('--version-minor', type=int, default=VERSION_MINOR)
-    #parser.add_argument('--version-hash', default=VERSION_HASH)
-    #parser.add_argument('--tup-bin', default=which('tup'))
-    #parser.add_argument('--dc-bin', default=(which('dmd') or which('gdc') or which('ldc')))
-    return parser.parse_args()
 
 class BuildEnv:
 
@@ -262,7 +251,7 @@ class BuildEnv:
 
     def __init__(self, project, args):
         self._project = project
-        self._build_type = args.build_type.lower()
+        self._build_type = (args.build_type or self._project.DEFAULT_BUILD_TYPE).lower()
         self._build_dir = cleanjoin(ROOT_DIR, args.build_dir)
 
     def _setupDir(self):
@@ -394,12 +383,51 @@ class BuildEnv:
                 f.write(content)
 
 
+def getConf(module_name, globals={}):
+    backup = sys.path[:]
+    try:
+        import importlib
+        sys.path.insert(0, PROJECT_CONF_DIR)
+        imported_module = importlib.__import__(module_name, globals=globals)
+    finally:
+        sys.path = backup
+
+    return ConfProxy(imported_module, globals)
+
+
+def parseArguments():
+    parser = argparse.ArgumentParser(
+        description="Configure your project"
+    )
+    parser.add_argument('build_dir', action="store",
+                        help="Where to build your project")
+    parser.add_argument('--build-type', default=None,
+                        help="Enable a build type")
+    parser.add_argument('-D', '--define', action='append',
+                        help="Define build specific variables")
+    #parser.add_argument('--release', action='store_true')
+    #parser.add_argument('--version-major', type=int, default=VERSION_MAJOR)
+    #parser.add_argument('--version-name', default=VERSION_NAME)
+    #parser.add_argument('--version-minor', type=int, default=VERSION_MINOR)
+    #parser.add_argument('--version-hash', default=VERSION_HASH)
+    #parser.add_argument('--tup-bin', default=which('tup'))
+    #parser.add_argument('--dc-bin', default=(which('dmd') or which('gdc') or which('ldc')))
+    return parser.parse_args()
+
 def main():
     if needBootstrap():
         return bootstrap()
     assert os.path.isdir(PROJECT_CONF_DIR)
-    project = getConf('project')
-    args = parseArguments(project)
+    args = parseArguments()
+
+    globals_ = {}
+    for define in args.define:
+        s = define.split('=')
+        if len(s) != 2:
+            raise Exception("Wrong define '%s', should be in the NAME=VALUE form")
+        k, v = s[0].strip(), cleanpath(s[1])
+        globals_[k] = v
+    project = getConf('project', globals_)
     print("-- Configure '%s' project." % project.NAME)
     build_env = BuildEnv(project, args)
 
