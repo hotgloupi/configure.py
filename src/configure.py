@@ -108,6 +108,9 @@ RECURSE_OVER_TARGET_DIRECTORIES = True
 CC = "gcc"
 CXX = "g++"
 
+CCACHE = "ccache"
+
+
 import sysconfig as _sysconfig
 
 PYTHON_DIR          = _sysconfig.get_config_var('prefix')
@@ -119,6 +122,8 @@ BOOST_INCLUDE_DIR           = None
 BOOST_LIBRARY_DIR           = None
 
 BOOST_PYTHON_LIBRARY        = None
+BOOST_FILESYSTEM_LIBRARY    = None
+BOOST_SYSTEM_LIBRARY        = None
 
 """
 
@@ -128,6 +133,13 @@ PROJECT_CONF_TUP_FILE = cleanjoin(
 )
 PROJECT_CONF_TUP_FILE_TEMPLATE = """
 include_rules
+
+# all project variable and the following ones are available:
+#   * BUILD_TYPE: lower cased build type string.
+#   * ROOT_DIR: path to the project root directory (relative to the current directory).
+#   * SOURCE_DIR: path to the mirrored source directory (relative to the current directory).
+#
+
 
 : foreach {SOURCE_DIR}/*.cpp |> !make_cpp_object |>
 
@@ -140,23 +152,32 @@ PROJECT_CONF_TUPRULES_FILE = cleanjoin(
 PROJECT_CONF_TUPRULES_FILE_TEMPLATE = """
 # This file is generated in each build directory.
 # All project variables and the following ones are defined:
-#   * BUILD_TYPE
+#   * BUILD_TYPE: lower cased build type string.
+#   * ROOT_DIR: path to the project root directory (relative to the current directory).
 #
 
 BUILD_TYPE = {BUILD_TYPE}
 BUILD_DIR = $(TUP_CWD)
+ROOT_DIR = $(BUILD_DIR)/{ROOT_DIR}
+
 SOURCE_DIR = $(BUILD_DIR)/..
 
-CC = {CC}
-CXX = {CXX}
+CC          = {CC}
+CXX         = {CXX}
 
-CFLAGS      +=  -I{PYTHON_INCLUDE_DIR} -I{BOOST_INCLUDE_DIR}
+CFLAGS      +=  -I$(ROOT_DIR)/src -I{PYTHON_INCLUDE_DIR} -I{BOOST_INCLUDE_DIR}
 CXXFLAGS    +=  -std=c++0x
-LDFLAGS     +=  -L{PYTHON_LIBRARY_DIR} -Wl,-static -l{PYTHON_LIBRARY} \\
-                -L{BOOST_LIBRARY_DIR}  -Wl,-static -l{BOOST_PYTHON_LIBRARY} \\
+LDFLAGS     +=  \
+-L{PYTHON_LIBRARY_DIR} \
+-L{BOOST_LIBRARY_DIR} \
+-Wl,-static -l{PYTHON_LIBRARY} \
+-Wl,-static -l{BOOST_PYTHON_LIBRARY} \
+-Wl,-static -l{BOOST_FILESYSTEM_LIBRARY} \
+-Wl,-static -l{BOOST_SYSTEM_LIBRARY} \
+
 
 !make_cpp_object = |> $(CXX) $(CFLAGS) $(CXXFLAGS) $(CXXFLAGS_%f) -c %f -o %o |> %b.o
-!link_cpp_executable = |> $(CXX) $(LDFLAGS) %f $(LDFLAGS) $(LDFLAGS_%f) -o %o |>
+!link_cpp_executable = |> $(CXX) %f $(LDFLAGS) $(LDFLAGS_%o) -o %o |>
 
 """
 
@@ -196,8 +217,13 @@ class ConfProxy:
         self._module = module
         self._dict = {}
         for k, v in globals_.items():
-            if getattr(self._module, k) is None:
+            try: old_value = getattr(self._module, k)
+            except AttributeError:
+                raise KeyError("Cannot set variable '%s': Not declared in the project" % k)
+            if old_value is None:
                 self._dict[k] = v
+            else:
+                print("Warning: ignoring define %s=%s (not None in the project)" % (k, v))
 
     @staticmethod
     def _executeCommand(cmd):
@@ -259,17 +285,28 @@ class BuildEnv:
             os.mkdir(self._build_dir)
 
     def _getProjectDict(self, **kwargs):
-        kwargs.update(self._project)
-        return kwargs
+        d = {}
+        d.update(self._project)
+        d.update(kwargs)
+        return d
 
     def _setupTuprules(self):
         with open(self._project.TUPRULES_TEMPLATE_PATH, 'r') as f:
             template = f.read()
         project_dict = self._getProjectDict(
-            BUILD_TYPE=self._build_type
+            BUILD_TYPE=self._build_type,
+            ROOT_DIR=cleanpath(os.path.relpath(ROOT_DIR, start=self._build_dir)),
         )
         with open(os.path.join(self._build_dir, 'Tuprules.tup'), 'w') as f:
-            f.write(template.format(**project_dict))
+            try:
+                f.write(template.format(**project_dict))
+            except KeyError as err:
+                raise KeyError(
+                    "%s: Unkown variable name %s." % (
+                        self._project.TUPRULES_TEMPLATE_PATH,
+                        err
+                    )
+                )
 
     def _setupTupfile(self, source_dir, build_dir):
         tup_file = os.path.join(build_dir, 'Tupfile')
@@ -282,6 +319,8 @@ class BuildEnv:
         with open(template_path, 'r') as f:
             template = f.read()
         project_dict = self._getProjectDict(
+            BUILD_TYPE=self._build_type,
+            ROOT_DIR=cleanpath(os.path.relpath(ROOT_DIR, start=build_dir)),
             SOURCE_DIR=cleanpath(os.path.relpath(source_dir, start=build_dir)),
         )
         with open(tup_file, 'w') as f:
@@ -298,10 +337,11 @@ class BuildEnv:
             )
 
         for root, dirnames, filenames in os.walk(source_dir):
-            build_dir = os.path.join(self._build_dir, rel_source_dir)
+            # root is relative to source_dir, join works
+            build_dir = cleanjoin(self._build_dir, root)
             if not os.path.exists(build_dir):
                 os.makedirs(build_dir)
-            self._setupTupfile(source_dir, build_dir)
+            self._setupTupfile(root, build_dir)
 
     def _parseTargetInputs(self, inputs, output_directory):
         for input_ in inputs:
@@ -421,7 +461,8 @@ def main():
     args = parseArguments()
 
     globals_ = {}
-    for define in args.define:
+    defines = args.define or []
+    for define in defines:
         s = define.split('=')
         if len(s) != 2:
             raise Exception("Wrong define '%s', should be in the NAME=VALUE form")
