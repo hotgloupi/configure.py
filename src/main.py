@@ -68,7 +68,7 @@ TUP_GIT_URL = "git://github.com/gittup/tup.git"
 PROJECT_CONFIG_DIR_NAME = ".config"
 PROJECT_CONFIG_DIR = cleanjoin(ROOT_DIR, PROJECT_CONFIG_DIR_NAME)
 PROJECT_CONFIG_FILENAME = "project.py"
-TUP_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tup')
+TUP_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tup')
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -98,25 +98,30 @@ def self_install(args):
     pass
 
 def tup_install(args):
-    print("Installing tup in", TUP_DIR)
-    if not os.path.exists(TUP_DIR):
-        os.makedirs(TUP_DIR)
+    print("Installing tup in", TUP_INSTALL_DIR)
+    if not os.path.exists(TUP_INSTALL_DIR):
+        os.makedirs(TUP_INSTALL_DIR)
         print("Getting tup from", TUP_GIT_URL)
-        cmd(['git', 'clone', TUP_GIT_URL, TUP_DIR])
+        cmd(['git', 'clone', TUP_GIT_URL, TUP_INSTALL_DIR])
     else:
         print("Updating tup")
-        cmd(['git', 'pull'], cwd=TUP_DIR)
+        cmd(['git', 'pull'], cwd=TUP_INSTALL_DIR)
 
     if not which('tup'):
-        cmd(['sh', 'build.sh'], cwd=TUP_DIR)
-    if not os.path.exists(os.path.join(ROOT_DIR, '.tup')):
-        try:
-            shutil.rmtree(os.path.join(TUP_DIR, '.tup'), ignore_errors=True)
-            cmd(['./build/tup', 'init'], cwd=TUP_DIR)
-            cmd(['./build/tup', 'upd'], cwd=TUP_DIR)
-        except:
-            shutil.rmtree(os.path.join(TUP_DIR, '.tup'), ignore_errors=True)
-            raise
+        cmd(['sh', 'build.sh'], cwd=TUP_INSTALL_DIR)
+
+    tup_dir = os.path.join(ROOT_DIR, '.tup')
+    if os.path.exists(tup_dir):
+        os.rename(tup_dir, tup_dir + '.bak')
+
+    try:
+        if not os.path.exists(os.path.join(TUP_INSTALL_DIR, '.tup')):
+            cmd(['./build/tup', 'init'], cwd=TUP_INSTALL_DIR)
+        cmd(['./build/tup', 'upd'], cwd=TUP_INSTALL_DIR)
+    finally:
+        if os.path.exists(tup_dir + '.bak'):
+            os.rename(tup_dir + '.bak', tup_dir)
+
 
 
 if __name__ == '__main__':
@@ -141,7 +146,7 @@ if __name__ == '__main__':
         )
 
     os.environ['PATH'] = ':'.join(
-        [os.path.abspath(TUP_DIR)] + os.environ['PATH'].split(':')
+        [os.path.abspath(TUP_INSTALL_DIR)] + os.environ['PATH'].split(':')
     )
 
     if args.tup_install:
@@ -184,13 +189,14 @@ if __name__ == '__main__':
     with open(makefile, 'w') as f:
         f.write('\n'.join([
             "all: %(tup_config_dir)s",
-            "\t@%(tup_bin)s upd",
+            "\t@sh -c 'cd %(root_dir)s && %(tup_bin)s upd'",
             "",
             "%(tup_config_dir)s:",
-            "\t@%(tup_bin)s init",
+            "\t@sh -c 'cd %(root_dir)s && %(tup_bin)s init'",
         ]) % {
             'tup_config_dir': os.path.abspath(cleanjoin(ROOT_DIR, '.tup')),
             'tup_bin': os.path.abspath(cleanjoin(PROJECT_CONFIG_DIR, 'tup/tup')),
+            'root_dir': cleanabspath(ROOT_DIR),
         } + '\n')
 
     if not os.path.exists(cleanjoin(ROOT_DIR, '.tup')):
