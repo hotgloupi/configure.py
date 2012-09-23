@@ -10,14 +10,22 @@ class Target(Node):
         self.name = name
         super(Target, self).__init__(dependencies)
 
-    def directory(self, build):
-        return os.path.join(build.directory, os.path.dirname(self.name))
+    #def directory(self, build):
+    #    return os.path.join(build.directory, os.path.dirname(self.name))
 
-    def dump(self, inc=0, **kwargs):
+    def path(self, **kw):
+        return os.path.join(kw['build'].directory, self.name)
+
+    def relpath(self, from_, **kw):
+        if not isinstance(from_, str):
+            from_ = os.path.dirname(from_.path(**kw))
+        return os.path.relpath(self.path(**kw), start=from_)
+
+    def dump(self, inc=0, **kw):
         print(' ' * inc, "Target '%s':" % self.name)
-        kwargs['inc'] = inc + 2
-        kwargs['target'] = self
-        super(Target, self).dump(**kwargs)
+        kw['inc'] = inc + 2
+        kw['target'] = self
+        super(Target, self).dump(**kw)
 
     def __str__(self):
         return self.name
@@ -28,13 +36,10 @@ class Target(Node):
             self.name
         )
 
-    def execute(self, **kwargs):
-        kwargs['target'] = self
-        super(Target, self).execute(**kwargs)
+    def execute(self, **kw):
+        kw['target'] = self
+        super(Target, self).execute(**kw)
 
 
-    def shell_string(self, **kwargs):
-        return os.path.relpath(
-            os.path.join(kwargs['build'].directory, self.name),
-            start=kwargs['target'].directory(kwargs['build'])
-        )
+    def shell_string(self, **kw):
+        return self.relpath(kw['target'], **kw)

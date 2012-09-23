@@ -1,43 +1,11 @@
 # -*- encoding: utf-8 -*-
 
 import os
-import re
 import sys
 
+from . import env
 from . import tools
 from . import templates
-
-class Env:
-    var_re = re.compile('^[A-Z][A-Z0-9_]*$')
-    def __init__(self, project, conf={}):
-        self._dict = conf
-        self.project = project
-
-    def __execute_command(self, cmd):
-        return None
-
-    def __getitem__(self, key):
-        var = self._dict.get(key)
-        if var is None:
-            cmd = self._dict.get(key + '_CMD')
-            if cmd is None:
-                raise KeyError("both %s and %s_CMD are None" % (key, key))
-            var = self.__execute_command(cmd)
-            if var is None:
-                raise ValueError("Result of command %s_CMD is None" % key)
-            self._dict[key] = var
-        return var
-
-    def __setitem__(self, key, value):
-        self._dict[key] = value
-
-    def __getattr__(self, key):
-        return self.__getitem__(key)
-
-
-    def __iter__(self):
-        for item in self._dict.items():
-            yield item
 
 class Project:
 
@@ -46,15 +14,20 @@ class Project:
         pass
 
     def __init__(self, root_dir, config_dir,
-                 config_filename = "project.py"):
+                 config_filename = "project.py",
+                 build_vars_filename = ".build_vars"):
+        from os.path import join, exists
         self.root_dir = root_dir
         self.config_dir = config_dir
-        self.config_file = os.path.join(config_dir, config_filename)
+        self.config_file = join(config_dir, config_filename)
+        self.build_vars_filename = build_vars_filename
+
         self.__config_file_template = templates.project()
-        assert os.path.exists(self.__config_file_template)
+        assert exists(self.__config_file_template)
+
         self.__configure_function = None
         self.__env = None
-        if not os.path.exists(self.config_file):
+        if not exists(self.config_file):
             self.__bootstrap()
             raise self.NeedUserEdit()
         else:
@@ -64,12 +37,15 @@ class Project:
     def env(self):
         return self.__env
 
-    def configure(self, build):
+    def configure(self, build, new_vars={}):
         if self.__configure_function is None:
             raise Exception(
                 "The project file %s did not define any `configure` function"
             )
+        build_vars_file = os.path.join(build.directory, self.build_vars_filename)
+        self.env.enable_build_vars(build_vars_file, new_vars=new_vars)
         self.__configure_function(self, build)
+        self.env.save_build_vars(build_vars_file)
 
     def __bootstrap(self):
         assert self.__env is None
@@ -82,13 +58,10 @@ class Project:
                 conf.write(data % self.env)
 
     def __default_env(self):
-        env = {}
-        env['PROJECT_NAME'] = os.path.basename(os.path.abspath(self.root_dir))
-        env['PROJECT_VERSION_NAME'] = 'alpha'
-        return Env(self, env)
+        return env.Env(self)
 
     def __read_conf(self):
-        self.__env = Env(self)
+        self.__env = env.Env(self)
         backup = sys.path[:]
         try:
             sys.path.insert(0, self.config_dir)
@@ -98,7 +71,7 @@ class Project:
                 exec(f.read(), globals_)
 
             for k, v in globals_.items():
-                if Env.var_re.match(k):
+                if env.Env.var_re.match(k):
                     self.env[k] = v
                 elif k == 'configure':
                     self.__configure_function = v

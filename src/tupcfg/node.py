@@ -1,12 +1,13 @@
 # -*- encoding: utf-8 -*-
 
+from types import GeneratorType
 
 class Node:
 
     def __init__(self, dependencies):
         if dependencies is None:
             dependencies = []
-        if not isinstance(dependencies, list):
+        if not isinstance(dependencies, (list, GeneratorType)):
             dependencies = [dependencies]
         self.dependencies = dependencies
 

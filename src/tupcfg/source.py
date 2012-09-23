@@ -12,6 +12,14 @@ class Source(Node):
         self.filename = filename
         super(Source, self).__init__(None)
 
+    def path(self, **kw):
+        return os.path.join(kw['build'].root_directory, self.filename)
+
+    def relpath(self, from_, **kw):
+        if not isinstance(from_, str):
+            from_ = os.path.dirname(from_.path(**kw))
+        return os.path.relpath(self.path(**kw), start=from_)
+
     @property
     def name(self):
         return '.'.join(self.filename.split('.')[:-1])
@@ -26,9 +34,6 @@ class Source(Node):
             self.filename
         )
 
-    def shell_string(self, **kwargs):
-        return os.path.relpath(
-            os.path.join(kwargs['build'].root_directory, self.filename),
-            start=kwargs['target'].directory(kwargs['build'])
-        )
+    def shell_string(self, **kw):
+        return self.relpath(kw['target'], **kw)
 
