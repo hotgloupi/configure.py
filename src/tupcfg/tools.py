@@ -47,12 +47,17 @@ def fatal(*args, **kwargs):
     finally:
         sys.exit(1)
 
+IS_WINDOWS = sys.platform.lower().startswith('win')
+PATH_SPLIT_CHAR = IS_WINDOWS and ';' or ':'
+
 def which(binary):
-    paths = os.environ['PATH'].split(':')
+    paths = os.environ['PATH'].split(PATH_SPLIT_CHAR)
     for dir_ in paths:
         path = os.path.join(dir_, binary)
         if os.path.exists(path) and os.stat(path)[stat.ST_MODE] & stat.S_IXUSR:
             return path
+    if IS_WINDOWS and not binary.lower().endswith('.exe'):
+        return which(binary + '.exe')
     return None
 
 def find_binary(name):
