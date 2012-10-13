@@ -55,10 +55,23 @@ def which(binary):
             return path
     return None
 
-def find_binary(name):
+def find_binary(name, env=None, var_name=None):
+    if not (env and var_name) and (env or var_name):
+        raise Exception("Wrong usage, please set both env and var_name")
+    if env and var_name:
+        path = env.get(var_name)
+        if path is not None and not os.path.isabs(path):
+            path = which(path)
+        if path is not None:
+            return path
     path = which(name)
     if path is None:
-        raise Exception("Cannot find '%s'" % name)
+        if env and var_name:
+            raise Exception(
+                "Cannot find binary '%s' (try to set %s variable)" % (name, var_name)
+            )
+        else:
+            raise Exception("Cannot find binary '%s'" % name)
     return path
 
 

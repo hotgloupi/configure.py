@@ -15,12 +15,14 @@ class Project:
 
     def __init__(self, root_dir, config_dir,
                  config_filename = "project.py",
-                 build_vars_filename = ".build_vars"):
+                 build_vars_filename = ".build_vars",
+                 project_vars_filename = ".project_vars"):
         from os.path import join, exists
         self.root_dir = root_dir
         self.config_dir = config_dir
         self.config_file = join(config_dir, config_filename)
         self.build_vars_filename = build_vars_filename
+        self.project_vars_filename = project_vars_filename
 
         self.__config_file_template = templates.project()
         assert exists(self.__config_file_template)
@@ -37,15 +39,19 @@ class Project:
     def env(self):
         return self.__env
 
-    def configure(self, build, new_vars={}):
+    def configure(self, build, new_build_vars={}, new_project_vars={}):
         if self.__configure_function is None:
             raise Exception(
                 "The project file %s did not define any `configure` function"
             )
         build_vars_file = os.path.join(build.directory, self.build_vars_filename)
-        self.env.enable_build_vars(build_vars_file, new_vars=new_vars)
+        project_vars_file = os.path.join(self.config_dir, self.project_vars_filename)
+
+        self.env.enable_build_vars(build_vars_file, new_vars=new_build_vars)
+        self.env.enable_project_vars(project_vars_file, new_vars=new_project_vars)
         self.__configure_function(self, build)
         self.env.save_build_vars(build_vars_file)
+        self.env.save_project_vars(project_vars_file)
 
     def __bootstrap(self):
         assert self.__env is None

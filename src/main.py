@@ -162,7 +162,7 @@ def prepare_build(build_dir, defines):
             config_filename = PROJECT_CONFIG_FILENAME,
         )
         build = tupcfg.Build(build_dir)
-        project.configure(build, new_vars=defines)
+        project.configure(build, new_build_vars=defines, new_project_vars={})
 
     except tupcfg.Project.NeedUserEdit:
         print(
@@ -247,9 +247,9 @@ def main():
 
         tupcfg.tools.DEBUG = DEBUG
         tupcfg.tools.VERBOSE = VERBOSE
-    except ImportError as err:
+    except ImportError as e:
         if DEBUG is True:
-            raise err
+            raise e
 
         fatal(
             '\n'.join([
