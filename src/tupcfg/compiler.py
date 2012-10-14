@@ -1,5 +1,8 @@
 # -*- encoding: utf-8 -*-
 
+import sys
+
+from . import path
 from .source import Source
 from .target import Target
 
@@ -12,7 +15,8 @@ class BasicCompiler:
         self.lang = lang
         self.binary = binary
 
-    def link_library(self, name, sources, **kw):
+    def link_library(self, name, sources, directory='', shared=True, ext=None, **kw):
+        name = path.join(directory, self.__get_library_name(name, shared, ext))
         sources_ = (Source(src) for src in sources)
         objects = (self._build_object(src, **kw) for src in sources_)
         return self.build.add_target(
@@ -27,7 +31,8 @@ class BasicCompiler:
         kw['shared'] = True
         return self.link_library(name, sources, **kw)
 
-    def link_executable(self, name, sources, **kw):
+    def link_executable(self, name, sources, directory='', **kw):
+        name = path.join(directory, self.__get_executable_name(name))
         sources_ = (Source(src) for src in sources)
         objects = (self._build_object(src, **kw) for src in sources_)
         return self.build.add_target(
@@ -54,3 +59,25 @@ class BasicCompiler:
         This method has to be overridden.
         """
         raise Exception("Not implemented")
+
+    def __get_library_name(self, name, shared, ext):
+        shared_exts = {
+            'win32': 'dll',
+            'darwin': 'dylib',
+        }
+        static_exts = {
+            'win32': 'a',
+        }
+        if ext is None:
+            if shared:
+                ext = shared_exts.get(sys.platform, 'so')
+            else:
+                ext = static_exts.get(sys.platform, 'a')
+        if ext:
+            return name + '.' + ext
+        return name
+
+    def __get_executable_name(self, name):
+        if sys.platform == 'win32':
+            return name + '.exe'
+        return name

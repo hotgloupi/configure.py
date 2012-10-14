@@ -5,7 +5,11 @@ import os.path
 def exists(p, *paths):
     return os.path.exists(os.path.join(p, *paths))
 
-basename = os.path.basename
+def basename(p, *paths):
+    return os.path.basename(os.path.join(p, *paths))
+
+def splitext(p, *paths, **kw):
+    return os.path.splitext(clean(p, *paths, **kw))
 
 def clean(p, *paths, **kw):
     p = os.path.normpath(os.path.join(p, *paths))
