@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import Target
+from tupcfg import Target, path
 from . import compiler
 
 class LinkFlag:
@@ -47,8 +47,7 @@ class Compiler(compiler.Compiler):
         ]
 
     def __add_rpath(self, lib, **kw):
-        from os.path import dirname
-        return '-Wl,-rpath=\\$ORIGIN/' + dirname(lib.relpath(kw['target'], **kw))
+        return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 
     def __get_link_flags(self, cmd, **kw):
         library_directories = set(self.library_directories)
@@ -62,7 +61,7 @@ class Compiler(compiler.Compiler):
                 from os.path import abspath, dirname
                 dirs = set(self.directories)
                 for lib in self.libs:
-                    dirs.add(dirname(abspath(lib.path(**kw))))
+                    dirs.add(path.dirname(path.absolute(lib.path(**kw))))
                 if dirs:
                     return '-Wl,-rpath,' + ':'.join(dirs)
                 return ''
@@ -90,12 +89,11 @@ class Compiler(compiler.Compiler):
         ]
 
     def _link_library_cmd(self, cmd, **kw):
-        from os.path import basename
         return [
             self.binary,
             cmd.dependencies,
             cmd.shared and '-shared' or '',
-            cmd.shared and '-Wl,-soname,' + basename(kw['target'].path(**kw)),
+            cmd.shared and '-Wl,-soname,' + path.basename(kw['target'].path(**kw)),
             '-o', kw['target'],
             self.__get_link_flags(cmd, **kw)
         ]

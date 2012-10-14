@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 from .node import Node
+from . import path
 
 class Command(Node):
 
@@ -58,14 +59,13 @@ class Command(Node):
                     yield el
 
     def dump(self, inc=0, **kw):
-        from os.path import dirname
         target = kw.get('target')
         if target is None:
             raise Exception("Cannot dump a command without target")
         cmd, i, ai, o, ao, cmd_kw = self.gen_command(string=True, **kw)
         print(
             ' ' * inc,
-            dirname(kw['target'].path(**kw)) + ':',
+            path.dirname(kw['target'].path(**kw)) + ':',
             '\n\t' + ' ' * inc, ' * inputs:', ' '.join(repr(e) for e in i),
             '\n\t' + ' ' * inc, ' * additional inputs:', ' '.join(repr(e) for e in ai),
             '\n\t' + ' ' * inc, ' * outputs:', ' '.join(repr(e) for e in o),

@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-import os
-
+from . import path
 from .node import Node
 
 class Source(Node):
@@ -13,12 +12,12 @@ class Source(Node):
         super(Source, self).__init__(None)
 
     def path(self, **kw):
-        return os.path.join(kw['build'].root_directory, self.filename)
+        return path.join(kw['build'].root_directory, self.filename)
 
     def relpath(self, from_, **kw):
         if not isinstance(from_, str):
-            from_ = os.path.dirname(from_.path(**kw))
-        return os.path.relpath(self.path(**kw), start=from_)
+            from_ = path.dirname(from_.path(**kw))
+        return path.relative(self.path(**kw), start=from_)
 
     @property
     def name(self):

@@ -1,5 +1,7 @@
 # -*- encoding: utf8 -*-
 
+from . import tools, path
+
 from .build import Build
 from .command import Command
 from .node import Node

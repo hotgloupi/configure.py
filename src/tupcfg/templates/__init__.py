@@ -1,11 +1,9 @@
 # -*- encoding: utf-8 -*-
 
-import os
-
-from .. import tools
+from .. import path
 
 def project():
-    return tools.cleanjoin(
-        os.path.dirname(__file__),
+    return path.join(
+        path.dirname(__file__),
         "project.py"
     )

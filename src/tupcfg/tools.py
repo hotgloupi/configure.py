@@ -4,26 +4,10 @@ import os
 import stat
 import sys
 import types
+from . import path
 
 DEBUG = False
 VERBOSE = True
-
-def cleanpath(p, **kwargs):
-    p = os.path.normpath(p).replace('\\', '/')
-    if p.startswith('./'):
-        return p[2:]
-    if kwargs.get('replace_home'):
-        return os.path.join(
-            '~',
-            os.path.relpath(p, start=os.path.expanduser('~')),
-        )
-    return p
-
-def cleanabspath(p, **kwargs):
-    return cleanpath(os.path.abspath(p), **kwargs)
-
-def cleanjoin(*args, **kwargs):
-    return cleanpath(os.path.join(*args), **kwargs)
 
 def err(*args, **kwargs):
     kwargs['file'] = sys.stderr
@@ -50,9 +34,10 @@ def fatal(*args, **kwargs):
 IS_WINDOWS = sys.platform.lower().startswith('win')
 PATH_SPLIT_CHAR = IS_WINDOWS and ';' or ':'
 
+PATH = os.environ['PATH'].split(PATH_SPLIT_CHAR)
+
 def which(binary):
-    paths = os.environ['PATH'].split(PATH_SPLIT_CHAR)
-    for dir_ in paths:
+    for dir_ in PATH:
         path = os.path.join(dir_, binary)
         if os.path.exists(path) and os.stat(path)[stat.ST_MODE] & stat.S_IXUSR:
             return path
@@ -89,7 +74,7 @@ def glob(pattern, dir_=None, recursive=False):
     for root, dirnames, files in os.walk(dir_):
         for file_ in files:
             if fnmatch(file_, pattern):
-                yield cleanjoin(root, file_)
+                yield path.join(root, file_)
         if not recursive:
             break
 

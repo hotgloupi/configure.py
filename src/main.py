@@ -11,15 +11,15 @@ import subprocess
 import sys
 
 def cleanpath(p, **kwargs):
-    p = os.path.normpath(p).replace('\\', '/')
+    p = os.path.normpath(p)
     if p.startswith('./'):
-        return p[2:]
+        p =  p[2:]
     if kwargs.get('replace_home'):
-        return os.path.join(
+        p = os.path.join(
             '~',
             os.path.relpath(p, start=os.path.expanduser('~')),
         )
-    return p
+    return p.replace('\\', '/')
 
 def cleanabspath(p, **kwargs):
     return cleanpath(os.path.abspath(p), **kwargs)
@@ -82,7 +82,7 @@ TUPCFG_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tupcfg-install')
 TUPCFG_GIT_URL = "git://github.com/hotgloupi/tupcfg.git"
 MAKEFILE_TEMPLATE = """
 .PHONY:
-.PHONY: all
+.PHONY: all monitor
 
 all: %(tup_config_dir)s
 	@sh -c 'cd %(root_dir)s && %(tup_bin)s upd'
@@ -137,36 +137,56 @@ def tup_install(args):
             os.rename(tup_dir + '.bak', tup_dir)
 
 
-def prepare_build(build_dir, defines):
+def prepare_build(build_dir, defines, exports):
     import tupcfg # Should work at this point
-    from os.path import exists, join, abspath
-
-    tup_build_marker = join(build_dir, '.tupcfg_build')
-
-    if not exists(build_dir):
-        os.makedirs(build_dir)
-        with open(tup_build_marker, 'w') as f:
-            pass
-    elif not exists(tup_build_marker):
-        fatal('\n'.join([
-            "'%(build_dir)s' doest not seem to be a tup build directory:",
-            "\t* Remove this directory",
-            "\t* Touch the file %(tup_build_marker)s",
-        ]) % locals())
-
+    from tupcfg.path import exists, join, absolute
 
     try:
         project = tupcfg.Project(
             ROOT_DIR,
             PROJECT_CONFIG_DIR,
             config_filename = PROJECT_CONFIG_FILENAME,
+            new_project_vars = exports
         )
-        build = tupcfg.Build(build_dir)
-        project.configure(build, new_build_vars=defines, new_project_vars={})
+
+        env_build_dirs = list(
+            d for d in project.env.get('BUILD_DIRECTORIES', [])
+            if exists(d, '.tupcfg_build')
+        )
+        build_dirs = []
+        if build_dir is not None:
+            build_dirs = [build_dir]
+            tup_build_marker = join(build_dir, '.tupcfg_build')
+            if not exists(build_dir):
+                os.makedirs(build_dir)
+                with open(tup_build_marker, 'w') as f:
+                    pass
+            elif not exists(tup_build_marker):
+                fatal('\n'.join([
+                    "'%(build_dir)s' doest not seem to be a tup build directory:",
+                    "\t* Remove this directory",
+                    "\t* Touch the file %(tup_build_marker)s",
+                ]) % locals())
+        else:
+            build_dirs = env_build_dirs
+
+        if not build_dirs:
+            fatal("No build directory specified on command line. (try -h switch)")
+
+        project.env.project_set(
+            'BUILD_DIRECTORIES',
+            list(set(build_dirs + env_build_dirs))
+        )
+
+        with project:
+            for build_dir in build_dirs:
+                build = tupcfg.Build(build_dir)
+                project.configure(build, defines)
+                build.cleanup()
 
     except tupcfg.Project.NeedUserEdit:
         print(
-            "Please edit %s and re-run the configure script" % cleanjoin(
+            "Please edit %s and re-run the configure script" % join(
                 PROJECT_CONFIG_DIR,
                 PROJECT_CONFIG_FILENAME,
                 replace_home=True,
@@ -177,40 +197,38 @@ def prepare_build(build_dir, defines):
     makefile = join(build_dir, 'Makefile')
     with open(makefile, 'w') as f:
         f.write(MAKEFILE_TEMPLATE % {
-            'tup_config_dir': abspath(cleanjoin(ROOT_DIR, '.tup')),
-            'tup_bin': abspath(cleanjoin(PROJECT_CONFIG_DIR, 'tup/tup')),
-            'root_dir': cleanabspath(ROOT_DIR),
-            'project_config_dir': abspath(PROJECT_CONFIG_DIR),
+            'tup_config_dir': absolute(ROOT_DIR, '.tup'),
+            'tup_bin': absolute(PROJECT_CONFIG_DIR, 'tup/tup'),
+            'root_dir': absolute(ROOT_DIR),
+            'project_config_dir': absolute(PROJECT_CONFIG_DIR),
         })
 
-    if not exists(cleanjoin(ROOT_DIR, '.tup')):
+    if not exists(join(ROOT_DIR, '.tup')):
         cmd = ['make', '-C', build_dir]
         print('Just run `%s`' % ' '.join(map(pipes.quote, cmd)))
     pass
 
 def parse_args():
+    def Dir(s):
+        if not os.path.isdir(s):
+            raise argparse.ArgumentTypeError
+        return s
     parser = argparse.ArgumentParser(
         description="Configure your project for tup"
     )
     parser.add_argument('build_dir', action="store",
-                        help="Where to build your project",
-                        nargs='*')
+                        help="Where to build your project", nargs='?')
     parser.add_argument('-D', '--define', action='append',
                         help="Define build specific variables", default=[])
+    parser.add_argument('-E', '--export', action='append',
+                        help="Define project specific variables", default=[])
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose mode")
     parser.add_argument('-d', '--debug', action='store_true', help="debug mode")
-    parser.add_argument('--dump', action='store_true', help="dump build variables")
+    parser.add_argument('--dump', action='store_true', help="dump variables")
     parser.add_argument('--install', action='store_true', help="install when needed")
     parser.add_argument('--self-install', action='store_true', help="install (or update) tupcfg")
     parser.add_argument('--tup-install', action='store_true', help="install (or update) tup")
 
-    #parser.add_argument('--release', action='store_true')
-    #parser.add_argument('--version-major', type=int, default=VERSION_MAJOR)
-    #parser.add_argument('--version-name', default=VERSION_NAME)
-    #parser.add_argument('--version-minor', type=int, default=VERSION_MINOR)
-    #parser.add_argument('--version-hash', default=VERSION_HASH)
-    #parser.add_argument('--tup-bin', default=which('tup'))
-    #parser.add_argument('--dc-bin', default=(which('dmd') or which('gdc') or which('ldc')))
     return parser, parser.parse_args()
 
 
@@ -262,9 +280,7 @@ def main():
             }
         )
 
-    os.environ['PATH'] = ':'.join(
-        [os.path.abspath(TUP_INSTALL_DIR)] + os.environ['PATH'].split(':')
-    )
+    tupcfg.tools.PATH.insert(0, tupcfg.path.absolute(TUP_INSTALL_DIR))
 
     if args.tup_install or (args.install and not tupcfg.tools.which('tup')):
         tup_install(args)
@@ -281,18 +297,19 @@ def main():
             }
         )
 
-    if not args.build_dir:
-        err(FATAL, "No build directory specified on command line.")
-        parser.print_usage()
-        sys.exit(1)
 
     try:
-        for build_dir in args.build_dir:
-            defines = {}
-            for d in args.define:
-                k, v = d.split('=')
-                defines[k.strip()] = v.strip()
-            prepare_build(build_dir, defines)
+        defines = {}
+        for d in args.define:
+            k, v = d.split('=')
+            defines[k.strip()] = v.strip()
+
+        exports = {}
+        for d in args.export:
+            k, v = d.split('=')
+            exports[k.strip()] = v.strip()
+
+        prepare_build(args.build_dir, defines, exports)
 
     except tupcfg.Env.VariableNotFound as e:
         fatal('\n'.join([

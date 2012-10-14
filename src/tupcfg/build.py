@@ -2,13 +2,14 @@
 
 import os
 
-from tupcfg import tools
+from tupcfg import tools, path
 
 class Build:
     def __init__(self, directory, root_directory='.'):
         self.directory = directory
         self.root_directory = root_directory
         self.targets = []
+        self.tupfiles = set()
 
     def add_target(self, target):
         self.targets.append(target)
@@ -27,20 +28,25 @@ class Build:
             t.dump(build=self, project=project, **kwargs)
 
     def execute(self, project, **kwargs):
-        from os.path import join, exists
         self.__commands = {}
         for t in self.targets:
             t.execute(build=self, project=project, **kwargs)
         for dir_, rules in self.__commands.items():
-            if not exists(dir_):
+            if not path.exists(dir_):
                 os.makedirs(dir_)
-            tupfile = join(dir_, 'Tupfile')
-            tools.verbose(exists(tupfile) and 'Updating' or 'Creating', tupfile)
+            tupfile = path.join(dir_, 'Tupfile')
+            self.tupfiles.add(path.absolute(tupfile))
+            tools.verbose(path.exists(tupfile) and 'Updating' or 'Creating', tupfile)
             with open(tupfile, 'w') as f:
                 self.__write_conf(dir_, f, rules)
 
+    def cleanup(self):
+        for tupfile in tools.glob('Tupfile', dir_=self.directory, recursive=True):
+            tupfile = path.absolute(tupfile)
+            if tupfile not in self.tupfiles:
+                os.unlink(tupfile)
+
     def __write_conf(self, dir_, tupfile, rules):
-        from os.path import basename
         write = lambda *args: print(*(args + ('\\',)), file=tupfile)
         for action, cmd, i, ai, o, ao, kw in rules:
             write(":")
@@ -48,7 +54,7 @@ class Build:
                 write('\t', input_.shell_string(**kw))
             write("|>")
             if not tools.DEBUG:
-                write("^", action, basename(str(kw['target'])), "^")
+                write("^", action, path.basename(str(kw['target'])), "^")
             for e in cmd:
                 write('\t', e)
             write("|>", kw['target'].shell_string(**kw))
@@ -61,7 +67,7 @@ class Build:
                      outputs, additional_outputs,
                      kw):
         l = self.__commands.setdefault(
-            os.path.dirname(kw['target'].path(**kw)),
+            path.dirname(kw['target'].path(**kw)),
             []
         )
         l.append((
