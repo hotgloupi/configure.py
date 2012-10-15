@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import Target, path
+import sys
+from tupcfg import Target, path, tools
 from . import compiler
 
 class LinkFlag:
@@ -15,22 +16,40 @@ class LinkFlag:
 class Compiler(compiler.Compiler):
 
     binary_name = 'g++'
+    ar_binary_name = 'ar'
 
     __standards_map = {
         'c++11': 'c++11',
     }
 
-    def __get_build_flags(self, cmd, **kw):
+    def __init__(self, project, build, **kw):
+        compiler.Compiler.__init__(self, project, build, **kw)
+        self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
+        project.env.project_set('AR', self.ar_binary)
+
+    def __get_build_flags(self, cmd):
         flags = ['-x', 'c++']
-        pic = kw.get('position_independent_code',
-                     self.position_independent_code)
-        if pic:
+        pic = cmd.kw.get('position_independent_code',
+                         self.position_independent_code)
+        if pic and sys.platform != 'win32':
             flags.append('-fPIC')
-        std = kw.get('standard', self.standard)
+        std = cmd.kw.get('standard', self.standard)
         if std:
             flags.append('-std=%s' % self.__standards_map[std])
-        include_directories = set(self.include_directories)
-        for lib in cmd.libraries:
+        defines = cmd.kw.get('defines', []) + self.defines
+        for define in defines:
+            if isinstance(define, str):
+                flags.append('-D' + define)
+            else:
+                assert len(define) == 2 #key, value
+                flags.append('-D%s=%s' % define)
+
+        include_directories = set(
+            self.include_directories +
+            cmd.kw.get('include_directories', [])
+        )
+        libraries = cmd.kw.get('libraries', []) #+ self.libraries
+        for lib in libraries:
             if isinstance(lib, Target):
                 continue
             for dir_ in lib.include_directories:
@@ -41,7 +60,7 @@ class Compiler(compiler.Compiler):
         assert len(cmd.dependencies) == 1
         return [
             self.binary,
-            self.__get_build_flags(cmd, **kw),
+            self.__get_build_flags(cmd),
             '-c', cmd.dependencies[0],
             '-o', kw['target'],
         ]
@@ -67,7 +86,7 @@ class Compiler(compiler.Compiler):
                 return ''
 
         rpath = RPathFlag()
-        for lib in cmd.libraries:
+        for lib in cmd.kw.get('libraries', []):
             if isinstance(lib, Target):
                 link_flags.append(lib)
                 rpath.libs.append(lib)
@@ -89,11 +108,19 @@ class Compiler(compiler.Compiler):
         ]
 
     def _link_library_cmd(self, cmd, **kw):
-        return [
-            self.binary,
-            cmd.dependencies,
-            cmd.shared and '-shared' or '',
-            cmd.shared and '-Wl,-soname,' + path.basename(kw['target'].path(**kw)),
-            '-o', kw['target'],
-            self.__get_link_flags(cmd, **kw)
-        ]
+        if cmd.shared:
+            return [
+                self.binary,
+                cmd.dependencies,
+                '-shared',
+                '-Wl,-soname,' + path.basename(kw['target'].path(**kw)),
+                '-o', kw['target'],
+                self.__get_link_flags(cmd, **kw)
+            ]
+        else:
+            return [
+                self.ar_binary,
+                'cr',
+                kw['target'],
+                cmd.dependencies,
+            ]

@@ -20,7 +20,7 @@ class BasicCompiler:
         sources_ = (Source(src) for src in sources)
         objects = (self._build_object(src, **kw) for src in sources_)
         return self.build.add_target(
-            Target(name, self._link_library(list(objects), **kw))
+            Target(name, self._link_library(list(objects), shared=shared, **kw))
         )
 
     def link_static_library(self, name, sources, **kw):

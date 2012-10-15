@@ -48,11 +48,13 @@ def fatal(*args, **kwargs):
         sys.exit(1)
 
 def which(binary):
-    paths = os.environ['PATH'].split(':')
+    paths = os.environ['PATH'].split(os.path.pathsep)
     for dir_ in paths:
         path = os.path.join(dir_, binary)
         if os.path.exists(path) and os.stat(path)[stat.ST_MODE] & stat.S_IXUSR:
             return path
+    if sys.platform =='win32' and not binary.lower().endswith('.exe'):
+        return which(binary + '.exe')
     return None
 
 def cmd(cmd, stdin = b'', cwd = None, env=None):
@@ -78,6 +80,7 @@ PROJECT_CONFIG_DIR = cleanjoin(ROOT_DIR, PROJECT_CONFIG_DIR_NAME)
 PROJECT_CONFIG_FILENAME = "project.py"
 TUP_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tup')
 TUP_GIT_URL = "git://github.com/gittup/tup.git"
+TUP_WINDOWS_URL = "http://gittup.org/tup/win32/tup-latest.zip"
 TUPCFG_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tupcfg-install')
 TUPCFG_GIT_URL = "git://github.com/hotgloupi/tupcfg.git"
 MAKEFILE_TEMPLATE = """
@@ -112,6 +115,33 @@ def self_install(args):
 
 
 def tup_install(args):
+    import sys
+    if sys.platform == 'win32':
+        tup_install_windows(args)
+    else:
+        tup_install_git(args)
+    from tupcfg import tools
+    print("Tup installed in", tools.which('tup'))
+
+
+def tup_install_windows(args):
+    import urllib.request as r
+    req = r.urlopen(TUP_WINDOWS_URL)
+    if not os.path.exists(TUP_INSTALL_DIR):
+        os.makedirs(TUP_INSTALL_DIR)
+    tarball = os.path.join(TUP_INSTALL_DIR, 'tup.zip')
+    with open(tarball, 'wb') as f:
+        while True:
+            data = req.read(4096)
+            if not data:
+                break
+            f.write(data)
+    import zipfile
+    with zipfile.ZipFile(tarball) as f:
+        f.extractall(TUP_INSTALL_DIR)
+
+
+def tup_install_git(args):
     status("Installing tup in", TUP_INSTALL_DIR)
     if not os.path.exists(TUP_INSTALL_DIR):
         os.makedirs(TUP_INSTALL_DIR)

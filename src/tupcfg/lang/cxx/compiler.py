@@ -13,14 +13,14 @@ class Compiler(compiler.BasicCompiler):
         """Basic behavior to build an object from source"""
         action = "Building CXX object"
 
-        def __init__(self, compiler, source, libraries=[]):
+        def __init__(self, compiler, source, **kw):
             if not isinstance(source, Source):
                 raise Exception(
                     "Cannot build object from '%s' (of type %s)" %
                     (source, type(source))
                 )
             self.compiler = compiler
-            self.libraries = libraries
+            self.kw = kw
             Command.__init__(self, source)
 
         def command(self, **kw):
@@ -29,9 +29,9 @@ class Compiler(compiler.BasicCompiler):
     class LinkCommand(Command):
         """Base class for linking commands"""
 
-        def __init__(self, compiler, objects, libraries=[]):
+        def __init__(self, compiler, objects, **kw):
             self.compiler = compiler
-            self.libraries = libraries
+            self.kw = kw
             Command.__init__(self, objects)
 
     class LinkExecutable(LinkCommand):
@@ -52,6 +52,7 @@ class Compiler(compiler.BasicCompiler):
     def __init__(self, project, build, **kw):
         kw['lang'] = 'cxx'
         attrs = [
+            ('defines', []),
             ('library_directories', []),
             ('include_directories', []),
             ('position_independent_code', False),
