@@ -94,7 +94,13 @@ class Compiler(compiler.Compiler):
                 for dir_ in lib.directories:
                     library_directories.add(dir_)
                 for name in lib.names:
+                    if lib.shared:
+                        link_flags.append('-Wl,-Bdynamic')
+                    else:
+                        link_flags.append('-Wl,-Bstatic')
                     link_flags.append('-l%s' % name)
+
+        link_flags.append('-Wl,-Bdynamic')
         rpath.directories.extend(library_directories)
         link_flags.append(rpath)
         return list(('-L%s' % l) for l in library_directories) + link_flags
