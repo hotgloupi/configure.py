@@ -5,6 +5,7 @@ import stat
 import sys
 import types
 from . import path
+from . import platform
 
 DEBUG = False
 VERBOSE = True
@@ -31,8 +32,7 @@ def fatal(*args, **kwargs):
     finally:
         sys.exit(1)
 
-IS_WINDOWS = sys.platform.lower().startswith('win')
-PATH_SPLIT_CHAR = IS_WINDOWS and ';' or ':'
+PATH_SPLIT_CHAR = platform.IS_WINDOWS and ';' or ':'
 
 PATH = os.environ['PATH'].split(PATH_SPLIT_CHAR)
 
@@ -41,7 +41,7 @@ def which(binary):
         path = os.path.join(dir_, binary)
         if os.path.exists(path) and os.stat(path)[stat.ST_MODE] & stat.S_IXUSR:
             return path
-    if IS_WINDOWS and not binary.lower().endswith('.exe'):
+    if platform.IS_WINDOWS and not binary.lower().endswith('.exe'):
         return which(binary + '.exe')
     return None
 
@@ -80,3 +80,4 @@ def glob(pattern, dir_=None, recursive=False):
 
 def isiterable(obj):
     return isinstance(obj, (list, tuple, types.GeneratorType))
+
