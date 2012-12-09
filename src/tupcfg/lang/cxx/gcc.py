@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 import sys
-from tupcfg import Target, path, tools
+from tupcfg import Target, path, tools, platform
 from . import compiler
 
 class LinkFlag:
@@ -60,6 +60,7 @@ class Compiler(compiler.Compiler):
         assert len(cmd.dependencies) == 1
         return [
             self.binary,
+            self.__architecture_flag(cmd, **kw),
             self.__get_build_flags(cmd),
             '-c', cmd.dependencies[0],
             '-o', kw['target'],
@@ -94,13 +95,18 @@ class Compiler(compiler.Compiler):
                 for dir_ in lib.directories:
                     library_directories.add(dir_)
                 for name in lib.names:
-                    if lib.shared:
-                        link_flags.append('-Wl,-Bdynamic')
+                    if not platform.IS_MACOSX:
+                        if lib.shared:
+                            link_flags.append('-Wl,-Bdynamic')
+                        else:
+                            link_flags.append('-Wl,-Bstatic')
+                    if platform.IS_MACOSX and lib.macosx_framework:
+                        link_flags.extend(['-framework', name])
                     else:
-                        link_flags.append('-Wl,-Bstatic')
-                    link_flags.append('-l%s' % name)
+                        link_flags.append('-l%s' % name)
 
-        link_flags.append('-Wl,-Bdynamic')
+        if not platform.IS_MACOSX:
+            link_flags.append('-Wl,-Bdynamic')
         rpath.directories.extend(library_directories)
         link_flags.append(rpath)
         return list(('-L%s' % l) for l in library_directories) + link_flags
@@ -109,24 +115,38 @@ class Compiler(compiler.Compiler):
         return [
             self.binary,
             cmd.dependencies,
+            self.__architecture_flag(cmd, **kw),
             '-o', kw['target'],
             self.__get_link_flags(cmd, **kw)
         ]
 
     def _link_library_cmd(self, cmd, **kw):
         if cmd.shared:
+            if platform.IS_MACOSX:
+                link_flag = 'dynamiclib'
+                soname_flag = 'dylib_install_name'
+            else:
+                link_flag = 'shared'
+                soname_flag = 'soname'
             return [
                 self.binary,
+                '-%s' % link_flag,
+                self.__architecture_flag(cmd, **kw),
                 cmd.dependencies,
-                '-shared',
-                '-Wl,-soname,' + path.basename(kw['target'].path(**kw)),
+                ('-Wl,-%s,' % soname_flag) + path.basename(kw['target'].path(**kw)),
                 '-o', kw['target'],
                 self.__get_link_flags(cmd, **kw)
             ]
         else:
             return [
                 self.ar_binary,
-                'cr',
+                'rcs',
                 kw['target'],
                 cmd.dependencies,
             ]
+
+    def __architecture_flag(self, cmd, **kw):
+        return {
+            '64bit': '-m64',
+            '32bit': '-m32',
+        }[kw.get('architecture', self.architecture)]

@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import compiler, tools, Target, Command, Source
+from tupcfg import compiler, tools, Target, Command, Source, platform
 
 
 class Compiler(compiler.BasicCompiler):
@@ -57,6 +57,7 @@ class Compiler(compiler.BasicCompiler):
             ('include_directories', []),
             ('position_independent_code', False),
             ('standard', None),
+            ('architecture', platform.ARCHITECTURE),
         ]
         for key, default in attrs:
             setattr(self, key, kw.get(key, default))
