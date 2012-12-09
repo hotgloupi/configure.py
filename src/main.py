@@ -105,7 +105,7 @@ def self_install(args):
         status("Getting tup from", TUPCFG_GIT_URL)
         cmd(['git', 'clone', TUPCFG_GIT_URL, TUPCFG_INSTALL_DIR])
     else:
-        status("Updating tup")
+        status("Updating tupcfg")
         cmd(['git', 'pull'], cwd=TUPCFG_INSTALL_DIR)
     shutil.rmtree(os.path.join(PROJECT_CONFIG_DIR, 'tupcfg'), ignore_errors=True)
     shutil.copytree(
@@ -115,8 +115,8 @@ def self_install(args):
 
 
 def tup_install(args):
-    import sys
-    if sys.platform == 'win32':
+    from tupcfg import platform
+    if platform.IS_WINDOWS:
         tup_install_windows(args)
     else:
         tup_install_git(args)
@@ -142,8 +142,9 @@ def tup_install_windows(args):
 
 
 def tup_install_git(args):
+    from tupcfg import path
     status("Installing tup in", TUP_INSTALL_DIR)
-    if not os.path.exists(TUP_INSTALL_DIR):
+    if not path.exists(TUP_INSTALL_DIR):
         os.makedirs(TUP_INSTALL_DIR)
         status("Getting tup from", TUP_GIT_URL)
         cmd(['git', 'clone', TUP_GIT_URL, TUP_INSTALL_DIR])
@@ -151,19 +152,22 @@ def tup_install_git(args):
         status("Updating tup")
         cmd(['git', 'pull'], cwd=TUP_INSTALL_DIR)
 
-    if not which('tup'):
+    tup_shell_bin = path.join(TUP_INSTALL_DIR, "build", "tup")
+    if not path.exists(TUP_INSTALL_DIR, "build", "tup"):
         cmd(['sh', 'build.sh'], cwd=TUP_INSTALL_DIR)
+    else:
+        status("Found shell version of tup at", tup_shell_bin)
 
-    tup_dir = os.path.join(ROOT_DIR, '.tup')
+    tup_dir = path.join(ROOT_DIR, '.tup')
     if os.path.exists(tup_dir):
         os.rename(tup_dir, tup_dir + '.bak')
 
     try:
-        if not os.path.exists(os.path.join(TUP_INSTALL_DIR, '.tup')):
+        if not path.exists(TUP_INSTALL_DIR, '.tup'):
             cmd(['./build/tup', 'init'], cwd=TUP_INSTALL_DIR)
         cmd(['./build/tup', 'upd'], cwd=TUP_INSTALL_DIR)
     finally:
-        if os.path.exists(tup_dir + '.bak'):
+        if path.exists(tup_dir + '.bak'):
             os.rename(tup_dir + '.bak', tup_dir)
 
 
@@ -224,11 +228,15 @@ def prepare_build(build_dir, defines, exports):
         )
         sys.exit(0)
 
+    tup_bin = absolute(PROJECT_CONFIG_DIR, 'tup/tup')
+    if not exists(tup_bin):
+        tup_bin = tupcfg.tools.which('tup')
+        assert exists(tup_bin)
     makefile = join(build_dir, 'Makefile')
     with open(makefile, 'w') as f:
         f.write(MAKEFILE_TEMPLATE % {
             'tup_config_dir': absolute(ROOT_DIR, '.tup'),
-            'tup_bin': absolute(PROJECT_CONFIG_DIR, 'tup/tup'),
+            'tup_bin': tup_bin,
             'root_dir': absolute(ROOT_DIR),
             'project_config_dir': absolute(PROJECT_CONFIG_DIR),
         })
