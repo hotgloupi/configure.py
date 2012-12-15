@@ -2,16 +2,18 @@
 
 from tupcfg import compiler, tools, Target, Command, Source, platform
 
-
 class Compiler(compiler.BasicCompiler):
-    """Generic CXX compiler."""
+    """Generic compiler."""
 
     # Standard binary name (Should be overriden)
     binary_name = None
 
     class BuildObject(Command):
         """Basic behavior to build an object from source"""
-        action = "Building CXX object"
+
+        @property
+        def action(self):
+            return "Building %s object" % self.compiler.lang
 
         def __init__(self, compiler, source, **kw):
             if not isinstance(source, Source):
@@ -50,7 +52,7 @@ class Compiler(compiler.BasicCompiler):
             return self.compiler._link_library_cmd(self, **kw)
 
     def __init__(self, project, build, **kw):
-        kw['lang'] = 'cxx'
+        assert 'lang' in kw
         attrs = [
             ('defines', []),
             ('library_directories', []),

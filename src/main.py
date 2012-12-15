@@ -171,10 +171,11 @@ def tup_install_git(args):
             os.rename(tup_dir + '.bak', tup_dir)
 
 
-def prepare_build(build_dir, defines, exports):
+def prepare_build(args, defines, exports):
     import tupcfg # Should work at this point
     from tupcfg.path import exists, join, absolute
 
+    build_dir = args.build_dir
     try:
         project = tupcfg.Project(
             ROOT_DIR,
@@ -212,10 +213,26 @@ def prepare_build(build_dir, defines, exports):
             list(set(build_dirs + env_build_dirs))
         )
 
+        if args.dump_vars:
+            status("Project variables:")
+            for k, v in project.env.project_vars.items():
+                status("\t - %s = %s" % (k, v))
+
         with project:
             for build_dir in build_dirs:
                 build = tupcfg.Build(build_dir)
                 project.configure(build, defines)
+
+                if args.dump_vars:
+                    status("Build variables for directory '%s':" % build_dir)
+                    for k, v in project.env.build_vars.items():
+                        status("\t - %s = %s" % (k, v))
+                    continue
+
+                if args.dump_build:
+                    build.dump(project)
+                else:
+                    build.execute(project)
                 build.cleanup()
 
     except tupcfg.Project.NeedUserEdit:
@@ -244,7 +261,6 @@ def prepare_build(build_dir, defines, exports):
     if not exists(join(ROOT_DIR, '.tup')):
         cmd = ['make', '-C', build_dir]
         print('Just run `%s`' % ' '.join(map(pipes.quote, cmd)))
-    pass
 
 def parse_args():
     def Dir(s):
@@ -262,7 +278,8 @@ def parse_args():
                         help="Define project specific variables", default=[])
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose mode")
     parser.add_argument('-d', '--debug', action='store_true', help="debug mode")
-    parser.add_argument('--dump', action='store_true', help="dump variables")
+    parser.add_argument('--dump-vars', action='store_true', help="dump variables")
+    parser.add_argument('--dump-build', action='store_true', help="dump commands that would be executed")
     parser.add_argument('--install', action='store_true', help="install when needed")
     parser.add_argument('--self-install', action='store_true', help="install (or update) tupcfg")
     parser.add_argument('--tup-install', action='store_true', help="install (or update) tup")
@@ -347,7 +364,7 @@ def main():
             k, v = d.split('=')
             exports[k.strip()] = v.strip()
 
-        prepare_build(args.build_dir, defines, exports)
+        prepare_build(args, defines, exports)
 
     except tupcfg.Env.VariableNotFound as e:
         fatal('\n'.join([

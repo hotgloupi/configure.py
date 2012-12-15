@@ -17,6 +17,14 @@ class Env:
         self.__build_vars = {}
         self.project = project
 
+    @property
+    def build_vars(self):
+        return self.__build_vars
+
+    @property
+    def project_vars(self):
+        return self.__project_vars
+
     def enable_build_vars(self, path, new_vars={}):
         if not os.path.exists(path):
             self.__build_vars = new_vars

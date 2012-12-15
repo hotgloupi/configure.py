@@ -35,3 +35,16 @@ def absolute(p, *paths, **kw):
 
 def relative(p, *path, start=None, **kw):
     return clean(os.path.relpath(os.path.join(p, *path), start=start), **kw)
+
+def is_absolute(p, *path):
+    return os.path.isabs(os.path.join(p, *path))
+
+is_directory = os.path.isdir
+
+def is_executable(p, *path):
+    path = os.path.join(p, *path)
+    return (
+        os.path.exists(path) and
+        not os.path.isdir(path) and
+        os.stat(path)[stat.ST_MODE] & stat.S_IXUSR
+    )

@@ -75,5 +75,3 @@ def configure(project, build):
     ]
     target = Target('test', LinkExecutable(objs))
     build.add_target(target)
-    build.dump(project)
-    build.execute(project)
