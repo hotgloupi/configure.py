@@ -78,11 +78,12 @@ class Command(Node):
         kw['inc'] = inc + 2
         super(Command, self).dump(**kw)
 
-    def execute(self, **kw):
-        super(Command, self).execute(**kw)
-        kw['build'].emit_command(
+    def execute(self, target=None, build=None):
+        assert build is not None
+        super(Command, self).execute(target=target, build=build)
+        build.emit_command(
             self.action,
-            *self.gen_command(shell_string=True, **kw)
+            *self.gen_command(shell_string=True, target=target, build=build)
         )
 
 

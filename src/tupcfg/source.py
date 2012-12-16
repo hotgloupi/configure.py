@@ -11,13 +11,13 @@ class Source(Node):
         self.filename = filename
         super(Source, self).__init__(None)
 
-    def path(self, **kw):
-        return path.join(kw['build'].root_directory, self.filename)
+    def path(self, build):
+        return path.absolute(build.root_directory, self.filename)
 
-    def relpath(self, from_, **kw):
+    def relpath(self, from_, build):
         if not isinstance(from_, str):
-            from_ = path.dirname(from_.path(**kw))
-        return path.relative(self.path(**kw), start=from_)
+            from_ = path.dirname(from_.path(build))
+        return path.relative(self.path(build), start=from_)
 
     @property
     def name(self):
@@ -33,6 +33,6 @@ class Source(Node):
             self.filename
         )
 
-    def shell_string(self, **kw):
-        return self.relpath(kw['target'], **kw)
+    def shell_string(self, target=None, build=None):
+        return self.relpath(target, build)
 

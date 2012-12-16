@@ -231,6 +231,7 @@ def prepare_build(args, defines, exports):
 
                 if args.dump_build:
                     build.dump(project)
+                    continue
                 else:
                     build.execute(project)
                 build.cleanup()

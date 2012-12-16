@@ -27,10 +27,10 @@ class Build:
         for t in self.targets:
             t.dump(build=self, project=project, **kwargs)
 
-    def execute(self, project, **kwargs):
+    def execute(self, project):
         self.__commands = {}
         for t in self.targets:
-            t.execute(build=self, project=project, **kwargs)
+            t.execute(build=self)
         for dir_, rules in self.__commands.items():
             if not path.exists(dir_):
                 os.makedirs(dir_)
@@ -67,7 +67,7 @@ class Build:
                      outputs, additional_outputs,
                      kw):
         l = self.__commands.setdefault(
-            path.dirname(kw['target'].path(**kw)),
+            path.dirname(kw['target'].path(kw['build'])),
             []
         )
         l.append((

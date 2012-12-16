@@ -1,8 +1,7 @@
 # -*- encoding: utf-8 -*-
 
-import os
-
 from .node import Node
+from . import path
 
 class Target(Node):
 
@@ -10,16 +9,14 @@ class Target(Node):
         self.name = name
         super(Target, self).__init__(dependencies)
 
-    #def directory(self, build):
-    #    return os.path.join(build.directory, os.path.dirname(self.name))
+    def path(self, build):
+        assert build is not None
+        return path.absolute(build.directory, self.name)
 
-    def path(self, **kw):
-        return os.path.join(kw['build'].directory, self.name)
-
-    def relpath(self, from_, **kw):
+    def relpath(self, from_, build):
         if not isinstance(from_, str):
-            from_ = os.path.dirname(from_.path(**kw))
-        return os.path.relpath(self.path(**kw), start=from_)
+            from_ = path.dirname(from_.path(build))
+        return path.relative(self.path(build), start=from_)
 
     def dump(self, inc=0, **kw):
         print(' ' * inc, "Target '%s':" % self.name)
@@ -36,10 +33,9 @@ class Target(Node):
             self.name
         )
 
-    def execute(self, **kw):
-        kw['target'] = self
-        super(Target, self).execute(**kw)
+    def execute(self, target=None, build=None):
+        super(Target, self).execute(target=self, build=build)
 
 
-    def shell_string(self, **kw):
-        return self.relpath(kw['target'], **kw)
+    def shell_string(self, target=None, build=None):
+        return self.relpath(target, build=build)

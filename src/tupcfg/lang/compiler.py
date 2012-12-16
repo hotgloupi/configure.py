@@ -8,6 +8,9 @@ class Compiler(compiler.BasicCompiler):
     # Standard binary name (Should be overriden)
     binary_name = None
 
+    # Compiled object extension
+    object_extension = 'o'
+
     class BuildObject(Command):
         """Basic behavior to build an object from source"""
 
@@ -51,6 +54,19 @@ class Compiler(compiler.BasicCompiler):
         def command(self, **kw):
             return self.compiler._link_library_cmd(self, **kw)
 
+    def _include_directories(self, cmd):
+        include_directories = set(
+            self.include_directories +
+            cmd.kw.get('include_directories', [])
+        )
+        libraries = set(cmd.kw.get('libraries', []))
+        for lib in libraries:
+            if isinstance(lib, Target):
+                continue
+            for dir_ in lib.include_directories:
+                include_directories.add(dir_)
+        return include_directories
+
     def __init__(self, project, build, **kw):
         assert 'lang' in kw
         attrs = [
@@ -60,6 +76,8 @@ class Compiler(compiler.BasicCompiler):
             ('position_independent_code', False),
             ('standard', None),
             ('architecture', platform.ARCHITECTURE),
+            ('enable_warnings', True),
+            ('use_build_type_flags', True),
         ]
         for key, default in attrs:
             setattr(self, key, kw.get(key, default))
@@ -70,9 +88,14 @@ class Compiler(compiler.BasicCompiler):
         project.env.project_set('CXX', binary)
         super(Compiler, self).__init__(binary, project, build, **kw)
 
+    def attr(self, attribute, cmd):
+        """Returns an attribute value with correct priority"""
+        return cmd.kw.get(attribute, getattr(self, attribute))
+
     def _build_object(self, src, **kw):
-        return (
-            Target(src.filename + '.o', self.BuildObject(self, src, **kw))
+        return Target(
+            src.filename + '.' + self.object_extension,
+            self.BuildObject(self, src, **kw)
         )
 
     def _link_library(self, objects, **kw):

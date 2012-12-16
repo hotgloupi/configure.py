@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 import os.path
+import stat
 
 def exists(p, *paths):
     return os.path.exists(os.path.join(p, *paths))

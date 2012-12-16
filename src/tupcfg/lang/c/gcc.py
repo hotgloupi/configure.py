@@ -4,15 +4,6 @@ import sys
 from tupcfg import Target, path, tools, platform
 from tupcfg.lang import compiler
 
-class LinkFlag:
-    def __init__(self, lib, method):
-        self.lib = lib
-        self.method = method
-
-    def shell_string(self, **kw):
-        return self.method(self.lib, **kw)
-
-
 class Compiler(compiler.Compiler):
 
     binary_name = 'gcc'
@@ -28,16 +19,16 @@ class Compiler(compiler.Compiler):
         self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
         project.env.project_set('AR', self.ar_binary)
 
-    def _get_build_flags(self, cmd):
+    def _get_build_flags(self, cmd, **kw):
         flags = []
-        pic = cmd.kw.get('position_independent_code',
-                         self.position_independent_code)
-        if pic and sys.platform != 'win32':
+        pic = self.attr('position_independent_code', cmd, **kw)
+        if pic and not platform.IS_WINDOWS:
             flags.append('-fPIC')
-        std = cmd.kw.get('standard', self.standard)
+        std = self.attr('standard', cmd, **kw)
         if std:
             flags.append('-std=%s' % self.__standards_map[std])
-        defines = cmd.kw.get('defines', []) + self.defines
+
+        defines = kw.get('defines', []) + cmd.kw.get('defines', []) + self.defines
         for define in defines:
             if isinstance(define, str):
                 flags.append('-D' + define)
@@ -45,24 +36,16 @@ class Compiler(compiler.Compiler):
                 assert len(define) == 2 #key, value
                 flags.append('-D%s=%s' % define)
 
-        include_directories = set(
-            self.include_directories +
-            cmd.kw.get('include_directories', [])
+        return flags + list(
+            ('-I%s' % i) for i in self._include_directories(cmd, **kw)
         )
-        libraries = cmd.kw.get('libraries', []) #+ self.libraries
-        for lib in libraries:
-            if isinstance(lib, Target):
-                continue
-            for dir_ in lib.include_directories:
-                include_directories.add(dir_)
-        return flags + list(('-I%s' % i) for i in include_directories)
 
     def _build_object_cmd(self, cmd, **kw):
         assert len(cmd.dependencies) == 1
         return [
             self.binary,
             self.__architecture_flag(cmd, **kw),
-            self._get_build_flags(cmd),
+            self._get_build_flags(cmd, **kw),
             '-c', cmd.dependencies[0],
             '-o', kw['target'],
         ]
@@ -150,4 +133,4 @@ class Compiler(compiler.Compiler):
         return {
             '64bit': '-m64',
             '32bit': '-m32',
-        }[kw.get('architecture', self.architecture)]
+        }[self.attr('architecture', cmd, **kw)]

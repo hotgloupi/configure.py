@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 
 import os
-import stat
 import sys
 import types
 from . import path
@@ -38,9 +37,9 @@ PATH = os.environ['PATH'].split(PATH_SPLIT_CHAR)
 
 def which(binary):
     for dir_ in PATH:
-        path = os.path.join(dir_, binary)
-        if os.path.exists(path) and os.stat(path)[stat.ST_MODE] & stat.S_IXUSR:
-            return path
+        exe = os.path.join(dir_, binary)
+        if path.is_executable(exe):
+            return exe
     if platform.IS_WINDOWS and not binary.lower().endswith('.exe'):
         return which(binary + '.exe')
     return None
@@ -49,12 +48,12 @@ def find_binary(name, env=None, var_name=None):
     if not (env and var_name) and (env or var_name):
         raise Exception("Wrong usage, please set both env and var_name")
     if env and var_name:
-        path = env.get(var_name)
-        if path is not None and not os.path.isabs(path):
-            path = which(path)
+        binary = env.get(var_name)
+        if binary is not None and not path.is_absolute(binary):
+            binary = which(binary)
         if path is not None:
-            return path
-    path = which(name)
+            return path.clean(binary)
+    binary = which(name)
     if path is None:
         if env and var_name:
             raise Exception(
@@ -62,7 +61,7 @@ def find_binary(name, env=None, var_name=None):
             )
         else:
             raise Exception("Cannot find binary '%s'" % name)
-    return path
+    return binary
 
 
 def glob(pattern, dir_=None, recursive=False):
