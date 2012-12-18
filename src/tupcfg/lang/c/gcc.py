@@ -19,16 +19,16 @@ class Compiler(compiler.Compiler):
         self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
         project.env.project_set('AR', self.ar_binary)
 
-    def _get_build_flags(self, cmd, **kw):
+    def _get_build_flags(self, cmd):
         flags = []
-        pic = self.attr('position_independent_code', cmd, **kw)
+        pic = self.attr('position_independent_code', cmd)
         if pic and not platform.IS_WINDOWS:
             flags.append('-fPIC')
-        std = self.attr('standard', cmd, **kw)
+        std = self.attr('standard', cmd)
         if std:
             flags.append('-std=%s' % self.__standards_map[std])
 
-        defines = kw.get('defines', []) + cmd.kw.get('defines', []) + self.defines
+        defines = cmd.kw.get('defines', []) + self.defines
         for define in defines:
             if isinstance(define, str):
                 flags.append('-D' + define)
@@ -37,23 +37,23 @@ class Compiler(compiler.Compiler):
                 flags.append('-D%s=%s' % define)
 
         return flags + list(
-            ('-I%s' % i) for i in self._include_directories(cmd, **kw)
+            ('-I%s' % i) for i in self._include_directories(cmd)
         )
 
-    def _build_object_cmd(self, cmd, **kw):
+    def _build_object_cmd(self, cmd, target=None, build=None):
         assert len(cmd.dependencies) == 1
         return [
             self.binary,
-            self.__architecture_flag(cmd, **kw),
-            self._get_build_flags(cmd, **kw),
+            self.__architecture_flag(cmd),
+            self._get_build_flags(cmd),
             '-c', cmd.dependencies[0],
-            '-o', kw['target'],
+            '-o', target,
         ]
 
     def __add_rpath(self, lib, **kw):
         return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 
-    def _get_link_flags(self, cmd, **kw):
+    def _get_link_flags(self, cmd):
         library_directories = set(self.library_directories)
         link_flags = []
         class RPathFlag:
@@ -61,11 +61,10 @@ class Compiler(compiler.Compiler):
                 self.libs = []
                 self.directories = []
 
-            def shell_string(self, **kw):
-                from os.path import abspath, dirname
+            def shell_string(self, target=None, build=None):
                 dirs = set(self.directories)
                 for lib in self.libs:
-                    dirs.add(path.dirname(path.absolute(lib.path(**kw))))
+                    dirs.add(path.dirname(path.absolute(lib.path(build))))
                 if dirs:
                     return '-Wl,-rpath,' + ':'.join(dirs)
                 return ''
@@ -95,16 +94,16 @@ class Compiler(compiler.Compiler):
         link_flags.append(rpath)
         return list(('-L%s' % l) for l in library_directories) + link_flags
 
-    def _link_executable_cmd(self, cmd, **kw):
+    def _link_executable_cmd(self, cmd, target=None, build=None):
         return [
             self.binary,
             cmd.dependencies,
-            self.__architecture_flag(cmd, **kw),
-            '-o', kw['target'],
-            self._get_link_flags(cmd, **kw)
+            self.__architecture_flag(cmd),
+            '-o', target,
+            self._get_link_flags(cmd)
         ]
 
-    def _link_library_cmd(self, cmd, **kw):
+    def _link_library_cmd(self, cmd, target=None, build=None):
         if cmd.shared:
             if platform.IS_MACOSX:
                 link_flag = 'dynamiclib'
@@ -115,11 +114,11 @@ class Compiler(compiler.Compiler):
             return [
                 self.binary,
                 '-%s' % link_flag,
-                self.__architecture_flag(cmd, **kw),
+                self.__architecture_flag(cmd),
                 cmd.dependencies,
-                ('-Wl,-%s,' % soname_flag) + path.basename(kw['target'].path(**kw)),
+                ('-Wl,-%s,' % soname_flag) + path.basename(target.path(build)),
                 '-o', kw['target'],
-                self._get_link_flags(cmd, **kw)
+                self._get_link_flags(cmd)
             ]
         else:
             return [
@@ -129,8 +128,8 @@ class Compiler(compiler.Compiler):
                 cmd.dependencies,
             ]
 
-    def __architecture_flag(self, cmd, **kw):
+    def __architecture_flag(self, cmd):
         return {
             '64bit': '-m64',
             '32bit': '-m32',
-        }[self.attr('architecture', cmd, **kw)]
+        }[self.attr('architecture', cmd)]
