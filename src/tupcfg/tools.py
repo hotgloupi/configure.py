@@ -51,10 +51,10 @@ def find_binary(name, env=None, var_name=None):
         binary = env.get(var_name)
         if binary is not None and not path.is_absolute(binary):
             binary = which(binary)
-        if path is not None:
+        if binary is not None:
             return path.clean(binary)
     binary = which(name)
-    if path is None:
+    if binary is None:
         if env and var_name:
             raise Exception(
                 "Cannot find binary '%s' (try to set %s variable)" % (name, var_name)
@@ -80,7 +80,7 @@ def glob(pattern, dir_=None, recursive=False):
 def isiterable(obj):
     return isinstance(obj, (list, tuple, types.GeneratorType))
 
-def _match_file(file_, name, extensions, prefixes, suffixes, validator):
+def _match_file(root, file_, name, extensions, prefixes, suffixes, validator):
     from fnmatch import fnmatch
     filename, ext = os.path.splitext(file_)
     if extensions:
@@ -106,7 +106,10 @@ def _match_file(file_, name, extensions, prefixes, suffixes, validator):
             if len(p) + len(s) > len(filename):
                 continue
             if fnmatch(filename[len(p):len(filename) - len(s)], name):
-                return True
+                if validator is not None:
+                    return validator(path.join(root, file_))
+                else:
+                    return True
     return False
 
 
@@ -117,12 +120,19 @@ def find_files(working_directory='.',
                extensions=None,
                prefixes=None,
                suffixes=None,
-               validator=None):
+               validator=None,
+               recursive=True):
 
+    if extensions:
+        extensions = list(
+            ext.startswith('.') and ext[1:] or ext
+            for ext in extensions
+        )
     results = []
     for root, dirnames, files in os.walk(working_directory):
         results.extend(
             file_ for file_ in files if _match_file(
+                root,
                 file_,
                 name,
                 extensions,
@@ -131,5 +141,18 @@ def find_files(working_directory='.',
                 validator
             )
         )
+        if not recursive:
+            break
     return results
+
+
+def unique(seq):
+    seen = {}
+    result = []
+    for item in seq:
+        if item in seen:
+            continue
+        seen[item] = 1
+        result.append(item)
+    return result
 

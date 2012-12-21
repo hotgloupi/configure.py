@@ -49,3 +49,7 @@ def is_executable(p, *path):
         not os.path.isdir(path) and
         os.stat(path)[stat.ST_MODE] & stat.S_IXUSR
     )
+
+def split(p, *path):
+    dirname, basename = os.path.split(os.path.join(p, *path))
+    return (clean(dirname), basename)

@@ -1,16 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-# We check if the python interpreter version is 3, and if not, we try to launch
-# python3 instead
-import sysconfig
-major_version = int(sysconfig.get_python_version().split('.')[0])
-if major_version != 3:
-    print("This script should be launched with python3")
-    import sys
-    sys.exit(1)
-
-
 import argparse
 import os
 import pipes
@@ -329,7 +319,7 @@ def main():
         tupcfg.tools.fatal = fatal
 
         tupcfg.tools.DEBUG = DEBUG
-        tupcfg.tools.VERBOSE = VERBOSE
+        tupcfg.tools.VERBOSE = VERBOSE or DEBUG
     except ImportError as e:
         if DEBUG is True:
             raise e

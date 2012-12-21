@@ -12,6 +12,6 @@ assert(IS_WINDOWS or IS_MACOSX or IS_LINUX)
 # make sure only one of them is true
 assert(int(IS_WINDOWS) + int(IS_MACOSX) + int(IS_LINUX) == 1)
 
-import platform
+import platform as _platform
 
-ARCHITECTURE = platform.architecture()[0]
+ARCHITECTURE = _platform.architecture()[0]

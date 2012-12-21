@@ -117,14 +117,14 @@ class Compiler(compiler.Compiler):
                 self.__architecture_flag(cmd),
                 cmd.dependencies,
                 ('-Wl,-%s,' % soname_flag) + path.basename(target.path(build)),
-                '-o', kw['target'],
+                '-o', target,
                 self._get_link_flags(cmd)
             ]
         else:
             return [
                 self.ar_binary,
                 'rcs',
-                kw['target'],
+                target,
                 cmd.dependencies,
             ]
 

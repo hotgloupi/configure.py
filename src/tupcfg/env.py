@@ -3,6 +3,18 @@
 import os
 import re
 
+class Value:
+    def __init__(self, value, type):
+        if type is list and isinstance(value, str):
+            value = [value]
+        if not isinstance(value, type):
+            value = type(value)
+        self.value = value
+        self.type = type
+
+    def __str__(self):
+        return str(self.value)
+
 class Env:
 
     class VariableNotFound(KeyError):
@@ -72,7 +84,7 @@ class Env:
     def __execute_command(self, cmd):
         return None
 
-    def __getitem__(self, key):
+    def __getitem__(self, key, type=str):
         var = self.__dict.get(
             key,
             os.environ.get(
@@ -90,19 +102,28 @@ class Env:
             var = self.__execute_command(cmd)
             if var is None:
                 raise ValueError("Result of command %s_CMD is None" % key)
+        if not isinstance(var, Value):
+            var = Value(var, type)
             self.__dict[key] = var
-        return var
+        return var.value
 
     def project_set(self, key, value):
+        value = Value(value, type(value))
         self.__project_vars[key] = value
 
     def build_set(self, key, value):
+        value = Value(value, type(value))
         self.__build_vars[key] = value
 
-    def get(self, key, default=None):
+    def get(self, key, default=None, type=None):
         try:
-            return self.__getitem__(key)
+            return self.__getitem__(
+                key,
+                type=(type is not None and type or str)
+            )
         except self.VariableNotFound:
+            if default is None and type is not None:
+                return type()
             return default
 
     def __setitem__(self, key, value):

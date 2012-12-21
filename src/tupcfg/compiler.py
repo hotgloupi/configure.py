@@ -81,3 +81,6 @@ class BasicCompiler:
         if sys.platform == 'win32':
             return name + '.exe'
         return name
+
+    def library_extensions(self, shared):
+        raise Exception("Not implemented")

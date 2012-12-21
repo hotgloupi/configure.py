@@ -11,6 +11,15 @@ class Compiler(compiler.BasicCompiler):
     # Compiled object extension
     object_extension = 'o'
 
+    def library_extensions(self, shared):
+        if shared:
+            if platform.IS_MACOSX:
+                return ['dylib']
+            else:
+                return ['so']
+        else:
+            return ['a']
+
     class BuildObject(Command):
         """Basic behavior to build an object from source"""
 
@@ -55,17 +64,17 @@ class Compiler(compiler.BasicCompiler):
             return self.compiler._link_library_cmd(self, **kw)
 
     def _include_directories(self, cmd):
-        include_directories = set(
+        include_directories = (
             self.include_directories +
             cmd.kw.get('include_directories', [])
         )
-        libraries = set(cmd.kw.get('libraries', []))
+        libraries = cmd.kw.get('libraries', [])
         for lib in libraries:
             if isinstance(lib, Target):
                 continue
             for dir_ in lib.include_directories:
-                include_directories.add(dir_)
-        return include_directories
+                include_directories.append(dir_)
+        return tools.unique(include_directories)
 
     def __init__(self, project, build, **kw):
         assert 'lang' in kw
