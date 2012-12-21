@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
-from . import tools
-from . import path
+from tupcfg import tools
+from tupcfg import path
 
 class Library:
 
@@ -204,3 +204,6 @@ class Library:
             '/usr/lib/x86_64-linux-gnu',
         ]
 
+    @property
+    def libraries(self):
+        return [self]
