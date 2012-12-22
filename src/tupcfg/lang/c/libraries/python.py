@@ -1,41 +1,54 @@
 # -*- encoding: utf-8 -*-
 
 from ..library import Library
+from tupcfg import path
 
 from sysconfig import get_config_var as var
 
 class PythonLibrary(Library):
-    def __init__(self, compiler, **kw):
+    def __init__(self, compiler, shared=True, **kw):
         include_dir = var('INCLUDEPY')
         assert include_dir is not None
         prefix = var('prefix')
         assert prefix is not None
+
+        directories = []
+        if var('LIBPL'):
+            directories.append(var('LIBPL'))
+        if var('base'):
+            directories.append(path.join(var('base'), 'libs'))
+            directories.append(path.join(var('base'), 'DLLs'))
+        name_suffixes = ['', var('py_version')[0]]
+        for k in ['LDVERSION', 'py_version_nodot', 'py_version_short']:
+            if var(k):
+                name_suffixes.append(var(k))
+
         super(PythonLibrary, self).__init__(
-            "python" + var('LDVERSION'),
+            "python",
             compiler,
             find_includes = ['Python.h'],
+            name_suffixes = name_suffixes,
             prefixes = [prefix],
             include_directories = var('INCLUDEPY') and [var('INCLUDEPY')] or [],
-            directories = var('LIBPL') and [var('LIBPL')] or [],
-            shared = kw.get('shared', True),
+            directories = directories,
+            shared = shared,
         )
+        components = []
+        if not shared:
+            components = ['pyexpat', 'unicodedata']
+        self.components = list(
+            Library(
+                component,
+                compiler,
+                prefixes = [prefix],
+                include_directories = var('INCLUDEPY') and [var('INCLUDEPY')] or [],
+                directories = directories,
+                shared = shared,
+            ) for component in components
+        )
+
         self.ext = var('SO')[1:]
-        #version = var('py_version_nodot')
-        #lib_dirs = []
-        #for d in ['lib', 'Libs', 'DLLs']:
-        #    if path.exists(prefix, d, 'libpython' + version + '.a') or \
-        #       path.exists(prefix, d, 'python' + version + '.lib') or \
-        #       path.exists(prefix, d, 'python' + version[0] + '.dll') or \
-        #       path.exists(prefix, d, 'libpython' + version + '.so') or \
-        #       path.exists(prefix, d, 'libpython' + version + '.dylib'):
-        #        lib_dirs.append(path.join(prefix, d))
-        #if platform.IS_MACOSX:
-        #    lib_dir = var('LIBPL')
-        #    assert path.exists(lib_dir)
-        #    name = 'python' + var('py_version_short')
-        #    assert path.exists(lib_dir, 'lib' + name + '.dylib')
-        #    lib_dirs.append(lib_dir)
-        #else:
-        #    name = 'python' + (var('LDVERSION') or version)
-        #print('PYTHON lib dirs:', ', '.join(lib_dirs))
-        #Library.__init__(self, name, [include_dir], lib_dirs, **kw)
+
+    @property
+    def libraries(self):
+        return [self] + self.components

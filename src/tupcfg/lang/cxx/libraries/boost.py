@@ -10,17 +10,25 @@ class BoostLibrary(Library):
             find_includes=['boost/config.hpp'],
             search_binary_files = False,
         )
-        self.components = list(
-            Library(
-                "boost_" + component,
-                compiler,
-                prefixes = self.prefixes,
-                include_directories = self.include_directories,
-                directories = self.directories,
-                shared = kw.get('%s_shared', kw.get('shared', True)),
+
+        self.components = []
+        for component in components:
+            shared = kw.get('%s_shared' % component, kw.get('shared', True))
+            if shared:
+                name_prefixes = ['']
+            else:
+                name_prefixes = ['lib']
+            self.components.append(
+                Library(
+                    "boost_" + component,
+                    compiler,
+                    prefixes = self.prefixes,
+                    include_directories = self.include_directories,
+                    directories = self.directories,
+                    shared = shared,
+                    name_prefixes = name_prefixes,
+                )
             )
-            for component in components
-        )
 
     @property
     def libraries(self):

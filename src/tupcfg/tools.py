@@ -112,7 +112,20 @@ def _match_file(root, file_, name, extensions, prefixes, suffixes, validator):
                     return True
     return False
 
+_walked = {}
+def _walk(dir_):
+    p  = path.absolute(dir_)
+    res = _walked.get(p)
 
+    if res is None:
+        for root, dirs, files in os.walk(dir_):
+            _walked[p] = root, dirs, files
+            yield root, dirs, files
+    else:
+        root, dirs, files = res
+        yield res
+        for dir_ in dirs:
+            yield _walk(path.join(root, dir_))
 
 
 def find_files(working_directory='.',
@@ -129,7 +142,7 @@ def find_files(working_directory='.',
             for ext in extensions
         )
     results = []
-    for root, dirnames, files in os.walk(working_directory):
+    for root, dirnames, files in _walk(working_directory):
         results.extend(
             file_ for file_ in files if _match_file(
                 root,

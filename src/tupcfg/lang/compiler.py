@@ -11,7 +11,7 @@ class Compiler(compiler.BasicCompiler):
     # Compiled object extension
     object_extension = 'o'
 
-    def library_extensions(self, shared):
+    def library_extensions(self, shared, for_linker=False):
         if shared:
             if platform.IS_MACOSX:
                 return ['dylib']
@@ -93,7 +93,9 @@ class Compiler(compiler.BasicCompiler):
             if key in kw:
                 kw.pop(key)
         assert self.binary_name is not None
-        binary = tools.find_binary(self.binary_name, project.env, 'CXX')
+        binary = project.env.get('FORCE_CXX')
+        if not binary:
+            binary = tools.find_binary(self.binary_name, project.env, 'CXX')
         project.env.project_set('CXX', binary)
         super(Compiler, self).__init__(binary, project, build, **kw)
 

@@ -2,6 +2,9 @@
 
 from tupcfg import tools
 from tupcfg import path
+from tupcfg import platform
+
+import os
 
 class Library:
 
@@ -19,6 +22,7 @@ class Library:
                  include_directories = [],
                  include_directory_names = [''],
                  directories = [],
+                 name_prefixes = ['lib', ''],
                  name_suffixes = None,
                  shared = False,
                  macosx_framework = False,
@@ -26,6 +30,8 @@ class Library:
                  use_system_paths = True,
                  search_binary_files = True):
         self.name = name
+        self.name_suffixes = name_suffixes
+        self.name_prefixes = name_prefixes
         self.compiler = compiler
         self.shared = shared
         self.macosx_framework = macosx_framework
@@ -36,7 +42,6 @@ class Library:
         assert len(include_directory_names) > 0
         self.include_directory_names = include_directory_names
 
-        self.name_suffixes = name_suffixes
         self.env = self.compiler.project.env
         self.prefixes = tools.unique(self._env_prefixes() + prefixes)
         tools.debug(self.name, "library prefixes:", self.prefixes)
@@ -76,7 +81,15 @@ class Library:
     def _env_list(self, singular, plural):
         dir_ = self.env_var(singular)
         dirs = dir_ is not None and [dir_] or []
-        return dirs + self.env_var(plural, type=list)
+        dirs += self.env_var(plural, type=list)
+        dir_ = self.env.get(singular.upper())
+        dirs += dir_ is not None and [dir_] or []
+        dirs += self.env.get(plural.upper(), type=list)
+        return dirs
+
+
+    def _env_prefixes(self):
+        return self._env_list('prefix', 'prefixes')
 
     def _env_include_directories(self):
         return self._env_list('include_directory', 'include_directories')
@@ -87,9 +100,6 @@ class Library:
     def _env_files(self):
         prefix = self.shared and 'SHARED' or 'STATIC'
         return self.env_var('%s_FILES' % prefix, type=list)
-
-    def _env_prefixes(self):
-        return self._env_list('prefix', 'prefixes')
 
     def _set_directories_and_files(self, directories):
         self.directories = list(d for d in self._env_directories() if path.exists(d))
@@ -114,14 +124,17 @@ class Library:
             files = tools.find_files(
                 working_directory = dir_,
                 name = self.name,
-                prefixes = ['lib'],
-                extensions = self.compiler.library_extensions(self.shared),
+                prefixes = self.name_prefixes,
+                extensions = self.compiler.library_extensions(
+                    self.shared,
+                    for_linker = True
+                ),
                 suffixes = self.name_suffixes,
                 recursive = False,
             )
             if files:
-                tools.debug("Found %s library files [%s] in directory '%s'" % (
-                    self.name,
+                tools.debug("Found {%s}%s{%s} library files [%s] in directory '%s'" % (
+                    str(self.name_prefixes), self.name, str(self.name_suffixes),
                     ', '.join(files),
                     dir_,
                 ))
@@ -133,6 +146,7 @@ class Library:
                     "\t* Set 'directories' when creating the library",
                     "\t* Set the environment variable '%s_DIRECTORY'" % self.name.upper(),
                     "\t* Set the environment variable '%s_DIRECTORIES'" % self.name.upper(),
+                    "NOTE: Directories checked: %s" % ', '.join(dirs),
                     sep='\n'
                 )
 
@@ -199,6 +213,11 @@ class Library:
         ]
 
     def library_system_paths(self):
+        if platform.IS_WINDOWS:
+            return [
+                path.join(os.environ['WINDIR'], 'SysWOW64'),
+                path.join(os.environ['WINDIR'], 'System32'),
+            ]
         return [
             '/usr/lib',
             '/usr/lib/x86_64-linux-gnu',

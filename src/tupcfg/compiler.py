@@ -61,18 +61,8 @@ class BasicCompiler:
         raise Exception("Not implemented")
 
     def __get_library_name(self, name, shared, ext):
-        shared_exts = {
-            'win32': 'dll',
-            'darwin': 'dylib',
-        }
-        static_exts = {
-            'win32': 'a',
-        }
         if ext is None:
-            if shared:
-                ext = shared_exts.get(sys.platform, 'so')
-            else:
-                ext = static_exts.get(sys.platform, 'a')
+            ext = self.library_extensions(shared)[0]
         if ext:
             return name + '.' + ext
         return name

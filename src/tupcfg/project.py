@@ -18,12 +18,14 @@ class Project:
                  config_filename = "project.py",
                  build_vars_filename = ".build_vars",
                  project_vars_filename = ".project_vars",
-                 new_project_vars = {}):
+                 new_project_vars = {},
+                 generators=[]):
         self.root_dir = root_dir
         self.config_dir = config_dir
         self.config_file = path.join(config_dir, config_filename)
         self.build_vars_filename = build_vars_filename
         self.project_vars_filename = project_vars_filename
+        self.generators = generators
 
         self.__config_file_template = templates.project()
         assert path.exists(self.__config_file_template)

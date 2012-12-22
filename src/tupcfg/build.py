@@ -36,9 +36,24 @@ class Build:
                 os.makedirs(dir_)
             tupfile = path.join(dir_, 'Tupfile')
             self.tupfiles.add(path.absolute(tupfile))
-            tools.verbose(path.exists(tupfile) and 'Updating' or 'Creating', tupfile)
+            tools.debug(path.exists(tupfile) and 'Updating' or 'Creating', tupfile)
             with open(tupfile, 'w') as f:
                 self.__write_conf(dir_, f, rules)
+            for gen in project.generators:
+                for action, cmd, i, ai, o, ao, kw in rules:
+                    gen(
+                        project=project,
+                        build=self,
+                        working_directory=dir_,
+                        action=action,
+                        command=cmd,
+                        inputs=i,
+                        additional_inputs=ai,
+                        outputs=o,
+                        additional_ouputs=ao,
+                        target=kw['target'],
+                    )
+
 
     def cleanup(self):
         for tupfile in tools.glob('Tupfile', dir_=self.directory, recursive=True):
