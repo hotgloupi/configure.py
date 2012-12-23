@@ -36,7 +36,7 @@ Getting started
 
 ### Installation
 
-Just drop the [configure](https://github.com/hotgloupi/tupcfg/raw/master/src/main.py) script
+Just drop the [configure](https://github.com/hotgloupi/tupcfg/blob/master/src/main.py) script
 in the root directory of your project.
 
 On unices, you could do:
