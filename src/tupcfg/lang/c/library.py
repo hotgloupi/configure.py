@@ -219,6 +219,10 @@ class Library:
                     "\t* Set 'include_directories' when creating the library",
                     "\t* Set the environment variable '%s_INCLUDE_DIRECTORY'" % self.name.upper(),
                     "\t* Set the environment variable '%s_INCLUDE_DIRECTORIES'" % self.name.upper(),
+                    "\t* Set the environment variable '%s_PREFIX'" % self.name.upper(),
+                    "\t* Set the environment variable '%s_PREFIXES'" % self.name.upper(),
+                    "\t* Set the environment variable 'PREFIX'",
+                    "\t* Set the environment variable 'PREFIXES'",
                     sep='\n'
                 )
         return results
