@@ -20,7 +20,8 @@ class Project:
                  project_vars_filename = ".project_vars",
                  new_project_vars = {},
                  generators=[]):
-        self.root_dir = root_dir
+        self.root_dir = root_dir #deprecated
+        self.directory = root_dir
         self.config_dir = config_dir
         self.config_file = path.join(config_dir, config_filename)
         self.build_vars_filename = build_vars_filename
