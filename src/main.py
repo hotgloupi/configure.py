@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
 import argparse
@@ -306,9 +306,11 @@ def main():
     if args.self_install or (args.install and not have_tupcfg):
         self_install(args)
         try:
-            import tupcfg
-        except:
-            fatal("Sorry, tupcfg installation failed for some reason.")
+            import imp
+            file_, pathname, descr = imp.find_module("tupcfg", [PROJECT_CONFIG_DIR])
+            tupcfg = imp.load_module("tupcfg", file_, pathname, descr)
+        except Exception as e:
+            fatal("Sorry, tupcfg installation failed for some reason:", e)
 
     try:
         import tupcfg
