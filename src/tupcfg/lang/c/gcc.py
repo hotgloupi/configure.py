@@ -75,18 +75,20 @@ class Compiler(compiler.Compiler):
                 link_flags.append(lib)
                 rpath.libs.append(lib)
             else:
+                for f in lib.files:
+                    link_flags.append(f)
                 for dir_ in lib.directories:
                     library_directories.add(dir_)
-                for name in lib.names:
-                    if not platform.IS_MACOSX:
-                        if lib.shared:
-                            link_flags.append('-Wl,-Bdynamic')
-                        else:
-                            link_flags.append('-Wl,-Bstatic')
-                    if platform.IS_MACOSX and lib.macosx_framework:
-                        link_flags.extend(['-framework', name])
-                    else:
-                        link_flags.append('-l%s' % name)
+                #for name in lib.names:
+                #    if not platform.IS_MACOSX:
+                #        if lib.shared:
+                #            link_flags.append('-Wl,-Bdynamic')
+                #        else:
+                #            link_flags.append('-Wl,-Bstatic')
+                #    if platform.IS_MACOSX and lib.macosx_framework:
+                #        link_flags.extend(['-framework', name])
+                #    else:
+                #        link_flags.append('-l%s' % name)
 
         if not platform.IS_MACOSX:
             link_flags.append('-Wl,-Bdynamic')
