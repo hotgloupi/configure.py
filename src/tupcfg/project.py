@@ -68,9 +68,9 @@ class Project:
         if not path.exists(self.config_dir):
             os.makedirs(self.config_dir)
         with open(self.__config_file_template) as template:
-            with open(self.config_file, 'w') as conf:
-                data = template.read()
-                conf.write(data % self.env)
+            data = template.read() % self.env
+        with open(self.config_file, 'w') as conf:
+            conf.write(data)
 
     def __default_env(self):
         return env.Env(self)
