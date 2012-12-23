@@ -15,7 +15,7 @@ class BoostLibrary(Library):
         for component in components:
             shared = kw.get('%s_shared' % component, kw.get('shared', True))
             if shared:
-                name_prefixes = ['']
+                name_prefixes = ['', 'lib']
             else:
                 name_prefixes = ['lib']
             self.components.append(
