@@ -34,7 +34,7 @@ class PythonLibrary(Library):
             shared = shared,
         )
         components = []
-        if not shared:
+        if False and not shared:
             components = ['pyexpat', 'unicodedata']
         self.components = list(
             Library(
