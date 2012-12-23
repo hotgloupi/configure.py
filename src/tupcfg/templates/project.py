@@ -39,12 +39,6 @@ of using environment:
 
 """
 
-# The project name
-NAME = "%(PROJECT_NAME)s"
-
-# The version name (could be "alpha" for example)
-VERSION_NAME = "%(PROJECT_VERSION_NAME)s"
-
 from tupcfg import Source
 from tupcfg import Target
 from tupcfg import Command
@@ -68,7 +62,7 @@ class LinkExecutable(Command):
         ]
 
 def configure(project, build):
-    print("Configuring project", project.env.NAME, 'in', build.directory)
+    print("Configuring", build.directory)
     srcs = list(Source(src) for src in ['test.c', 'main.c'])
     objs = [
         Target(src.name + '.o', BuildObject(src)) for src in srcs
