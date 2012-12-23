@@ -28,6 +28,11 @@ class Build:
             t.dump(build=self, project=project, **kwargs)
 
     def execute(self, project):
+        generators = list(
+            generator_class(project=project, build=self)
+            for generator_class in project.generators
+        )
+
         self.__commands = {}
         for t in self.targets:
             t.execute(build=self)
@@ -39,21 +44,21 @@ class Build:
             tools.debug(path.exists(tupfile) and 'Updating' or 'Creating', tupfile)
             with open(tupfile, 'w') as f:
                 self.__write_conf(dir_, f, rules)
-            for gen in project.generators:
-                for action, cmd, i, ai, o, ao, kw in rules:
-                    gen(
-                        project=project,
-                        build=self,
-                        working_directory=dir_,
-                        action=action,
-                        command=cmd,
-                        inputs=i,
-                        additional_inputs=ai,
-                        outputs=o,
-                        additional_ouputs=ao,
-                        target=kw['target'],
-                    )
+            for generator in generators:
+                with generator(working_directory=dir_) as gen:
+                    for action, cmd, i, ai, o, ao, kw in rules:
+                        gen.apply_rule(
+                            action=action,
+                            command=cmd,
+                            inputs=i,
+                            additional_inputs=ai,
+                            outputs=o,
+                            additional_ouputs=ao,
+                            target=kw['target'],
+                        )
 
+        for generator in generators:
+            generator.close()
 
     def cleanup(self):
         for tupfile in tools.glob('Tupfile', dir_=self.directory, recursive=True):
@@ -66,7 +71,8 @@ class Build:
         for action, cmd, i, ai, o, ao, kw in rules:
             write(":")
             for input_ in i:
-                write('\t', input_.shell_string(**kw))
+                #write('\t', input_.shell_string(**kw))
+                write('\t', input_.relpath(kw['target'], kw['build']))
             write("|>")
             if not tools.DEBUG:
                 write("^", action, path.basename(str(kw['target'])), "^")
