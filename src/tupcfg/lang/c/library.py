@@ -28,7 +28,8 @@ class Library:
                  macosx_framework = False,
                  find_includes = [],
                  use_system_paths = True,
-                 search_binary_files = True):
+                 search_binary_files = True,
+                 only_one_binary_file = True):
         self.name = name
         self.name_suffixes = name_suffixes
         self.name_prefixes = name_prefixes
@@ -36,6 +37,7 @@ class Library:
         self.shared = shared
         self.macosx_framework = macosx_framework
         self.use_system_paths = use_system_paths
+        self.only_one_binary_file = only_one_binary_file
         assert isinstance(find_includes, list)
         self.find_includes = find_includes
 
@@ -102,25 +104,32 @@ class Library:
         return self.env_var('%s_FILES' % prefix, type=list)
 
     def _set_directories_and_files(self, directories):
-        self.directories = list(d for d in self._env_directories() if path.exists(d))
-        self.files = list(f for f in self._env_files() if path.exists(f))
-        if self.directories and self.files:
+        dirs = self._env_directories()
+        files = self._env_files()
+
+        if dirs and files:
+            self.directories = dirs
+            self.files = files
             tools.debug("Found %s library directories and files from environment" % self.name)
             return
+        else:
+            self.directories = []
+            self.files = []
 
         tools.debug("Searching %s library directories and files" % self.name)
-        dirs = self.directories + directories
+        dirs.extend(directories)
+        dirs.extend(path.join(p, 'lib') for p in self.prefixes)
         if self.use_system_paths:
-            dirs += self.library_system_paths()
-        for p in self.prefixes:
-            dirs.append(path.join(p, 'lib'))
+            dirs.extend(self.library_system_paths())
 
         dirs = list(d for d in tools.unique(dirs) if path.exists(d))
-        self.directories = []
-        self.files = []
 
         for dir_ in dirs:
-            tools.debug("Checking %s library directory '%s'" % (self.name, dir_))
+            tools.debug("Searching for {%s}%s{%s} library files in directory '%s'" % (
+                str(self.name_prefixes), self.name, str(self.name_suffixes),
+                dir_
+            ))
+
             files = tools.find_files(
                 working_directory = dir_,
                 name = self.name,
@@ -140,12 +149,20 @@ class Library:
                 ))
                 self.files.extend(path.absolute(dir_, f) for f in files)
                 self.directories.append(dir_)
+                if self.only_one_binary_file:
+                    self.files = self.files[:1]
+                    tools.debug("Stopping search for %s library files." % self.name)
+                    break
         if not self.files:
                 tools.fatal(
                     "Cannot find %s library files:" % self.name,
                     "\t* Set 'directories' when creating the library",
                     "\t* Set the environment variable '%s_DIRECTORY'" % self.name.upper(),
                     "\t* Set the environment variable '%s_DIRECTORIES'" % self.name.upper(),
+                    "\t* Set the environment variable '%s_PREFIX'" % self.name.upper(),
+                    "\t* Set the environment variable '%s_PREFIXES'" % self.name.upper(),
+                    "\t* Set the environment variable 'PREFIX'",
+                    "\t* Set the environment variable 'PREFIXES'",
                     "NOTE: Directories checked: %s" % ', '.join(dirs),
                     sep='\n'
                 )
@@ -215,12 +232,17 @@ class Library:
     def library_system_paths(self):
         if platform.IS_WINDOWS:
             return [
-                path.join(os.environ['WINDIR'], 'SysWOW64'),
-                path.join(os.environ['WINDIR'], 'System32'),
+                {
+                    '32bit': path.join(os.environ['WINDIR'], 'System32'),
+                    '64bit': path.join(os.environ['WINDIR'], 'SysWOW64'),
+                }[self.compiler.architecture],
             ]
         return [
             '/usr/lib',
-            '/usr/lib/x86_64-linux-gnu',
+            {
+                '32bit': '/usr/lib/i386-linux-gnu',
+                '64bit': '/usr/lib/x86_64-linux-gnu',
+            }[self.compiler.architecture],
         ]
 
     @property
