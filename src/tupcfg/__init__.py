@@ -1,6 +1,6 @@
 # -*- encoding: utf8 -*-
 
-from . import tools, path
+from . import tools, path, platform, lang
 
 from .build import Build
 from .command import Command
