@@ -60,7 +60,7 @@ For the purpose of this Getting started section, let's do a simple executable.
     from tupcfg.lang.c import gcc
     
     def configure(project, build):
-        compiler = gcc.Compiler(project)
+        compiler = gcc.Compiler(project, build)
         compiler.link_executable('test', ['main.c'])
 
 Assuming you have source file named `main.c` at the root of your project, for example:
