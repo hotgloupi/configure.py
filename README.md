@@ -15,6 +15,21 @@ system configuration. I initially solved this problem with dirty scripts for eac
 project using Tup, and after getting tired of maintaining those scripts, I made up
 this small project that saves me a lot of time.
 
+Features
+--------
+
+Tupcfg is written in pure Python3, and should work on any platform that support python3.
+It has been successfully tested on Linux, MacOSX and Windows.
+
+It lets you configure your project builds in Python3 as well and generate for you Tup files.
+
+**Yes, no more CMake or AutoTools crappy langages, just Python.**
+
+It provides handy tools for C/C++ compiler and libraries, but aims to support more langages, compiler and
+libraries. It's up to you to submit/request more features or support :)
+
+Additionally, it has a pluggable generator system that allows you to build your project even when tup is
+not available, or for release builds from scratch (Makefile generator is implemented).
 
 Getting started
 ---------------
