@@ -34,6 +34,5 @@ class Source(Node):
         )
 
     def shell_string(self, target=None, build=None):
-        return self.path(build)
-        #return self.relpath(target, build)
+        return self.relpath(target, build)
 
