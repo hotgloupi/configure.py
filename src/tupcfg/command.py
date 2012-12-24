@@ -13,7 +13,7 @@ class Command(Node):
     def __init__(self, dependencies):
         super(Command, self).__init__(dependencies)
 
-    def command(self, **kw):
+    def command(self, target=None, build=None):
         raise Exception("command property has to be overridden")
 
     def gen_command(self, shell_string=False, string=False, **kw):
