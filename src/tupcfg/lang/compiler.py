@@ -87,6 +87,7 @@ class Compiler(compiler.BasicCompiler):
             ('architecture', platform.ARCHITECTURE),
             ('enable_warnings', True),
             ('use_build_type_flags', True),
+            ('hidden_visibility', True),
         ]
         for key, default in attrs:
             setattr(self, key, kw.get(key, default))
