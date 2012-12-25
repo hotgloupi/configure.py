@@ -24,6 +24,17 @@ class Compiler(compiler.Compiler):
         pic = self.attr('position_independent_code', cmd)
         if pic and not platform.IS_WINDOWS:
             flags.append('-fPIC')
+        if self.attr('hidden_visibility', cmd):
+            flags.append('-fvisibility=hidden')
+        if self.attr('enable_warnings', cmd):
+            flags.extend(['-Wall', '-Wextra'])
+
+        if self.attr('use_build_type_flags', cmd):
+            if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
+                flags.append('-g3')
+            else:
+                flags.append('-O2')
+
         std = self.attr('standard', cmd)
         if std:
             flags.append('-std=%s' % self.__standards_map[std])
@@ -56,6 +67,8 @@ class Compiler(compiler.Compiler):
     def _get_link_flags(self, cmd):
         library_directories = set(self.library_directories)
         link_flags = []
+        if self.attr('hidden_visibility', cmd):
+            link_flags.append('-fvisibility=hidden')
         class RPathFlag:
             def __init__(self):
                 self.libs = []
