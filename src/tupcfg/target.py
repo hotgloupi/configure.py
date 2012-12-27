@@ -18,6 +18,9 @@ class Target(Node):
             from_ = path.dirname(from_.path(build))
         return path.relative(self.path(build), start=from_)
 
+    def directory(self, build):
+        return path.dirname(self.path(build))
+
     def dump(self, inc=0, **kw):
         print(' ' * inc, "Target '%s':" % self.name)
         kw['inc'] = inc + 2

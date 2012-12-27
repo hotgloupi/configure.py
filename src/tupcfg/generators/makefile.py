@@ -70,7 +70,7 @@ class Makefile(Generator):
                 )
             )
             working_directory = path.dirname(target_path)
-            makefile += '\n\t@%s' % cmd_str(
+            makefile += '\n\t%s' % cmd_str(
                 'sh', '-c', cmd_str('cd', working_directory) + ' && ' + cmd_str(*command)
             )
             makefile += '\n\n'

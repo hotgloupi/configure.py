@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 from tupcfg.lang.c import gcc
+from tupcfg import path
 
 class Compiler(gcc.Compiler):
 
@@ -16,3 +17,19 @@ class Compiler(gcc.Compiler):
 
     def _get_build_flags(self, cmd):
         return ['-x', 'c++'] + super(Compiler, self)._get_build_flags(cmd)
+
+    def _get_link_flags(self, cmd):
+        flags = []
+        if self.attr('static_libstd', cmd):
+            flags.append('-L%s' % self.static_stdlib_directory)
+            flags.append('-static-libstdc++')
+        return flags + super(Compiler, self)._get_link_flags(cmd)
+
+    @property
+    def static_stdlib_directory(self):
+        if not hasattr(self, '_static_stdlib_directory'):
+            import subprocess
+            f = subprocess.check_output([self.binary, '--print-file-name=libstdc++.a']).decode('utf8')
+            self._static_stdlib_directory = path.dirname(f)
+        return self._static_stdlib_directory
+

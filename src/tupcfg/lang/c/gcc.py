@@ -48,7 +48,7 @@ class Compiler(compiler.Compiler):
                 flags.append('-D%s=%s' % define)
 
         return flags + list(
-            ('-I%s' % i) for i in self._include_directories(cmd)
+            ['-I', i] for i in self._include_directories(cmd)
         )
 
     def _build_object_cmd(self, cmd, target=None, build=None):
@@ -65,19 +65,28 @@ class Compiler(compiler.Compiler):
         return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 
     def _get_link_flags(self, cmd):
-        library_directories = set(self.library_directories)
+        library_directories = self.library_directories[:]
         link_flags = []
+        pic = self.attr('position_independent_code', cmd)
+        if pic and not platform.IS_WINDOWS:
+            link_flags.append('-fPIC')
         if self.attr('hidden_visibility', cmd):
             link_flags.append('-fvisibility=hidden')
+
+        if self.attr('use_build_type_flags', cmd):
+            if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
+                link_flags.append('-g3')
+            else:
+                link_flags.append('-O2')
         class RPathFlag:
             def __init__(self):
                 self.libs = []
                 self.directories = []
 
             def shell_string(self, target=None, build=None):
-                dirs = set(self.directories)
+                dirs = tools.unique(self.directories)
                 for lib in self.libs:
-                    dirs.add(path.dirname(path.absolute(lib.path(build))))
+                    dirs.append(path.dirname(path.absolute(lib.path(build))))
                 if dirs:
                     return '-Wl,-rpath,' + ':'.join(dirs)
                 return ''
@@ -89,9 +98,14 @@ class Compiler(compiler.Compiler):
                 rpath.libs.append(lib)
             else:
                 for f in lib.files:
+                    if not platform.IS_MACOSX:
+                        if lib.shared:
+                            link_flags.append('-Wl,-Bdynamic')
+                        else:
+                            link_flags.append('-Wl,-Bstatic')
                     link_flags.append(f)
                 for dir_ in lib.directories:
-                    library_directories.add(dir_)
+                    library_directories.append(dir_)
                 #for name in lib.names:
                 #    if not platform.IS_MACOSX:
                 #        if lib.shared:
@@ -107,7 +121,7 @@ class Compiler(compiler.Compiler):
             link_flags.append('-Wl,-Bdynamic')
         rpath.directories.extend(library_directories)
         link_flags.append(rpath)
-        return list(('-L%s' % l) for l in library_directories) + link_flags
+        return list(('-L%s' % l) for l in tools.unique(library_directories)) + link_flags
 
     def _link_executable_cmd(self, cmd, target=None, build=None):
         return [

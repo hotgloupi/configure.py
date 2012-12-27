@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import compiler, tools, Target, Command, Source, platform
+from tupcfg import compiler, tools, path, Target, Command, Source, platform
 
 class Compiler(compiler.BasicCompiler):
     """Generic compiler."""
@@ -72,9 +72,22 @@ class Compiler(compiler.BasicCompiler):
         for lib in libraries:
             if isinstance(lib, Target):
                 continue
-            for dir_ in lib.include_directories:
-                include_directories.append(dir_)
-        return tools.unique(include_directories)
+            include_directories.extend(lib.include_directories)
+
+        class RelativeDirectory:
+            def __init__(self, dir_):
+                self._dir = dir_
+            def shell_string(self, target=None, build=None):
+                return path.relative(self._dir, start = target.directory(build))
+
+        dirs = []
+        for dir_ in tools.unique(include_directories):
+            if path.absolute(dir_).startswith(self.project.directory):
+                dirs.append(RelativeDirectory(dir_))
+            else:
+                dirs.append(dir_)
+
+        return dirs
 
     def __init__(self, project, build, **kw):
         assert 'lang' in kw
@@ -88,6 +101,7 @@ class Compiler(compiler.BasicCompiler):
             ('enable_warnings', True),
             ('use_build_type_flags', True),
             ('hidden_visibility', True),
+            ('static_libstd', False),
         ]
         for key, default in attrs:
             setattr(self, key, kw.get(key, default))
