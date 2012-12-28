@@ -26,6 +26,7 @@ class Compiler(compiler.Compiler):
             flags.append('-fPIC')
         if self.attr('hidden_visibility', cmd):
             flags.append('-fvisibility=hidden')
+            flags.append('-fvisibility-inlines-hidden')
         if self.attr('enable_warnings', cmd):
             flags.extend(['-Wall', '-Wextra'])
 
@@ -72,6 +73,7 @@ class Compiler(compiler.Compiler):
             link_flags.append('-fPIC')
         if self.attr('hidden_visibility', cmd):
             link_flags.append('-fvisibility=hidden')
+            link_flags.append('-fvisibility-inlines-hidden')
 
         if self.attr('use_build_type_flags', cmd):
             if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
@@ -96,7 +98,7 @@ class Compiler(compiler.Compiler):
             if isinstance(lib, Target):
                 link_flags.append(lib)
                 rpath.libs.append(lib)
-            else:
+            elif not lib.macosx_framework:
                 for f in lib.files:
                     if not platform.IS_MACOSX:
                         if lib.shared:
@@ -106,6 +108,9 @@ class Compiler(compiler.Compiler):
                     link_flags.append(f)
                 for dir_ in lib.directories:
                     library_directories.append(dir_)
+            else:
+                link_flags.extend(['-framework', lib.name])
+
                 #for name in lib.names:
                 #    if not platform.IS_MACOSX:
                 #        if lib.shared:

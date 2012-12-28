@@ -7,21 +7,26 @@ from tupcfg import platform
 class OpenGLLibrary(Library):
 
     def __init__(self, compiler, **kw):
+        components = []
         if platform.IS_WINDOWS:
             name = 'opengl32'
-            components = ['glu32']
+            binary_file_names = ['opengl32', 'glu32']
         elif platform.IS_MACOSX:
             name = 'OpenGL'
             components = ['Cocoa', 'CoreFoundation']
+            binary_file_names = ['GL', 'GLU']
         else:
             name = 'GL'
-            components = ['GLU']
+            binary_file_names = ['GL', 'GLU']
+
         super(OpenGLLibrary, self).__init__(
             name,
             compiler,
             shared = kw.get('shared', True),
             macosx_framework = platform.IS_MACOSX,
+            binary_file_names = binary_file_names,
         )
+
         self.components = list(
             Library(
                 component,

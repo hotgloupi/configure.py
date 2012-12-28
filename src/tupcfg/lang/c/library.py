@@ -8,13 +8,6 @@ import os
 
 class Library:
 
-    # These variables are used in the _prepare_variables function.
-    variable_names = [
-        ('prefixes', 'prefix'),
-        ('include_directories', 'include_directory'),
-        ('directories', 'directory'),
-    ]
-
     def __init__(self,
                  name,
                  compiler,
@@ -22,20 +15,24 @@ class Library:
                  include_directories = [],
                  include_directory_names = [''],
                  directories = [],
+                 binary_file_names = None,
                  name_prefixes = ['lib', ''],
                  name_suffixes = None,
                  shared = False,
                  macosx_framework = False,
+                 search_macosx_framework_files = False,
                  find_includes = [],
                  use_system_paths = True,
                  search_binary_files = True,
                  only_one_binary_file = True):
         self.name = name
+        self.binary_file_names = binary_file_names
         self.name_suffixes = name_suffixes
         self.name_prefixes = name_prefixes
         self.compiler = compiler
         self.shared = shared
         self.macosx_framework = macosx_framework
+        self.search_macosx_framework_files = search_macosx_framework_files
         self.use_system_paths = use_system_paths
         self.only_one_binary_file = only_one_binary_file
         assert isinstance(find_includes, list)
@@ -46,6 +43,13 @@ class Library:
 
         self.env = self.compiler.project.env
         self.prefixes = tools.unique(self._env_prefixes() + prefixes)
+
+        if self.macosx_framework and not self.search_macosx_framework_files:
+            self.include_directories = []
+            self.directories = []
+            tools.debug("Files search for", self.name, "framework is not enabled.")
+            return
+
         tools.debug(self.name, "library prefixes:", self.prefixes)
         self.include_directories = self._find_include_directories(include_directories)
         tools.debug(self.name, "library include directories:", self.include_directories)
@@ -118,54 +122,76 @@ class Library:
 
         tools.debug("Searching %s library directories and files" % self.name)
         dirs.extend(directories)
-        dirs.extend(path.join(p, 'lib') for p in self.prefixes)
+        if self.macosx_framework:
+            dirs.extend(path.join(p, 'Library', 'Frameworks') for p in self.prefixes)
+        else:
+            dirs.extend(path.join(p, 'lib') for p in self.prefixes)
         if self.use_system_paths:
             dirs.extend(self.library_system_paths())
 
+        if self.macosx_framework:
+            dirs = (path.join(dir_, self.name + '.framework', 'Libraries') for dir_ in dirs)
+
         dirs = list(d for d in tools.unique(dirs) if path.exists(d))
 
-        for dir_ in dirs:
-            tools.debug("Searching for {%s}%s{%s} library files in directory '%s'" % (
-                str(self.name_prefixes), self.name, str(self.name_suffixes),
-                dir_
-            ))
+        if self.binary_file_names is not None:
+            names = self.binary_file_names
+        else:
+            names = [self.name]
 
-            files = tools.find_files(
-                working_directory = dir_,
-                name = self.name,
-                prefixes = self.name_prefixes,
-                extensions = self.compiler.library_extensions(
-                    self.shared,
-                    for_linker = True
-                ),
-                suffixes = self.name_suffixes,
-                recursive = False,
-            )
-            if files:
-                tools.debug("Found {%s}%s{%s} library files [%s] in directory '%s'" % (
-                    str(self.name_prefixes), self.name, str(self.name_suffixes),
-                    ', '.join(files),
-                    dir_,
+        for name in names:
+            files = []
+            for dir_ in dirs:
+                if self.macosx_framework:
+                    extensions = None
+                else:
+                    extensions = self.compiler.library_extensions(
+                        self.shared,
+                        for_linker = True,
+                    )
+                tools.debug("Searching for {%s}%s{%s}.%s library files in directory '%s'" % (
+                    str(self.name_prefixes), name,
+                    str(self.name_suffixes),
+                    str(extensions),
+                    dir_
                 ))
-                self.files.extend(path.absolute(dir_, f) for f in files)
-                self.directories.append(dir_)
-                if self.only_one_binary_file:
-                    self.files = self.files[:1]
-                    tools.debug("Stopping search for %s library files." % self.name)
-                    break
-        if not self.files:
-                tools.fatal(
-                    "Cannot find %s library files:" % self.name,
-                    "\t* Set 'directories' when creating the library",
-                    "\t* Set the environment variable '%s_DIRECTORY'" % self.name.upper(),
-                    "\t* Set the environment variable '%s_DIRECTORIES'" % self.name.upper(),
-                    "\t* Set the environment variable '%s_PREFIX'" % self.name.upper(),
-                    "\t* Set the environment variable '%s_PREFIXES'" % self.name.upper(),
-                    "\t* Set the environment variable 'PREFIX'",
-                    "\t* Set the environment variable 'PREFIXES'",
-                    "NOTE: Directories checked: %s" % ', '.join(dirs),
-                    sep='\n'
+
+                files = tools.find_files(
+                    working_directory = dir_,
+                    name = name,
+                    prefixes = self.name_prefixes,
+                    extensions = extensions,
+                    suffixes = self.name_suffixes,
+                    recursive = False,
                 )
+                if files:
+                    tools.debug("Found {%s}%s{%s} library files [%s] in directory '%s'" % (
+                        str(self.name_prefixes), name, str(self.name_suffixes),
+                        ', '.join(files),
+                        dir_,
+                    ))
+                    files = list(path.absolute(dir_, f) for f in files)
+                    if self.only_one_binary_file:
+                        files = files[:1]
+                        tools.debug("Stopping search for %s library files." % name)
+                        break
+
+            if not files:
+                    tools.fatal(
+                        "Cannot find %s library files:" % self.name,
+                        "\t* Set 'directories' when creating the library",
+                        "\t* Set the environment variable '%s_DIRECTORY'" % self.name.upper(),
+                        "\t* Set the environment variable '%s_DIRECTORIES'" % self.name.upper(),
+                        "\t* Set the environment variable '%s_PREFIX'" % self.name.upper(),
+                        "\t* Set the environment variable '%s_PREFIXES'" % self.name.upper(),
+                        "\t* Set the environment variable 'PREFIX'",
+                        "\t* Set the environment variable 'PREFIXES'",
+                        "NOTE: Directories checked: %s" % ', '.join(dirs),
+                        sep='\n'
+                    )
+            else:
+                self.files.extend(files)
+                self.directories.extend(path.dirname(f) for f in files)
 
     def _find_include_directories(self, include_directories):
         env_dirs = self._env_include_directories()
@@ -234,20 +260,29 @@ class Library:
         ]
 
     def library_system_paths(self):
+        libs = []
         if platform.IS_WINDOWS:
-            return [
+            libs.extend([
                 {
                     '32bit': path.join(os.environ['WINDIR'], 'System32'),
                     '64bit': path.join(os.environ['WINDIR'], 'SysWOW64'),
                 }[self.compiler.architecture],
-            ]
-        return [
-            '/usr/lib',
-            {
-                '32bit': '/usr/lib/i386-linux-gnu',
-                '64bit': '/usr/lib/x86_64-linux-gnu',
-            }[self.compiler.architecture],
-        ]
+            ])
+        elif platform.IS_MACOSX:
+            if self.macosx_framework:
+                libs.extend([
+                    "/System/Library/Frameworks",
+                    "/Library/Frameworks",
+                ])
+        elif platform.IS_LINUX:
+            libs.append(
+                {
+                    '32bit': '/usr/lib/i386-linux-gnu',
+                    '64bit': '/usr/lib/x86_64-linux-gnu',
+                }[self.compiler.architecture]
+            )
+        libs.append('/usr/lib')
+        return libs
 
     @property
     def libraries(self):

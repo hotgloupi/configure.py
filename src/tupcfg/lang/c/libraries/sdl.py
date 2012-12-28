@@ -16,7 +16,7 @@ class SDLLibrary(Library):
             for c in components
         )
         if platform.IS_MACOSX:
-            self.components.append(Library('SDLMain')) # Fixture from SDL is needed
+            self.components.append(Library('SDLmain', compiler, shared = False)) # Fixture from SDL is needed
 
     @property
     def libraries(self):
