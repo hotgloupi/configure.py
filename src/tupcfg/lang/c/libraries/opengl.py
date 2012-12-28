@@ -8,16 +8,15 @@ class OpenGLLibrary(Library):
 
     def __init__(self, compiler, **kw):
         components = []
+        binary_file_names = ['GL', 'GLU']
         if platform.IS_WINDOWS:
             name = 'opengl32'
             binary_file_names = ['opengl32', 'glu32']
         elif platform.IS_MACOSX:
             name = 'OpenGL'
             components = ['Cocoa', 'CoreFoundation']
-            binary_file_names = ['GL', 'GLU']
         else:
             name = 'GL'
-            binary_file_names = ['GL', 'GLU']
 
         super(OpenGLLibrary, self).__init__(
             name,
