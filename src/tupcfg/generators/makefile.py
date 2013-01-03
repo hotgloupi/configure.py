@@ -27,7 +27,9 @@ class Makefile(Generator):
                    additional_ouputs=None,
                    target=None):
         target_path = target.relpath(self.build.directory, self.build)
-        assert target_path not in self.targets
+        if target_path in self.targets:
+            print('#############', target_path, "is targetted twice or more")
+            return
         self.targets[target_path] = (target, inputs, action, command)
         for i in inputs:
             if not isinstance(i, Target):
