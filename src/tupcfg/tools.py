@@ -72,7 +72,8 @@ def glob(pattern, dir_=None, recursive=False):
 
     for root, dirnames, files in os.walk(dir_):
         for file_ in files:
-            if fnmatch(file_, pattern):
+            p = path.relative(root, file_, start=dir_)
+            if fnmatch(p, pattern):
                 yield path.join(root, file_)
         if not recursive:
             break
