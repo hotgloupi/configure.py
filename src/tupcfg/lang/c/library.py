@@ -18,7 +18,8 @@ class Library:
                  binary_file_names = None,
                  name_prefixes = ['lib', ''],
                  name_suffixes = None,
-                 shared = False,
+                 shared = None,
+                 preferred_shared = True,
                  macosx_framework = False,
                  search_macosx_framework_files = False,
                  find_includes = [],
@@ -30,7 +31,9 @@ class Library:
         self.name_suffixes = name_suffixes
         self.name_prefixes = name_prefixes
         self.compiler = compiler
+        self.env = self.compiler.project.env
         self.shared = shared
+        self.preferred_shared = self.env_var("SHARED", default=preferred_shared, type=bool)
         self.macosx_framework = macosx_framework
         self.search_macosx_framework_files = search_macosx_framework_files
         self.use_system_paths = use_system_paths
@@ -41,7 +44,6 @@ class Library:
         assert len(include_directory_names) > 0
         self.include_directory_names = include_directory_names
 
-        self.env = self.compiler.project.env
         self.prefixes = tools.unique(self._env_prefixes() + prefixes)
 
         if self.macosx_framework and not self.search_macosx_framework_files:
@@ -69,8 +71,8 @@ class Library:
     def _env_varname(self, name):
         return self.name.upper() + '_' + name.upper()
 
-    def env_var(self, name, type=None):
-        res = self.env.get(self._env_varname(name), type=type)
+    def env_var(self, name, type=None, default=None):
+        res = self.env.get(self._env_varname(name), type=type, default=default)
         tools.debug('retreive var:', self._env_varname(name), '=', res)
         return res
 
@@ -78,9 +80,10 @@ class Library:
         self.env.build_set(self._env_varname('prefixes'), self.prefixes)
         self.env.build_set(self._env_varname('directories'), self.directories)
         self.env.build_set(self._env_varname('include_directories'), self.include_directories)
-        prefix = self.shared and 'SHARED' or 'STATIC'
-        self.env.build_set(self._env_varname('%s_FILES' % prefix), self.files)
-        assert self.files == self.env_var('%s_FILES' % prefix, type=list)
+        if self.shared is not None:
+            prefix = self.shared and 'SHARED' or 'STATIC'
+            self.env.build_set(self._env_varname('%s_FILES' % prefix), self.files)
+            assert self.files == self.env_var('%s_FILES' % prefix, type=list)
         tools.debug("Saving %s files" % self.name, self.files)
 
 
@@ -104,8 +107,11 @@ class Library:
         return self._env_list('directory', 'directories')
 
     def _env_files(self):
-        prefix = self.shared and 'SHARED' or 'STATIC'
-        return self.env_var('%s_FILES' % prefix, type=list)
+        if self.shared is not None:
+            prefix = self.shared and 'SHARED_' or 'STATIC_'
+        else:
+            prefix = ''
+        return self.env_var('%sFILES' % prefix, type=list)
 
     def _set_directories_and_files(self, directories):
         dirs = self._env_directories()
@@ -132,49 +138,37 @@ class Library:
         if self.macosx_framework:
             dirs = (path.join(dir_, self.name + '.framework', 'Libraries') for dir_ in dirs)
 
-        dirs = list(d for d in tools.unique(dirs) if path.exists(d))
+        dirs = list(path.clean(d) for d in tools.unique(dirs) if path.exists(d))
 
         if self.binary_file_names is not None:
             names = self.binary_file_names
         else:
             names = [self.name]
 
+        extensions_list = []
+        if self.macosx_framework:
+            extensions_list = [None]
+        if self.shared is not None:
+            extensions_list = [self.compiler.library_extensions(
+                self.shared,
+                for_linker = True,
+            )]
+        else:
+            extensions_list = [
+                self.compiler.library_extensions(self.preferred_shared, for_linker = True),
+                self.compiler.library_extensions(not self.preferred_shared, for_linker = True),
+            ]
+
         for name in names:
             files = []
-            for dir_ in dirs:
-                if self.macosx_framework:
-                    extensions = None
-                else:
-                    extensions = self.compiler.library_extensions(
-                        self.shared,
-                        for_linker = True,
-                    )
-                tools.debug("Searching for {%s}%s{%s}.%s library files in directory '%s'" % (
-                    str(self.name_prefixes), name,
-                    str(self.name_suffixes),
-                    str(extensions),
-                    dir_
-                ))
-
-                files = tools.find_files(
-                    working_directory = dir_,
-                    name = name,
-                    prefixes = self.name_prefixes,
-                    extensions = extensions,
-                    suffixes = self.name_suffixes,
-                    recursive = False,
-                )
-                if files:
-                    tools.debug("Found {%s}%s{%s} library files [%s] in directory '%s'" % (
-                        str(self.name_prefixes), name, str(self.name_suffixes),
-                        ', '.join(files),
-                        dir_,
-                    ))
-                    files = list(path.absolute(dir_, f) for f in files)
-                    if self.only_one_binary_file:
+            for extensions in extensions_list:
+                for dir_ in dirs:
+                    files.extend(self._find_files(dir_, name, extensions))
+                    if files and self.only_one_binary_file:
                         files = files[:1]
                         tools.debug("Stopping search for %s library files." % name)
                         break
+
 
             if not files:
                     tools.fatal(
@@ -192,6 +186,30 @@ class Library:
             else:
                 self.files.extend(files)
                 self.directories.extend(path.dirname(f) for f in files)
+
+    def _find_files(self, directory, name, extensions):
+        tools.debug("Searching for {%s}%s{%s}.%s library files in directory '%s'" % (
+            str(self.name_prefixes), name,
+            str(self.name_suffixes),
+            str(extensions),
+            directory
+        ))
+        files = tools.find_files(
+            working_directory = directory,
+            name = name,
+            prefixes = self.name_prefixes,
+            extensions = extensions,
+            suffixes = self.name_suffixes,
+            recursive = False,
+        )
+        if files:
+            tools.debug("Found {%s}%s{%s} library files [%s] in directory '%s'" % (
+                str(self.name_prefixes), name, str(self.name_suffixes),
+                ', '.join(files),
+                directory,
+            ))
+            files = list(path.absolute(directory, f) for f in files)
+        return files
 
     def _find_include_directories(self, include_directories):
         env_dirs = self._env_include_directories()

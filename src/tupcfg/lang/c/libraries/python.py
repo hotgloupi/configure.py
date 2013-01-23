@@ -6,7 +6,10 @@ from tupcfg import path
 from sysconfig import get_config_var as var
 
 class PythonLibrary(Library):
-    def __init__(self, compiler, shared=True, **kw):
+    def __init__(self, compiler,
+                 preferred_shared=True,
+                 executable=None,
+                 **kw):
         include_dir = var('INCLUDEPY')
         assert include_dir is not None
         prefix = var('prefix')
@@ -31,7 +34,7 @@ class PythonLibrary(Library):
             prefixes = [prefix],
             include_directories = var('INCLUDEPY') and [var('INCLUDEPY')] or [],
             directories = directories,
-            shared = shared,
+            preferred_shared = preferred_shared,
         )
         components = []
         if False and not shared:
