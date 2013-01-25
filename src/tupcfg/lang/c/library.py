@@ -149,25 +149,34 @@ class Library:
         if self.macosx_framework:
             extensions_list = [None]
         if self.shared is not None:
-            extensions_list = [self.compiler.library_extensions(
-                self.shared,
-                for_linker = True,
-            )]
+            extensions_list = [
+                (
+                    self.shared,
+                    self.compiler.library_extensions(
+                        self.shared,
+                        for_linker = True,
+                    )
+                )
+            ]
         else:
             extensions_list = [
-                self.compiler.library_extensions(self.preferred_shared, for_linker = True),
-                self.compiler.library_extensions(not self.preferred_shared, for_linker = True),
+                (self.preferred_shared, self.compiler.library_extensions(self.preferred_shared, for_linker = True)),
+                (not self.preferred_shared, self.compiler.library_extensions(not self.preferred_shared, for_linker = True)),
             ]
 
         for name in names:
             files = []
-            for extensions in extensions_list:
+            for shared, extensions in extensions_list:
                 for dir_ in dirs:
                     files.extend(self._find_files(dir_, name, extensions))
                     if files and self.only_one_binary_file:
+                        if self.shared is None:
+                            self.shared = shared
                         files = files[:1]
                         tools.debug("Stopping search for %s library files." % name)
                         break
+                if files:
+                    break # do not mix shared and non shared extensions
 
 
             if not files:
