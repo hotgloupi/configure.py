@@ -21,11 +21,9 @@ class Target(Node):
     def directory(self, build):
         return path.dirname(self.path(build))
 
-    def dump(self, inc=0, **kw):
+    def dump(self, inc=0, target=None, build=None):
         print(' ' * inc, "Target '%s':" % self.name)
-        kw['inc'] = inc + 2
-        kw['target'] = self
-        super(Target, self).dump(**kw)
+        super(Target, self).dump(inc=inc+2, target=self, build=build)
 
     def __str__(self):
         return self.name

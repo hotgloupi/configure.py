@@ -25,7 +25,7 @@ class Build:
 
     def dump(self, project, **kwargs):
         for t in self.targets:
-            t.dump(build=self, project=project, **kwargs)
+            t.dump(build=self, **kwargs)
 
     def execute(self, project):
         generators = list(

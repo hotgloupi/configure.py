@@ -65,7 +65,7 @@ class Command(Node):
         cmd, i, ai, o, ao, cmd_kw = self.gen_command(string=True, **kw)
         print(
             ' ' * inc,
-            path.dirname(kw['target'].path(**kw)) + ':',
+            path.dirname(kw['target'].path(kw['build'])) + ':',
             '\n\t' + ' ' * inc, ' * inputs:', ' '.join(repr(e) for e in i),
             '\n\t' + ' ' * inc, ' * additional inputs:', ' '.join(repr(e) for e in ai),
             '\n\t' + ' ' * inc, ' * outputs:', ' '.join(repr(e) for e in o),

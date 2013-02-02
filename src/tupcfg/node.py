@@ -11,11 +11,11 @@ class Node:
             dependencies = [dependencies]
         self.dependencies = dependencies
 
-    def dump(self, inc=0, **kw):
+    def dump(self, inc=0, target=None, build=None):
         if not self.dependencies:
             return
         for d in self.dependencies:
-            d.dump(inc=inc + 2, **kw)
+            d.dump(inc=inc + 2, target=target, build=build)
 
     def execute(self, target=None, build=None):
         for d in self.dependencies:
