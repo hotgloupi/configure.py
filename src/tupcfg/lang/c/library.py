@@ -26,11 +26,12 @@ class Library:
                  search_binary_files = True,
                  only_one_binary_file = True):
         self.name = name
+        self.compiler = compiler
+        self.env = self.compiler.project.env
         self.binary_file_names = binary_file_names
         self.name_suffixes = name_suffixes
         self.name_prefixes = name_prefixes
-        self.compiler = compiler
-        self.shared = shared
+        self.shared = self.env_var('shared', type=bool, default=shared)
         self.macosx_framework = macosx_framework
         self.search_macosx_framework_files = search_macosx_framework_files
         self.use_system_paths = use_system_paths
@@ -41,7 +42,6 @@ class Library:
         assert len(include_directory_names) > 0
         self.include_directory_names = include_directory_names
 
-        self.env = self.compiler.project.env
         self.prefixes = tools.unique(self._env_prefixes() + prefixes)
 
         if self.macosx_framework and not self.search_macosx_framework_files:
@@ -69,8 +69,8 @@ class Library:
     def _env_varname(self, name):
         return self.name.upper() + '_' + name.upper()
 
-    def env_var(self, name, type=None):
-        res = self.env.get(self._env_varname(name), type=type)
+    def env_var(self, name, type=None, default=None):
+        res = self.env.get(self._env_varname(name), type=type, default=default)
         tools.debug('retreive var:', self._env_varname(name), '=', res)
         return res
 
