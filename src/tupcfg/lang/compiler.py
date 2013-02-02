@@ -102,6 +102,8 @@ class Compiler(compiler.BasicCompiler):
             ('use_build_type_flags', True),
             ('hidden_visibility', True),
             ('static_libstd', False),
+            ('force_architecture', True),
+            ('additional_link_flags', {}),
         ]
         for key, default in attrs:
             setattr(self, key, kw.get(key, default))

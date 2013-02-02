@@ -127,6 +127,7 @@ class Compiler(compiler.Compiler):
             link_flags.append('-Wl,-Bdynamic')
         rpath.directories.extend(library_directories)
         link_flags.append(rpath)
+        link_flags.extend(self.additional_link_flags.get(self.name, []))
         return list(('-L%s' % l) for l in tools.unique(library_directories)) + link_flags
 
     def _link_executable_cmd(self, cmd, target=None, build=None):
@@ -164,6 +165,8 @@ class Compiler(compiler.Compiler):
             ]
 
     def __architecture_flag(self, cmd):
+        if self.force_architecture is False:
+            return []
         return {
             '64bit': '-m64',
             '32bit': '-m32',
