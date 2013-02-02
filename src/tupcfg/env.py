@@ -6,7 +6,15 @@ import re
 class Value:
     def __init__(self, value, type):
         if type is list and isinstance(value, str):
-            value = [value]
+            value = [value.split(',')] # XXX better split
+        if type is bool and isinstance(value, str):
+            bool_values = {
+                '0': False, 'false': False, 'no': False,
+                '1': True, 'true': True, 'yes': True,
+            }
+            value = bool_values.get(value)
+            if value is None:
+                raise Exception("A boolean value must be one of %s" % ', '.join(bool_values.keys()))
         if not isinstance(value, type):
             value = type(value)
         self.value = value
