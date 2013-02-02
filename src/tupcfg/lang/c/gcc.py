@@ -6,6 +6,7 @@ from tupcfg.lang import compiler
 
 class Compiler(compiler.Compiler):
 
+    name = 'gcc'
     binary_name = 'gcc'
     ar_binary_name = 'ar'
 
