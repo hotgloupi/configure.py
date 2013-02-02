@@ -113,7 +113,7 @@ class Compiler(compiler.BasicCompiler):
         binary = project.env.get('FORCE_CXX')
         if not binary:
             binary = tools.find_binary(self.binary_name, project.env, 'CXX')
-        project.env.project_set('CXX', binary)
+        project.env.build_set('CXX', binary)
         super(Compiler, self).__init__(binary, project, build, **kw)
 
     def attr(self, attribute, cmd):
