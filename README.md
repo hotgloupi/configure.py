@@ -157,6 +157,63 @@ You can define some variables for the whole project or for specific builds with 
 Note that the -D flags applies on all build specified on the command line, or all project builds
 when none are specified.
 
+#### Build and project variables
+
+For example, we can do the following:
+
+    $ ./configure build-debug -D BUILD_TYPE=DEBUG
+    $ ./configure build-release -D BUILD_TYPE=RELEASE
+    
+the `BUILD_TYPE` variable is specific to each build directory. Now, if you do
+
+    $ ./configure -D CXX=clang++
+
+The `CXX` variable is applied on all existing build directory (previously configured). Which is
+different than:
+
+    $ ./configure -E CXX=clang++
+    
+Which is a global to project, and all build (future ones too) will inherit this variable,
+and possibly override it with a build specific one.
+
+#### Typed variables and command line operator syntax
+
+Variables are strongly typed, but they all conveniently default to be of type strings.
+Available types are bool, string, list and dictionary.
+
+    # v1, v2, v3 and v4 are all booleans and equal to True
+    $ ./configure -D v1 -D v2=TRUE -D v3=true -D v4=1
+    
+This implies that `TRUE`, `FALSE`, `0` and `1` are reserved value that mean the variable is 
+a boolean (not case sensitive).
+
+     # All other strings are simply strings.
+     $ ./configure -D PROJECT_NAME=my_project
+     
+     # We can concatenate strings with '+=' operator
+     $ ./configure -D PROJECT_NAME+=-v0.1 # PROJECT_NAME == my_project-v0.1
+     
+Lists are differentiated by the character `[`, their values are separated by a comma `,`.
+
+     # lists are recognized with '[', which need to be escaped
+     $ ./configure -D PREFIXES=\[/usr, /usr/local/]
+     # You can extend a list with +=
+     $ ./configure -D PREFIXES+=\[/opt/local]
+     # If you want to append one element, you can use := operator
+     $ ./configure -D PREFIXES:=/some/prefix
+
+That that all of those commands will create a variable of type list, even
+if it does not exist.
+
+Dictionaries works the same way:
+
+     # The character used is '{', which also need to be escaped
+     $ ./configure -D tags=\{stable: 1.0, testing: 1.1, unstable: 1.2}
+     # To change or add a particular value
+     $ ./configure -D tags\[stable]=1.1
+     
+#### Internals
+
 Project variables are saved in the file `.config/.project_vars`, whereas build
 variables are store in their respective directory in a file named `.build_vars`.
 
