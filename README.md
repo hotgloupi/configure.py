@@ -205,17 +205,10 @@ Lists are differentiated by the character `[`, their values are separated by a c
 That that all of those commands will create a variable of type list, even
 if it does not exist.
 
-Dictionaries works the same way:
-
-     # The character used is '{', which also need to be escaped
-     $ ./configure -D tags=\{stable: 1.0, testing: 1.1, unstable: 1.2}
-     # To change or add a particular value
-     $ ./configure -D tags\[stable]=1.1
-     
 #### Internals
 
 Project variables are saved in the file `.config/.project_vars`, whereas build
-variables are store in their respective directory in a file named `.build_vars`.
+variables are stored in their respective directory in a file named `.build_vars`.
 
 They contain a python dictionary that could be read or modified with the `pickle` python module.
 
