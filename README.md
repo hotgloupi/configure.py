@@ -207,6 +207,15 @@ Lists are differentiated by the character `[`, their values are separated by a c
 That that all of those commands will create a variable of type list, even
 if it does not exist.
 
+#### Undefining variables
+
+To remove a variable you can just set it to nothing:
+
+     $ ./configure -D BUILD_VAR= -E PROJECT_VAR=
+
+This will remove `BUILD_VAR` from build variables (here, for all configured builds), 
+and remove `PROJECT_VAR` from the project variables.
+
 #### Internals
 
 Project variables are saved in the file `.config/.project_vars`, whereas build
