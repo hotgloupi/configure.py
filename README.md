@@ -179,7 +179,7 @@ and possibly override it with a build specific one.
 #### Typed variables and command line operator syntax
 
 Variables are strongly typed, but they all conveniently default to be of type strings.
-Available types are bool, string, list and dictionary.
+Available types are bool, string, and list of strings.
 
     # v1, v2, v3 and v4 are all booleans and equal to True
     $ ./configure -D v1 -D v2=TRUE -D v3=true -D v4=1
@@ -197,8 +197,10 @@ Lists are differentiated by the character `[`, their values are separated by a c
 
      # lists are recognized with '[', which need to be escaped
      $ ./configure -D PREFIXES=\[/usr, /usr/local/]
+     
      # You can extend a list with +=
      $ ./configure -D PREFIXES+=\[/opt/local]
+     
      # If you want to append one element, you can use := operator
      $ ./configure -D PREFIXES:=/some/prefix
 
