@@ -1,6 +1,8 @@
 # -*- encoding: utf-8 -*-
 
 import sys
+import pipes
+
 from tupcfg import Target, path, tools, platform
 from tupcfg.lang import compiler
 
@@ -87,9 +89,12 @@ class Compiler(compiler.Compiler):
                 self.directories = []
 
             def shell_string(self, target=None, build=None):
-                dirs = tools.unique(self.directories)
+                dirs = self.directories
                 for lib in self.libs:
                     dirs.append(path.dirname(path.absolute(lib.path(build))))
+                dirs = tools.unique(dirs)
+                if platform.IS_MACOSX:
+                    return list(('-Wl,-rpath,' + d) for d in dirs)
                 if dirs:
                     return '-Wl,-rpath,' + ':'.join(dirs)
                 return ''
@@ -141,9 +146,11 @@ class Compiler(compiler.Compiler):
 
     def _link_library_cmd(self, cmd, target=None, build=None):
         if cmd.shared:
+            name = path.basename(target.path(build))
             if platform.IS_MACOSX:
                 link_flag = 'dynamiclib'
-                soname_flag = 'dylib_install_name'
+                soname_flag = 'install_name'
+                name = '@rpath/' + name
             else:
                 link_flag = 'shared'
                 soname_flag = 'soname'
@@ -152,7 +159,7 @@ class Compiler(compiler.Compiler):
                 '-%s' % link_flag,
                 self.__architecture_flag(cmd),
                 cmd.dependencies,
-                ('-Wl,-%s,' % soname_flag) + path.basename(target.path(build)),
+                ('-Wl,-%s,' % soname_flag) + name,
                 '-o', target,
                 self._get_link_flags(cmd)
             ]
