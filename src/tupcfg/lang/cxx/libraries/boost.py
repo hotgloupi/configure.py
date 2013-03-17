@@ -18,6 +18,7 @@ class BoostLibrary(Library):
                 name_prefixes = ['', 'lib']
             else:
                 name_prefixes = ['lib']
+            name_suffixes = ['', '-mt']
             self.components.append(
                 Library(
                     "boost_" + component,
@@ -27,6 +28,7 @@ class BoostLibrary(Library):
                     directories = self.directories,
                     shared = shared,
                     name_prefixes = name_prefixes,
+                    name_suffixes = name_suffixes,
                 )
             )
 
