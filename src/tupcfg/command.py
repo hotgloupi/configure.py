@@ -37,6 +37,9 @@ class Command(Node):
         args = (inputs, additional_inputs, outputs, additional_outputs,
                 shell_string, string)
         import types
+        if isinstance(raw_cmd, str):
+            yield raw_cmd
+            return
         for el in raw_cmd:
             if isinstance(el, str):
                 yield el
@@ -52,7 +55,8 @@ class Command(Node):
                         inputs.append(el)
 
                 if shell_string:
-                    yield el.shell_string(**kw)
+                    for e in self.__gen_cmd(el.shell_string(**kw), *args, **kw):
+                        yield e
                 elif string:
                     yield str(el)
                 else:
