@@ -188,6 +188,7 @@ def prepare_build(args, defines, exports):
             d for d in project.env.get('BUILD_DIRECTORIES', [])
             if exists(d, '.tupcfg_build')
         )
+        tupcfg.tools.verbose("Found build directories:", ' '.join(env_build_dirs))
         build_dirs = []
         if build_dir is not None:
             build_dirs = [build_dir]
@@ -225,8 +226,10 @@ def prepare_build(args, defines, exports):
 
                 if args.dump_vars:
                     status("Build variables for directory '%s':" % build_dir)
-                    for k, v in project.env.build_vars.items():
-                        status("\t - %s = %s" % (k, v))
+                    build_vars = project.env.build_vars
+                    keys = sorted(build_vars.keys())
+                    for k in keys:
+                        status("\t - %s = %s" % (k, build_vars[k]))
                     continue
 
                 if args.dump_build:
@@ -286,6 +289,34 @@ def parse_args():
 
     return parser, parser.parse_args()
 
+def parse_cmdline_variables(args):
+    res = {}
+    for arg in args:
+        arg = arg.strip()
+        if '=' not in arg:
+            fatal("'=' not found in define: use %s=true to define a boolean variable" % arg)
+        parts = arg.split('=')
+        k = parts[0].strip()
+        v = '='.join(parts[1:]).strip()
+        op = '='
+        for p in ['+', ':']:
+            if k.endswith(p):
+                op = p + '='
+                k = k[:-1]
+                break
+        if v.lower() in ['1', 'true']:
+            v = True
+        elif v.lower() in ['0', 'false']:
+            v = False
+        elif v.startswith('['):
+            if not v.endswith(']'):
+                fatal("Missing ']' when defining %s" % k)
+            v = [e.strip() for e in v[1:-1].split(',')]
+        res[k] = {
+            'op': op,
+            'value': v,
+        }
+    return res
 
 def main():
     parser, args = parse_args()
@@ -295,6 +326,7 @@ def main():
 
     from os.path import exists, join
 
+    sys.path.insert(0, os.path.join(PROJECT_CONFIG_DIR,'tupcfg/src'))
     sys.path.insert(0, PROJECT_CONFIG_DIR)
 
     have_tupcfg = False
@@ -330,6 +362,7 @@ def main():
             '\n'.join([
                 "Cannot find tupcfg module, your options are:",
                 "\t* Just use the --self-install flag (installed in %(config_dir)s/tupcfg)",
+                "\t* Add it as a submodule: `git submodule add git@github.com:hotgloupi/tupcfg.git %(config_dir)s/tupcfg`",
                 "\t* Install it somewhere (see %(home_url)s)",
             ]) % {
                 'config_dir': cleanabspath(PROJECT_CONFIG_DIR, replace_home=True),
@@ -356,15 +389,8 @@ def main():
 
 
     try:
-        defines = {}
-        for d in args.define:
-            k, v = d.split('=')
-            defines[k.strip()] = v.strip()
-
-        exports = {}
-        for d in args.export:
-            k, v = d.split('=')
-            exports[k.strip()] = v.strip()
+        defines = parse_cmdline_variables(args.define)
+        exports = parse_cmdline_variables(args.export)
 
         prepare_build(args, defines, exports)
 
