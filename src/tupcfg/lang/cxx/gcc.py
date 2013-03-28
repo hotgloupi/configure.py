@@ -1,9 +1,10 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg.lang.c import gcc
+from . import compiler as cxx_compiler
+from ..c import gcc
 from tupcfg import path
 
-class Compiler(gcc.Compiler):
+class Compiler(gcc.Compiler, cxx_compiler.Compiler):
 
     binary_name = 'g++'
 

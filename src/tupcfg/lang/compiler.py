@@ -8,6 +8,9 @@ class Compiler(compiler.BasicCompiler):
     # Standard binary name (Should be overriden)
     binary_name = None
 
+    # Environment variable name that might contain the binary name (Should be overriden)
+    binary_env_varname = None
+
     # Compiled object extension
     object_extension = 'o'
 
@@ -105,16 +108,22 @@ class Compiler(compiler.BasicCompiler):
             ('force_architecture', True),
             ('additional_link_flags', {}),
         ]
+        self._set_attributes_default(attrs, kw)
+
+        assert self.binary_name is not None
+        assert self.binary_env_varname is not None
+
+        binary = project.env.get('FORCE_%s' % self.binary_env_varname)
+        if not binary:
+            binary = tools.find_binary(self.binary_name, project.env, self.binary_env_varname)
+        project.env.build_set(self.binary_env_varname, binary)
+        super(Compiler, self).__init__(binary, project, build, **kw)
+
+    def _set_attributes_default(self, attrs, kw):
         for key, default in attrs:
             setattr(self, key, kw.get(key, default))
             if key in kw:
                 kw.pop(key)
-        assert self.binary_name is not None
-        binary = project.env.get('FORCE_CXX')
-        if not binary:
-            binary = tools.find_binary(self.binary_name, project.env, 'CXX')
-        project.env.build_set('CXX', binary)
-        super(Compiler, self).__init__(binary, project, build, **kw)
 
     def attr(self, attribute, cmd):
         """Returns an attribute value with correct priority"""

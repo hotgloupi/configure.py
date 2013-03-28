@@ -1,7 +1,9 @@
+#-*- encoding: utf8 -*-
 
-from tupcfg.lang.c import msvc
+from . import compiler as cxx_compiler
+from ..c import msvc
 
-class Compiler(msvc.Compiler):
+class Compiler(cxx_compiler.Compiler, msvc.Compiler):
 
     def __init__(self, project, build, **kw):
         kw.setdefault('lang', 'cxx')

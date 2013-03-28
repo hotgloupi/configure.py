@@ -3,9 +3,9 @@
 from tupcfg import path, tools
 from tupcfg import Target
 
-from tupcfg.lang import compiler
+from . import compiler as c_compiler
 
-class Compiler(compiler.Compiler):
+class Compiler(c_compiler.Compiler):
 
     binary_name = 'cl.exe'
     lib_binary_name = 'lib.exe'

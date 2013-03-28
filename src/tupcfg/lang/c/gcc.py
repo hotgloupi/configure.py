@@ -4,9 +4,9 @@ import sys
 import pipes
 
 from tupcfg import Target, path, tools, platform
-from tupcfg.lang import compiler
+from . import compiler as c_compiler
 
-class Compiler(compiler.Compiler):
+class Compiler(c_compiler.Compiler):
 
     name = 'gcc'
     binary_name = 'gcc'
