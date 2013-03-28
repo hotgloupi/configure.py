@@ -34,6 +34,25 @@ Additionally, it has a pluggable generator system that allows you to build your
 project even when tup is not available, or for release builds from scratch
 (Makefile generator is implemented).
 
+Overview
+--------
+
+After adding and launching the configure script in your project root directory
+(see GettingStarted), you end up with something like that:
+
+    my_project/
+    ├── .config
+    │   ├── project.py
+    ├── configure*
+    ├── include
+    │   └── my_project.h
+    └── src
+        └── main.c
+
+The file `.config/project.py` contains the rules to build your project. This
+file will be used to prepare one or more build directories by the `configure`
+script.
+
 Getting started
 ---------------
 
@@ -67,7 +86,6 @@ Note that same flags could be used later to upgrade tupcfg and tup.
 
 You are now asked to manually edit the file `.config/project.py`, which defines
 your project rules.
-
 
 ### The project file
 
