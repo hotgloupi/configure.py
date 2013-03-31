@@ -4,7 +4,7 @@ from . import compiler as cxx_compiler
 from ..c import gcc
 from tupcfg import path
 
-class Compiler(gcc.Compiler, cxx_compiler.Compiler):
+class Compiler(cxx_compiler.Compiler, gcc.Compiler):
 
     binary_name = 'g++'
 
@@ -13,6 +13,8 @@ class Compiler(gcc.Compiler, cxx_compiler.Compiler):
     }
 
     def __init__(self, project, build, **kw):
+        assert self.binary_name == 'g++'
+        assert self.binary_env_varname == 'CXX'
         kw.setdefault('lang', 'cxx')
         super(Compiler, self).__init__(project, build, **kw)
 

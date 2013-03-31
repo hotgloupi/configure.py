@@ -64,6 +64,7 @@ class Makefile(Generator):
             makefile += '%s:' % target
             for i in inputs:
                 makefile += ' %s' % i.relpath(self.build.directory, self.build)
+
             makefile += '\n\t@%s' % cmd_str(
                 'sh', '-c', cmd_str(
                     'echo',
@@ -79,3 +80,4 @@ class Makefile(Generator):
 
         with open(self.makefile, 'w') as f:
             f.write(makefile)
+
