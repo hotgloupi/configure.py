@@ -61,7 +61,7 @@ class Build:
             generator.close()
 
     def cleanup(self):
-        for tupfile in tools.glob('Tupfile', dir_=self.directory, recursive=True):
+        for tupfile in tools.find_files(name='Tupfile', working_directory=self.directory):
             tupfile = path.absolute(tupfile)
             if tupfile not in self.tupfiles:
                 os.unlink(tupfile)
