@@ -5,9 +5,12 @@ from . import path
 
 class Target(Node):
 
-    def __init__(self, name, dependencies):
+    def __init__(self, name, dependencies, additional_inputs=[], additional_outputs=[]):
         self.name = name
         super(Target, self).__init__(dependencies)
+        self.additional_inputs = additional_inputs[:]
+        self.additional_outputs = additional_outputs[:]
+
 
     def path(self, build):
         assert build is not None

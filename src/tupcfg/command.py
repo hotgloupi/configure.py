@@ -1,7 +1,8 @@
 # -*- encoding: utf-8 -*-
 
-from .node import Node
 from . import path
+from .node import Node
+from .target import Target
 
 class Command(Node):
 
@@ -51,9 +52,10 @@ class Command(Node):
                 if isinstance(el, Node):
                     if el == kw['target']:
                         outputs.append(el)
+                        additional_inputs.extend(el.additional_inputs)
+                        additional_outputs.extend(el.additional_outputs)
                     else:
                         inputs.append(el)
-
                 if shell_string:
                     for e in self.__gen_cmd(el.shell_string(**kw), *args, **kw):
                         yield e

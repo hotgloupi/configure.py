@@ -73,6 +73,9 @@ class Build:
             for input_ in i:
                 #write('\t', input_.shell_string(**kw))
                 write('\t', input_.relpath(kw['target'], kw['build']))
+            for input_ in ai:
+                #write('\t', input_.shell_string(**kw))
+                write('\t', input_.relpath(kw['target'], kw['build']))
             write("|>")
             if not tools.DEBUG:
                 write("^", action, path.basename(str(kw['target'])), "^")
