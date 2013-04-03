@@ -145,7 +145,7 @@ def find_files(working_directory='.',
     results = []
     for root, dirnames, files in _walk(working_directory):
         results.extend(
-            file_ for file_ in files if _match_file(
+            os.path.join(root, file_) for file_ in files if _match_file(
                 root,
                 file_,
                 name,
