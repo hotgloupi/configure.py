@@ -65,6 +65,10 @@ class Compiler(c_compiler.Compiler):
             '-o', target,
         ]
 
+    def _generate_precompiled_header(self, source, **kw):
+        return self.BuildObject(self, source, **kw)
+
+
     def __add_rpath(self, lib, **kw):
         return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 

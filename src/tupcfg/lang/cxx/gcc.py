@@ -19,7 +19,12 @@ class Compiler(cxx_compiler.Compiler, gcc.Compiler):
         super(Compiler, self).__init__(project, build, **kw)
 
     def _get_build_flags(self, cmd):
-        return ['-x', 'c++'] + super(Compiler, self)._get_build_flags(cmd)
+        base_build_flags =  super(Compiler, self)._get_build_flags(cmd)
+        if cmd.kw.get('precompiled_header'):
+            lang = 'c++-header'
+        else:
+            lang = 'c++'
+        return ['-x', lang] + base_build_flags
 
     def _get_link_flags(self, cmd):
         flags = []
