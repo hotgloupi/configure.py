@@ -8,6 +8,8 @@ from .. import path
 from ..generator import Generator
 from ..target import Target
 
+from ..build import command as build_command
+
 class Makefile(Generator):
 
     def __init__(self, **kw):
@@ -30,7 +32,10 @@ class Makefile(Generator):
         if target_path in self.targets:
             print('#############', target_path, "is targetted twice or more")
             return
-        self.targets[target_path] = (target, inputs, action, command)
+        self.targets[target_path] = (
+            target, inputs, additional_inputs, action,
+            list(build_command(command, build=self.build))
+        )
         for i in inputs:
             if not isinstance(i, Target):
                 continue
@@ -59,24 +64,30 @@ class Makefile(Generator):
 
         makefile += '\n\n'
 
-        for target_path, infos in self.targets.items():
-            target, inputs, action, command = infos
-            makefile += '%s:' % target
-            for i in inputs:
-                makefile += ' %s' % i.relpath(self.build.directory, self.build)
+        for depends_mode in (True, False):
+            for target_path, infos in self.targets.items():
+                target, inputs, additional_inputs, action, command = infos
+                target_str = str(target)
+                if (depends_mode and not target_str.endswith('.depends.mk')) or \
+                    not depends_mode and target_str.endswith('.depends.mk'):
+                    continue
+                makefile += '%s:' % target
+                for i in inputs + additional_inputs:
+                    makefile += ' %s' % i.relpath(self.build.directory, self.build)
 
-            makefile += '\n\t@%s' % cmd_str(
-                'sh', '-c', cmd_str(
-                    'echo',
-                    '\033[0;34m' + action + '\033[0m ' +
-                    '\033[0;31m' + target.relpath(self.project.directory, self.build) + '\033[0m'
+                makefile += '\n\t@%s' % cmd_str(
+                    'sh', '-c', cmd_str(
+                        'echo',
+                        '\033[0;34m' + action + '\033[0m ' +
+                        '\033[0;31m' + target.relpath(self.project.directory, self.build) + '\033[0m'
+                    )
                 )
-            )
-            working_directory = path.dirname(target_path)
-            makefile += '\n\t%s' % cmd_str(
-                'sh', '-c', cmd_str('cd', working_directory) + ' && ' + cmd_str(*command)
-            )
-            makefile += '\n\n'
+                working_directory = path.dirname(target_path)
+                makefile += '\n\t%s' % cmd_str(*command)
+                makefile += '\n\n'
+
+                if target_str.endswith('.depends.mk'):
+                    makefile += 'include %s\n\n' % target_str
 
         with open(self.makefile, 'w') as f:
             f.write(makefile)

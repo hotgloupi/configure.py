@@ -41,5 +41,5 @@ class Target(Node):
         super(Target, self).execute(target=self, build=build)
 
 
-    def shell_string(self, target=None, build=None):
-        return self.relpath(target, build=build)
+    def shell_string(self, cwd=None, build=None):
+        return self.relpath(cwd, build=build)

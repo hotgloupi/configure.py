@@ -89,7 +89,7 @@ class Command(Node):
         super(Command, self).execute(target=target, build=build)
         build.emit_command(
             self.action,
-            *self.gen_command(shell_string=True, target=target, build=build)
+            *self.gen_command(shell_string=False, target=target, build=build)
         )
 
 

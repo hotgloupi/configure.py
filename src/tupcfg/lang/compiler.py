@@ -41,7 +41,26 @@ class Compiler(compiler.BasicCompiler):
             Command.__init__(self, source)
 
         def command(self, **kw):
-            return self.compiler._build_object_cmd(self, **kw)
+            cmd = self.compiler._build_object_cmd(self, **kw)
+            return cmd
+
+    class BuildObjectDependencies(Command):
+
+        @property
+        def action(self):
+            return "Building %s object dependencies" % self.compiler.lang
+
+        def __init__(self, compiler, source, target, **kw):
+            self.compiler = compiler
+            self.kw = kw
+            self.source = source
+            self.target = target
+            assert isinstance(source, Source)
+            assert isinstance(target, Target)
+            Command.__init__(self, source)
+
+        def command(self, **kw):
+            return self.compiler._build_object_dependencies_cmd(self, **kw)
 
     class LinkCommand(Command):
         """Base class for linking commands"""
@@ -80,8 +99,8 @@ class Compiler(compiler.BasicCompiler):
         class RelativeDirectory:
             def __init__(self, dir_):
                 self._dir = dir_
-            def shell_string(self, target=None, build=None):
-                return path.relative(self._dir, start = target.directory(build))
+            def shell_string(self, cwd=None, build=None):
+                return path.relative(self._dir, start = cwd)
 
         dirs = []
         for dir_ in tools.unique(include_directories):
@@ -107,6 +126,7 @@ class Compiler(compiler.BasicCompiler):
             ('static_libstd', False),
             ('force_architecture', True),
             ('additional_link_flags', {}),
+            ('generate_source_dependencies_for_makefile', True),
         ]
         self._set_attributes_default(attrs, kw)
 
@@ -130,10 +150,18 @@ class Compiler(compiler.BasicCompiler):
         return cmd.kw.get(attribute, getattr(self, attribute))
 
     def _build_object(self, src, **kw):
-        return Target(
+        target = Target(
             src.filename + '.' + self.object_extension,
             self.BuildObject(self, src, **kw)
         )
+        if self.generate_source_dependencies_for_makefile:
+            mktarget = Target(
+                src.filename + '.' + self.object_extension + '.depends.mk',
+                self.BuildObjectDependencies(self, src, target, **kw)
+            )
+            target.additional_inputs.append(mktarget)
+            self.build.add_target(mktarget)
+        return target
 
     def _link_library(self, objects, **kw):
         return self.LinkLibrary(self, objects, **kw)

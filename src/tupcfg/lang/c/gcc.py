@@ -65,6 +65,24 @@ class Compiler(c_compiler.Compiler):
             '-o', target,
         ]
 
+    def _build_object_dependencies_cmd(self, cmd, target=None, build=None):
+        class ObjectTarget:
+            def __init__(self, target):
+                self.target = target
+            def shell_string(self, cwd=None, build=None):
+                return self.target.shell_string(cwd=cwd, build=build)
+
+        return [
+            self.binary,
+            self.__architecture_flag(cmd),
+            self._get_build_flags(cmd),
+            '-c', cmd.source,
+#            '-o', ObjectTarget(cmd.target),
+            '-MM',
+            '-MT', ObjectTarget(cmd.target),
+            '-MF', target,
+        ]
+
     def _generate_precompiled_header(self, source, **kw):
         return self.BuildObject(self, source, **kw)
 
@@ -92,7 +110,7 @@ class Compiler(c_compiler.Compiler):
                 self.libs = []
                 self.directories = []
 
-            def shell_string(self, target=None, build=None):
+            def shell_string(self, cwd=None, build=None):
                 dirs = self.directories
                 for lib in self.libs:
                     dirs.append(path.dirname(path.absolute(lib.path(build))))

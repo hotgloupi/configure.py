@@ -33,6 +33,6 @@ class Source(Node):
             self.filename
         )
 
-    def shell_string(self, target=None, build=None):
-        return self.relpath(target, build)
+    def shell_string(self, cwd=None, build=None):
+        return self.relpath(cwd, build)
 

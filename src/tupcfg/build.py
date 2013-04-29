@@ -1,8 +1,37 @@
 # -*- encoding: utf-8 -*-
 
 import os
+import types
 
 from tupcfg import tools, path
+
+def command(cmd, build=None, cwd=None):
+    return list(_command(cmd, build=build, cwd=cwd))
+
+def _command(cmd, build=None, cwd=None):
+    pass
+    """Yield a build command relative to cwd if provided or build.directory"""
+    assert build is not None
+    if cwd is None:
+        cwd = build.directory
+    if isinstance(cmd, str):
+        yield cmd
+        return
+    for el in cmd:
+        if isinstance(el, str):
+            yield el
+        elif isinstance(el, (list, tuple, types.GeneratorType)):
+            for sub_el in _command(el, build=build, cwd=cwd):
+                yield sub_el
+        else:
+            res =  _command(
+                el.shell_string(build=build, cwd=cwd),
+                build = build,
+                cwd = cwd
+            )
+            for sub_el in res:
+                yield sub_el
+
 
 class Build:
     def __init__(self, directory, root_directory='.'):
@@ -81,7 +110,7 @@ class Build:
                 write("^", action, path.basename(str(kw['target'])), "^")
             for e in cmd:
                 write('\t', e)
-            write("|>", kw['target'].shell_string(**kw))
+            write("|>", kw['target'].shell_string(kw['target'], build=kw['build']))
             tupfile.write('\n')
 
 
