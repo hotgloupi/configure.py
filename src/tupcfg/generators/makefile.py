@@ -14,7 +14,7 @@ class Makefile(Generator):
 
     def __init__(self, **kw):
         Generator.__init__(self, **kw)
-        self.makefile = path.join(self.build.directory, 'Makefile.generated')
+        self.makefile = path.join(self.build.directory, 'Makefile')
         if path.exists(self.makefile):
             os.unlink(self.makefile)
         self.targets = {}

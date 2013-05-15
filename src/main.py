@@ -83,20 +83,7 @@ TUP_GIT_URL = "git://github.com/gittup/tup.git"
 TUP_WINDOWS_URL = "http://gittup.org/tup/win32/tup-latest.zip"
 TUPCFG_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tupcfg-install')
 TUPCFG_GIT_URL = "git://github.com/hotgloupi/tupcfg.git"
-MAKEFILE_TEMPLATE = """
-.PHONY:
-.PHONY: all monitor
-
-all: %(tup_config_dir)s
-	@sh -c 'cd %(root_dir)s && %(tup_bin)s upd'
-
-%(tup_config_dir)s:
-	@sh -c 'cd %(root_dir)s && %(tup_bin)s init'
-
-monitor: %(tup_config_dir)s
-	@sh -c 'export PATH=%(project_config_dir)s/tup:$$PATH; cd %(root_dir)s && %(tup_bin)s monitor -f -a'
-
-"""
+TUPCFG_GENERATORS = ['Tup', 'Makefile']
 
 def self_install(args):
     status("Installing tupcfg in", TUPCFG_INSTALL_DIR)
@@ -174,6 +161,7 @@ def tup_install_git(args):
 def prepare_build(args, defines, exports):
     import tupcfg # Should work at this point
     from tupcfg.path import exists, join, absolute
+    import tupcfg.generators
 
     build_dir = args.build_dir
     try:
@@ -181,7 +169,8 @@ def prepare_build(args, defines, exports):
             ROOT_DIR,
             PROJECT_CONFIG_DIR,
             config_filename = PROJECT_CONFIG_FILENAME,
-            new_project_vars = exports
+            new_project_vars = exports,
+            generators = [getattr(tupcfg.generators, args.generator)],
         )
 
         env_build_dirs = list(
@@ -248,22 +237,6 @@ def prepare_build(args, defines, exports):
         )
         sys.exit(0)
 
-    tup_bin = absolute(PROJECT_CONFIG_DIR, 'tup/tup')
-    if not exists(tup_bin):
-        tup_bin = tupcfg.tools.which('tup')
-        assert exists(tup_bin)
-    makefile = join(build_dir, 'Makefile')
-    with open(makefile, 'w') as f:
-        f.write(MAKEFILE_TEMPLATE % {
-            'tup_config_dir': absolute(ROOT_DIR, '.tup'),
-            'tup_bin': tup_bin,
-            'root_dir': absolute(ROOT_DIR),
-            'project_config_dir': absolute(PROJECT_CONFIG_DIR),
-        })
-
-    if not exists(join(ROOT_DIR, '.tup')):
-        cmd = ['make', '-C', build_dir]
-        print('Just run `%s`' % ' '.join(map(pipes.quote, cmd)))
 
 def parse_args():
     def Dir(s):
@@ -286,6 +259,9 @@ def parse_args():
     parser.add_argument('--install', action='store_true', help="install when needed")
     parser.add_argument('--self-install', action='store_true', help="install (or update) tupcfg")
     parser.add_argument('--tup-install', action='store_true', help="install (or update) tup")
+    parser.add_argument('--generator', '-G', default = 'Tup',
+                        help = "Generate build rules for another build system",
+                       choices = TUPCFG_GENERATORS)
 
     return parser, parser.parse_args()
 
@@ -375,7 +351,7 @@ def main():
     if args.tup_install or (args.install and not tupcfg.tools.which('tup')):
         tup_install(args)
 
-    if not tupcfg.tools.which('tup'):
+    if 'Tup' == args.generator and not tupcfg.tools.which('tup'):
         fatal(
             '\n'.join([
                 "Cannot find tup binary, your options are:",

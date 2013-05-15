@@ -38,7 +38,6 @@ class Build:
         self.directory = directory
         self.root_directory = root_directory
         self.targets = []
-        self.tupfiles = set()
 
     def add_target(self, target):
         self.targets.append(target)
@@ -68,11 +67,6 @@ class Build:
         for dir_, rules in self.__commands.items():
             if not path.exists(dir_):
                 os.makedirs(dir_)
-            tupfile = path.join(dir_, 'Tupfile')
-            self.tupfiles.add(path.absolute(tupfile))
-            tools.debug(path.exists(tupfile) and 'Updating' or 'Creating', tupfile)
-            with open(tupfile, 'w') as f:
-                self.__write_conf(dir_, f, rules)
             for generator in generators:
                 with generator(working_directory=dir_) as gen:
                     for action, cmd, i, ai, o, ao, kw in rules:
@@ -90,29 +84,7 @@ class Build:
             generator.close()
 
     def cleanup(self):
-        for tupfile in tools.find_files(name='Tupfile', working_directory=self.directory):
-            tupfile = path.absolute(tupfile)
-            if tupfile not in self.tupfiles:
-                os.unlink(tupfile)
-
-    def __write_conf(self, dir_, tupfile, rules):
-        write = lambda *args: print(*(args + ('\\',)), file=tupfile)
-        for action, cmd, i, ai, o, ao, kw in rules:
-            write(":")
-            for input_ in i:
-                #write('\t', input_.shell_string(**kw))
-                write('\t', input_.relpath(kw['target'], kw['build']))
-            for input_ in ai:
-                #write('\t', input_.shell_string(**kw))
-                write('\t', input_.relpath(kw['target'], kw['build']))
-            write("|>")
-            if not tools.DEBUG:
-                write("^", action, path.basename(str(kw['target'])), "^")
-            for e in cmd:
-                write('\t', e)
-            write("|>", kw['target'].shell_string(kw['target'], build=kw['build']))
-            tupfile.write('\n')
-
+        pass
 
     def emit_command(self, action,
                      cmd,

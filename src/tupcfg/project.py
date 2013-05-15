@@ -22,7 +22,7 @@ class Project:
                  generators=[]):
         self.root_dir = root_dir #deprecated
         self.directory = path.absolute(root_dir)
-        self.config_dir = config_dir
+        self.config_directory = config_dir
         self.config_file = path.join(config_dir, config_filename)
         self.build_vars_filename = build_vars_filename
         self.project_vars_filename = project_vars_filename
@@ -38,14 +38,14 @@ class Project:
             raise self.NeedUserEdit()
         else:
             self.__read_conf()
-        project_vars_file = path.join(self.config_dir, self.project_vars_filename)
+        project_vars_file = path.join(self.config_directory, self.project_vars_filename)
         self.env.enable_project_vars(project_vars_file, new_vars=new_project_vars)
 
     def __enter__(self):
         return self
 
     def __exit__(self, type_, value, traceback):
-        project_vars_file = path.join(self.config_dir, self.project_vars_filename)
+        project_vars_file = path.join(self.config_directory, self.project_vars_filename)
         self.env.save_project_vars(project_vars_file)
 
     @property
@@ -65,8 +65,8 @@ class Project:
     def __bootstrap(self):
         assert self.__env is None
         self.__env = self.__default_env()
-        if not path.exists(self.config_dir):
-            os.makedirs(self.config_dir)
+        if not path.exists(self.config_directory):
+            os.makedirs(self.config_directory)
         with open(self.__config_file_template) as template:
             data = template.read() % self.env
         with open(self.config_file, 'w') as conf:
@@ -79,7 +79,7 @@ class Project:
         self.__env = env.Env(self)
         backup = sys.path[:]
         try:
-            sys.path.insert(0, self.config_dir)
+            sys.path.insert(0, self.config_directory)
             globals_ = {}
 
             with open(self.config_file) as f:
