@@ -39,33 +39,52 @@ of using environment:
 
 """
 
-from tupcfg import Source
-from tupcfg import Target
-from tupcfg import Command
-from tupcfg import Build
+NAME = 'my_project_name'
 
-class BuildObject(Command):
-
-    def command(self, **kw):
-        return [
-            'gcc',
-            '-c', self.dependencies[0],
-            '-o', kw['target'],
-        ]
-
-class LinkExecutable(Command):
-    def command(self, **kw):
-        return [
-            'gcc',
-            self.dependencies[0],
-            '-o', kw['target'],
-        ]
+import tupcfg
 
 def configure(project, build):
-    print("Configuring", build.directory)
-    srcs = list(Source(src) for src in ['test.c', 'main.c'])
-    objs = [
-        Target(src.name + '.o', BuildObject(src)) for src in srcs
-    ]
-    target = Target('test', LinkExecutable(objs))
-    build.add_target(target)
+    """ This is a sample """
+
+    ## Retreive BUILD_TYPE (defaults to DEBUG)
+    build_type = project.env.get('BUILD_TYPE', 'DEBUG')
+
+    ## Print a status message (Could have been verbose or debug)
+    tupcfg.tools.status("Configuring", project.env.NAME,
+                      'in', build.directory, '(%s)' % build_type)
+
+
+    ## Choose C++ compiler
+    if platform.IS_WINDOWS:
+        CXXCompiler = tupcfg.lang.cxx.msvc.Compiler
+    else:
+        CXXCompiler = tupcfg.lang.cxx.gcc.Compiler
+
+    ## Create a new compiler
+    # compiler = CXXCompiler(
+    #     project,
+    #     build,
+    #     position_independent_code = True,
+    #     standard = 'c++11',
+    # )
+
+    #tupcfg.tools.status("CXX compiler is", compiler.binary)
+
+    ## to link an executable, simply use the link_executable method.
+    # my_program_exe = compiler.link_executable(
+    #     "my_program",                 # The executable name
+    #     ["src/main.cpp", ],           # source files
+    #     directory = "release/bin",    # executable destination
+    #     libraries=[],                 # library dependencies
+    # )
+
+
+    ## Or a library
+    my_lib = compiler.link_library(
+        'libmy_lib',
+        glob("src/my_lib/*.cpp", recursive=True),
+        directory  = 'release/lib',
+        libraries = [],
+        defines = ['MY_LIB_BUILD_DLL'],
+        shared = True #and not platform.IS_MACOSX #bug with tup on macosx
+    )
