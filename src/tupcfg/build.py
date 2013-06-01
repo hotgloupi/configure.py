@@ -3,7 +3,8 @@
 import os
 import types
 
-from tupcfg import tools, path
+from . import tools, path
+from .filesystem import Filesystem
 
 def command(cmd, build=None, cwd=None):
     return list(_command(cmd, build=build, cwd=cwd))
@@ -38,6 +39,7 @@ class Build:
         self.directory = directory
         self.root_directory = root_directory
         self.targets = []
+        self.fs = Filesystem(self)
 
     def add_target(self, target):
         self.targets.append(target)
