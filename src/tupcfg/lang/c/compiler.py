@@ -2,11 +2,18 @@
 
 from tupcfg import Source, Target
 
-from .. import compiler as base_compiler
+from tupcfg.compiler import Compiler as BaseCompiler
 
-class Compiler(base_compiler.Compiler):
+class Compiler(BaseCompiler):
     binary_env_varname = 'CC'
 
+    def build_object(self, src, **kw):
+        target = super(Compiler, self).build_object(src, **kw)
+        pchs = kw.get('precompiled_headers', [])
+        for pch in pchs:
+            print("ADD pch !")
+            target.additional_inputs.append(pch)
+        return target
 
     def generate_precompiled_header(self, source, **kw):
         command = self._generate_precompiled_header(

@@ -24,14 +24,26 @@ class Compiler(cxx_compiler.Compiler, gcc.Compiler):
             lang = 'c++-header'
         else:
             lang = 'c++'
-        return ['-x', lang] + base_build_flags
+        return (
+            ['-x', lang] + base_build_flags +
+            self.__get_stdlib_flags(cmd)
+        )
 
     def _get_link_flags(self, cmd):
-        flags = []
+        flags = super(Compiler, self)._get_link_flags(cmd)
         if self.attr('static_libstd', cmd):
             flags.append('-L%s' % self.static_stdlib_directory)
             flags.append('-static-libstdc++')
-        return flags + super(Compiler, self)._get_link_flags(cmd)
+        return flags + self.__get_stdlib_flags(cmd)
+
+    def __get_stdlib_flags(self, cmd):
+        stdlib = self.attr('stdlib', cmd)
+        flags = []
+        if not stdlib:
+            flags.append('-nostdlib')
+        elif isinstance(stdlib, str):
+            flags.append('-stdlib=%s' % stdlib)
+        return flags
 
     @property
     def static_stdlib_directory(self):

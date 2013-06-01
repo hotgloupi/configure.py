@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 
-from .. import compiler as base_compiler
+from tupcfg.compiler import Compiler as BaseCompiler
 
-class Compiler(base_compiler.Compiler):
+class Compiler(BaseCompiler):
     binary_env_varname = 'CXX'
 
 

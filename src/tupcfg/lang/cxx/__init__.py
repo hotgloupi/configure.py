@@ -2,3 +2,4 @@
 
 from . import gcc
 from . import msvc
+from . import libraries
