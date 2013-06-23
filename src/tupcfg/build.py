@@ -7,11 +7,10 @@ from . import tools, path
 from .filesystem import Filesystem
 
 def command(cmd, build=None, cwd=None):
+    """Yield a build command relative to cwd if provided or build.directory"""
     return list(_command(cmd, build=build, cwd=cwd))
 
 def _command(cmd, build=None, cwd=None):
-    pass
-    """Yield a build command relative to cwd if provided or build.directory"""
     assert build is not None
     if cwd is None:
         cwd = build.directory
@@ -93,13 +92,12 @@ class Build:
                      inputs, additional_inputs,
                      outputs, additional_outputs,
                      kw):
-        l = self.__commands.setdefault(
-            path.dirname(kw['target'].path(kw['build'])),
-            []
+        target_dir = path.dirname(kw['target'].path(kw['build']))
+        self.__commands.setdefault(target_dir, []).append(
+            (
+                action, cmd,
+                inputs, additional_inputs,
+                outputs, additional_outputs,
+                kw
+            )
         )
-        l.append((
-            action, cmd,
-            inputs, additional_inputs,
-            outputs, additional_outputs,
-            kw
-        ))
