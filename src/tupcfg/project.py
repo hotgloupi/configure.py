@@ -8,6 +8,8 @@ from . import path
 from . import tools
 from . import templates
 
+from .build import Build
+
 class Project:
 
     class NeedUserEdit(Exception):
