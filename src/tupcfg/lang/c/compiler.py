@@ -11,7 +11,6 @@ class Compiler(BaseCompiler):
         target = super(Compiler, self).build_object(src, **kw)
         pchs = kw.get('precompiled_headers', [])
         for pch in pchs:
-            print("ADD pch !")
             target.additional_inputs.append(pch)
         return target
 
