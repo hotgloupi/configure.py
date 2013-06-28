@@ -14,6 +14,7 @@ class Library:
                  prefixes = [],
                  include_directories = [],
                  include_directory_names = [''],
+                 files = [],
                  directories = [],
                  binary_file_names = None,
                  name_prefixes = ['lib', ''],
@@ -25,7 +26,8 @@ class Library:
                  find_includes = [],
                  use_system_paths = True,
                  search_binary_files = True,
-                 only_one_binary_file = True):
+                 only_one_binary_file = True,
+                 save_env_vars = True):
         self.name = name
         self.compiler = compiler
         self.env = self.compiler.project.env
@@ -60,11 +62,12 @@ class Library:
         if search_binary_files:
             self._set_directories_and_files(directories)
         else:
-            self.files = self._env_files()
+            self.files = self._env_files() + files
             self.directories = self._env_directories() + directories
         tools.debug(self.name, "library directories:", self.directories)
         tools.verbose(self.name, "library files:", ', '.join(("'%s'" % f) for f in self.files))
-        self._save_env()
+        if save_env_vars:
+            self._save_env()
 
     @property
     def names(self):
