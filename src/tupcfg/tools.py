@@ -64,19 +64,22 @@ def find_binary(name, env=None, var_name=None):
     return binary
 
 
-def glob(pattern, dir_=None, recursive=False):
+def glob(pattern, dir=None, recursive=False):
     from fnmatch import fnmatch
-    if dir_ is None:
-        dir_ = os.path.dirname(pattern)
+    if dir is None:
+        dir = os.path.dirname(pattern)
         pattern = os.path.basename(pattern)
 
-    for root, dirnames, files in os.walk(dir_):
+    for root, dirnames, files in os.walk(dir):
         for file_ in files:
-            p = path.relative(root, file_, start=dir_)
+            p = path.relative(root, file_, start=dir)
             if fnmatch(p, pattern):
                 yield path.join(root, file_)
         if not recursive:
             break
+
+def rglob(pattern, dir=None):
+    return glob(pattern, dir=dir, recursive = True)
 
 def isiterable(obj):
     return isinstance(obj, (list, tuple, types.GeneratorType))
