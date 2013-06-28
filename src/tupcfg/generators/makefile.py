@@ -45,10 +45,38 @@ class Makefile(Generator):
     def close(self):
         cmd_str = lambda *cmd: ' '.join(map(pipes.quote, cmd))
 
-        makefile = '.PHONY:\n.PHONY: all clean\nall: '
+        phony_rules = ['all', 'clean']
+        makefile = '.PHONY:\n.PHONY: %s\n' % ' '.join(phony_rules)
+
+
+        makefile += '\nall:'
         for target in self.targets.keys():
             if target not in self.dependencies:
                 makefile += ' %s' % target
+
+        deps = []
+        if self.build.dependencies:
+            for dep in self.build.dependencies:
+                for target in dep.targets:
+                    deps.append(
+                        path.relative(
+                            target.path(dep.resolved_build),
+                            start = self.build.directory
+                        )
+                    )
+            deps_dir = path.relative(
+                self.build.dependencies_directory,
+                start = self.build.directory,
+            )
+            for dep in deps:
+                makefile += '\n\n%s:' % dep
+                makefile += '\n\t@%s' % cmd_str(
+                    'make',
+                    '-C',
+                    deps_dir,
+                    path.relative(dep, start = deps_dir)
+                )
+
 
         makefile += '\n\nclean:'
         for target in self.targets.keys():
@@ -72,6 +100,8 @@ class Makefile(Generator):
                     not depends_mode and target_str.endswith('.depends.mk'):
                     continue
                 makefile += '%s:' % target
+                if self.build.dependencies:
+                    makefile += ' %s' % ' '.join(deps)
                 for i in inputs + additional_inputs:
                     makefile += ' %s' % i.relpath(self.build.directory, self.build)
 

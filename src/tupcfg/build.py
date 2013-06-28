@@ -84,16 +84,36 @@ class Build:
             else:
                 self.add_target(t)
 
+    def add_dependency(self, dependency):
+        self.dependencies.append(dependency)
+        return dependency
+
+    def add_dependencies(self, *dependencies):
+        for dep in dependencies:
+            if tools.isiterable(dep):
+                self.add_targets(*dep)
+            else:
+                self.add_target(dep)
 
     def dump(self, project, **kwargs):
         for t in self.targets:
             t.dump(build=self, **kwargs)
 
     def execute(self, project):
-        generators = list(
-            generator_class(project=project, build=self)
-            for generator_class in project.generators
-        )
+        tools.verbose("Entering build directory '%s'" % self.directory)
+
+        if self.dependencies:
+            deps_build = Build(
+                project,
+                self.dependencies_directory,
+                ['Makefile'],
+                save_generator = False,
+            )
+            for dep in self.dependencies:
+                dep.set_build(deps_build)
+                deps_build.add_targets(dep.targets)
+            deps_build.execute(project)
+            deps_build.cleanup()
 
         self.__commands = {}
         for t in self.targets:

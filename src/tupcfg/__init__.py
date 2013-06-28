@@ -4,6 +4,7 @@ from . import tools, path, platform, lang
 
 from .build import Build
 from .command import Command
+from .dependency import Dependency
 from .env import Env
 from .generator import Generator
 from .node import Node
