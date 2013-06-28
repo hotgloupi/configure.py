@@ -126,14 +126,19 @@ class Compiler:
             return 'exe'
         return ''
 
-    def library_extensions(self, shared, for_linker=False):
+    def library_extension(self, shared):
+        """Generic library extensions.
+        """
         if shared:
             if platform.IS_MACOSX:
-                return ['dylib']
+                return 'dylib'
             else:
-                return ['so']
+                return 'so'
         else:
-            return ['a']
+            return 'a'
+
+    def library_extensions(self, shared, for_linker = False):
+        return [self.library_extension(shared)]
 
     def _set_attributes_default(self, attrs, kw):
         for key, default in attrs:
@@ -240,7 +245,7 @@ class Compiler:
 
     def __get_library_name(self, name, shared, ext):
         if ext is None:
-            ext = self.library_extensions(shared)[0]
+            ext = self.library_extension(shared)
         if ext:
             return name + '.' + ext
         return name

@@ -21,13 +21,17 @@ class Compiler(c_compiler.Compiler):
     def _flag(self, flag):
         return '-' + flag
 
-    def library_extensions(self, shared, for_linker=False):
-        if for_linker:
-            return ['lib', 'dll']
+    def library_extension(self, shared):
         if shared:
             return ['dll']
         else:
             return ['lib']
+
+    def library_extensions(self, shared, for_linker = False):
+        if for_linker:
+            return ['dll', 'lib']
+        else:
+            return [self.library_extension(shared)]
 
     @property
     def _lang_flag(self):
