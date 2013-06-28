@@ -124,4 +124,4 @@ class Compiler(c_compiler.Compiler):
         return {
             '64bit': self._flag('MACHINE:')+'x64',
             '32bit': self._flag('MACHINE:')+'x86',
-        }[self.attr('architecture', cmd)]
+        }[self.attr('target_architecture', cmd)]

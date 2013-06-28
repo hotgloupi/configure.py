@@ -31,7 +31,7 @@ class Compiler:
             ('include_directories', []),
             ('position_independent_code', False),
             ('standard', None),
-            ('architecture', platform.ARCHITECTURE),
+            ('target_architecture', platform.ARCHITECTURE),
             ('enable_warnings', True),
             ('use_build_type_flags', True),
             ('hidden_visibility', True),

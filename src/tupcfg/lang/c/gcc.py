@@ -199,4 +199,4 @@ class Compiler(c_compiler.Compiler):
         return {
             '64bit': '-m64',
             '32bit': '-m32',
-        }[self.attr('architecture', cmd)]
+        }[self.attr('target_architecture', cmd)]
