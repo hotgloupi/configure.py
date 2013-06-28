@@ -34,11 +34,44 @@ def _command(cmd, build=None, cwd=None):
 
 
 class Build:
-    def __init__(self, directory, root_directory='.'):
+    def __init__(self,
+                 project: "The project instance",
+                 directory: "The build directory",
+                 generator_names: "A list of generator names",
+                 save_generator = True,
+                 dependencies_directory = 'dependencies'):
         self.directory = directory
-        self.root_directory = root_directory
+        self.root_directory = project.directory
+        self.dependencies_directory = path.join(directory, dependencies_directory)
         self.targets = []
+        self.dependencies = []
         self.fs = Filesystem(self)
+        self.project = project
+
+        if not generator_names:
+            generator_names = project.env.get(
+                'BUILD_GENERATORS',
+                type = list,
+                default = []
+            )
+        elif save_generator:
+            project.env.build_set('BUILD_GENERATORS', generator_names)
+
+        if not generator_names:
+            if tools.which('tup'):
+                generator_names = ['Tup']
+            else:
+                tools.warning("Using makefile generator (tup not found)")
+                generator_names = ['Makefile']
+
+        assert len(generator_names)
+
+        self.generators = []
+        from . import generators as _generators
+        for gen in generator_names:
+            cls = getattr(_generators, gen)
+            self.generators.append(cls(project = project, build = self))
+        assert len(self.generators)
 
     def add_target(self, target):
         self.targets.append(target)
@@ -68,8 +101,11 @@ class Build:
         for dir_, rules in self.__commands.items():
             if not path.exists(dir_):
                 os.makedirs(dir_)
-            for generator in generators:
+            for generator in self.generators:
                 with generator(working_directory=dir_) as gen:
+                    tools.verbose(
+                        " -> Working on", path.relative(dir_, start = self.directory)
+                    )
                     for action, cmd, i, ai, o, ao, kw in rules:
                         gen.apply_rule(
                             action=action,
@@ -81,8 +117,9 @@ class Build:
                             target=kw['target'],
                         )
 
-        for generator in generators:
+        for generator in self.generators:
             generator.close()
+        tools.verbose("Leaving build directory '%s'" % self.directory)
 
     def cleanup(self):
         pass

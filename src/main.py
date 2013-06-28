@@ -161,7 +161,6 @@ def tup_install_git(args):
 def prepare_build(args, defines, exports):
     import tupcfg # Should work at this point
     from tupcfg.path import exists, join, absolute
-    import tupcfg.generators
 
     build_dir = args.build_dir
     try:
@@ -170,7 +169,6 @@ def prepare_build(args, defines, exports):
             PROJECT_CONFIG_DIR,
             config_filename = PROJECT_CONFIG_FILENAME,
             new_project_vars = exports,
-            generators = [getattr(tupcfg.generators, args.generator)],
         )
 
         env_build_dirs = list(
@@ -208,24 +206,24 @@ def prepare_build(args, defines, exports):
             for k, v in project.env.project_vars.items():
                 status("\t - %s = %s" % (k, v))
 
+        generators = []
+        if args.generator:
+            generators.append(args.generator)
         with project:
             for build_dir in build_dirs:
-                build = tupcfg.Build(build_dir)
-                project.configure(build, defines)
+                with project.configure(build_dir, defines, generators) as build:
+                    if args.dump_vars:
+                        status("Build variables for directory '%s':" % build_dir)
+                        build_vars = project.env.build_vars
+                        keys = sorted(build_vars.keys())
+                        for k in keys:
+                            status("\t - %s = %s" % (k, build_vars[k]))
+                        continue
 
-                if args.dump_vars:
-                    status("Build variables for directory '%s':" % build_dir)
-                    build_vars = project.env.build_vars
-                    keys = sorted(build_vars.keys())
-                    for k in keys:
-                        status("\t - %s = %s" % (k, build_vars[k]))
-                    continue
-
-                if args.dump_build:
-                    build.dump(project)
-                else:
-                    build.execute(project)
-                build.cleanup()
+                    if args.dump_build:
+                        build.dump(project)
+                    else:
+                        build.execute(project)
 
     except tupcfg.Project.NeedUserEdit:
         print(
@@ -259,7 +257,7 @@ def parse_args():
     parser.add_argument('--install', action='store_true', help="install when needed")
     parser.add_argument('--self-install', action='store_true', help="install (or update) tupcfg")
     parser.add_argument('--tup-install', action='store_true', help="install (or update) tup")
-    parser.add_argument('--generator', '-G', default = 'Tup',
+    parser.add_argument('--generator', '-G', default = None,
                         help = "Generate build rules for another build system",
                        choices = TUPCFG_GENERATORS)
 
@@ -362,7 +360,6 @@ def main():
                 'home_url': TUP_HOME_URL
             }
         )
-
 
     try:
         defines = parse_cmdline_variables(args.define)
