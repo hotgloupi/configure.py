@@ -18,7 +18,12 @@ class Command(Node):
         raise Exception("command property has to be overridden")
 
     def gen_command(self, shell_string=False, string=False, **kw):
-        inputs, additional_inputs, outputs, additional_outputs = [], [], [], []
+        inputs, additional_inputs, outputs, additional_outputs = (
+            self.__inputs(),
+            [],
+            [],
+            [],
+        )
         cmd = list(self.__gen_cmd(
             self.command(**kw),
             inputs,
@@ -30,6 +35,20 @@ class Command(Node):
             **kw
         ))
         return (cmd, inputs, additional_inputs, outputs, additional_outputs, kw)
+
+    def __inputs(self):
+        from .source import Source
+        res = []
+        def find_inputs(o):
+            if isinstance(o, (Source, Target)):
+                yield o
+            #if isinstance(o, Node):
+            #    for d in o.dependencies:
+            #        for i in find_inputs(d):
+            #            yield i
+        for d in self.dependencies:
+            res += list(find_inputs(d))
+        return res
 
     def __gen_cmd(self, raw_cmd,
                   inputs, additional_inputs,
@@ -54,7 +73,7 @@ class Command(Node):
                         outputs.append(el)
                         additional_inputs.extend(el.additional_inputs)
                         additional_outputs.extend(el.additional_outputs)
-                    else:
+                    elif el not in inputs:
                         inputs.append(el)
                 if shell_string:
                     for e in self.__gen_cmd(el.shell_string(**kw), *args, **kw):
