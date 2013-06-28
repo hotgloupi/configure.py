@@ -236,7 +236,7 @@ class Compiler:
 
         dirs = []
         for dir_ in tools.unique(include_directories):
-            if path.absolute(dir_).startswith(self.project.directory):
+            if isinstance(dir_, str) and path.absolute(dir_).startswith(self.project.directory):
                 dirs.append(RelativeDirectory(dir_))
             else:
                 dirs.append(dir_)
