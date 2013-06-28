@@ -4,6 +4,8 @@ from .command import Command
 from .source import Source
 from .target import Target
 
+from . import path
+
 class Copy(Command):
     @property
     def action(self):
@@ -20,6 +22,8 @@ class Filesystem:
     def copy(self, src, dest=None):
         """
         """
+        if dest is None:
+            dest = path.join(self.build.directory, src)
         return self.build.add_target(
             Target(dest, Copy(Source(src)))
         )
