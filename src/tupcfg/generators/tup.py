@@ -5,6 +5,8 @@ from .. import path
 from .. import build
 from .. import tools
 
+import os
+
 MAKEFILE_TEMPLATE = """
 .PHONY:
 .PHONY: all monitor
@@ -27,7 +29,7 @@ class Tup(Generator):
         self.tupfiles = set()
         tup_bin = path.absolute(self.project.config_directory, 'tup/tup')
         if not path.exists(tup_bin):
-            tup_bin = tupcfg.tools.which('tup')
+            tup_bin = tools.find_binary('tup')
             assert path.exists(tup_bin)
         self.tup_bin = tup_bin
 
