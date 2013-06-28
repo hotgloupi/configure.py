@@ -4,6 +4,8 @@ from . import path
 from .node import Node
 from .target import Target
 
+import pipes
+
 class Command(Node):
 
     @property
@@ -112,3 +114,38 @@ class Command(Node):
         )
 
 
+class Simple(Command):
+    def __init__(self, action, command, dependencies = []):
+        super(Simple, self).__init__(dependencies)
+        self.action = action
+        self.__command = command
+
+    def command(self, target, build):
+        if callable(self.__command):
+            return self.__command(target, build)
+        else:
+            return self.__command
+
+class Shell(Command):
+    action = None
+    def __init__(self, action, command, working_directory = None, dependencies = []):
+        super(Shell, self).__init__(dependencies)
+        self.action = action
+        self.working_directory = working_directory
+        self.__command = command
+
+    @property
+    def shell_command(self):
+        cmd_str = lambda cmd: ' '.join(map(pipes.quote, map(str, cmd)))
+        if self.working_directory is not None:
+            cmd = cmd_str(['cd', self.working_directory])
+            cmd += ' && ' + cmd_str(self.__command)
+            return ['sh', '-c', cmd]
+        else:
+            return self.__command
+
+    def command(self, target=None, build=None):
+        return self.shell_command
+
+    def shell_string(self, build=None, cwd=None):
+        return self.shell_command
