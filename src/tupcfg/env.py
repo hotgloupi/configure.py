@@ -157,12 +157,13 @@ class Env:
 
     def project_set(self, key, value):
         key = key.upper()
-        tools.verbose("Set %s=%s" % (key, value))
+        tools.verbose("set project var: %s=%s" % (key, value))
         value = Value(value, type(value))
         self.__vars['project'][key] = value
 
     def build_set(self, key, value):
         key = key.upper()
+        tools.verbose("set build var: %s=%s" % (key, value))
         value = Value(value, type(value))
         self.__vars['build'][key] = value
 
