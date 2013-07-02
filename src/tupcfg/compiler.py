@@ -78,6 +78,7 @@ class Compiler:
                 src.filename + '.' + self.object_extension + '.depends.mk',
                 self.BuildObjectDependencies(self, src, target, **kw)
             )
+            mktarget.additional_inputs.extend(target.additional_inputs)
             target.additional_inputs.append(mktarget)
             self.build.add_target(mktarget)
         return target
