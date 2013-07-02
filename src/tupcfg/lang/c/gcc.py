@@ -118,7 +118,7 @@ class Compiler(c_compiler.Compiler):
                 if platform.IS_MACOSX:
                     return list(('-Wl,-rpath,%s' % d) for d in dirs)
                 if dirs:
-                    return '-Wl,-rpath,' + ':'.join(dirs)
+                    return '-Wl,-rpath,' + ':'.join(map(str, dirs))
                 return ''
 
         rpath = RPathFlag()
