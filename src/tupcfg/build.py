@@ -122,6 +122,7 @@ class Build:
             if not path.exists(dir_):
                 os.makedirs(dir_)
             for generator in self.generators:
+                self.generator = generator
                 with generator(working_directory=dir_) as gen:
                     tools.verbose(
                         " -> Working on", path.relative(dir_, start = self.directory)
