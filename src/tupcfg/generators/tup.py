@@ -5,13 +5,13 @@ from .. import path
 from .. import build
 from .. import tools
 
-import os
+import os, pipes
 
 MAKEFILE_TEMPLATE = """
 .PHONY:
 .PHONY: all monitor
 
-all: %(tup_config_dir)s
+all: %(tup_config_dir)s %(dependencies)s
 	@sh -c 'cd %(root_dir)s && %(tup_bin)s upd'
 
 %(tup_config_dir)s:
@@ -78,14 +78,41 @@ class Tup(Generator):
             if tupfile not in self.tupfiles:
                 tools.debug("Removing obsolete Tupfile", tupfile)
                 os.unlink(tupfile)
+        deps = []
+        if self.build.dependencies:
+            for dep in self.build.dependencies:
+                for target in dep.targets:
+                    deps.append(
+                        path.relative(
+                            target.path(dep.resolved_build),
+                            start = self.build.directory
+                        )
+                    )
+        makefile_content = MAKEFILE_TEMPLATE % {
+            'tup_config_dir': path.absolute(self.project.directory, '.tup'),
+            'tup_bin': self.tup_bin,
+            'root_dir': path.absolute(self.project.directory),
+            'project_config_dir': path.absolute(self.project.config_directory),
+            'dependencies': ' '.join(deps)
+        }
+
+        cmd_str = lambda *cmd: ' '.join(map(pipes.quote, cmd))
+        deps_dir = path.relative(
+            self.build.dependencies_directory,
+            start = self.build.directory,
+        )
+        for dep in deps:
+            makefile_content += '\n\n%s:' % dep
+            makefile_content += '\n\t@%s' % cmd_str(
+                'make',
+                '-C',
+                deps_dir,
+                path.relative(dep, start = deps_dir)
+            )
+
         makefile = path.join(self.build.directory, 'Makefile')
         with open(makefile, 'w') as f:
-            f.write(MAKEFILE_TEMPLATE % {
-                'tup_config_dir': path.absolute(self.project.directory, '.tup'),
-                'tup_bin': self.tup_bin,
-                'root_dir': path.absolute(self.project.directory),
-                'project_config_dir': path.absolute(self.project.config_directory),
-            })
+            f.write(makefile_content)
 
         if not path.exists(path.join(self.project.directory, '.tup')):
             cmd = ['make', '-C', self.build.directory]
