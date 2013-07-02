@@ -2,7 +2,7 @@
 
 import sys
 
-from . import path, tools, platform
+from . import path, tools, platform, generators
 from .command import Command
 from .source import Source
 from .target import Target
@@ -39,7 +39,8 @@ class Compiler:
             ('static_libstd', False),
             ('force_architecture', True),
             ('additional_link_flags', {}),
-            ('generate_source_dependencies_for_makefile', True),
+            ('generate_source_dependencies_for_makefile',
+             generators.Makefile in build.generators),
         ]
         self._set_attributes_default(attrs, kw)
 
