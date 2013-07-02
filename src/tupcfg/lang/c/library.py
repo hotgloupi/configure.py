@@ -298,7 +298,7 @@ class Library:
                 {
                     '32bit': path.join(os.environ['WINDIR'], 'System32'),
                     '64bit': path.join(os.environ['WINDIR'], 'SysWOW64'),
-                }[self.compiler.architecture],
+                }[self.compiler.target_architecture],
             ])
         elif platform.IS_MACOSX:
             if self.macosx_framework:
@@ -311,7 +311,7 @@ class Library:
                 {
                     '32bit': '/usr/lib/i386-linux-gnu',
                     '64bit': '/usr/lib/x86_64-linux-gnu',
-                }[self.compiler.architecture]
+                }[self.compiler.target_architecture]
             )
         libs.append('/usr/lib')
         return libs
