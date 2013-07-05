@@ -17,6 +17,7 @@ class Compiler(BaseCompiler):
         cpy = self.build.fs.copy(source)
         command = self._generate_precompiled_header(
             cpy,
+            precompiled_header = True,
             **kw
         )
         target = Target(source + '.gch', command)
