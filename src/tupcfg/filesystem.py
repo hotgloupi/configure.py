@@ -23,7 +23,7 @@ class Filesystem:
         """
         """
         if dest is None:
-            dest = path.join(self.build.directory, src)
+            dest = src
         return self.build.add_target(
             Target(dest, Copy(Source(src)))
         )
