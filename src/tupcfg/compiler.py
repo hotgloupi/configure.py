@@ -163,12 +163,13 @@ class Compiler:
             return "Building %s object" % self.compiler.lang
 
         def __init__(self, compiler, source, **kw):
-            if not isinstance(source, Source):
+            if not isinstance(source, (Source, Target)):
                 raise Exception(
-                    "Cannot build object from '%s' (of type %s)" %
+                    "Cannot build compiler object from '%s' (of type %s): should be a Source or a Target instance" %
                     (source, type(source))
                 )
             self.compiler = compiler
+            self.source = source
             self.kw = kw
             Command.__init__(self, source)
 
