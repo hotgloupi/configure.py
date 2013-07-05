@@ -47,6 +47,7 @@ class Build:
         self.dependencies = []
         self.fs = Filesystem(self)
         self.project = project
+        self.__emitted_targets = set()
 
         if not generator_names:
             generator_names = project.env.get(
@@ -74,7 +75,9 @@ class Build:
         assert len(self.generators)
 
     def add_target(self, target):
+        assert target not in self.targets
         self.targets.append(target)
+        tools.debug("target {%s}/%s" % (self.directory, target), "added")
         return target
 
     def add_targets(self, *targets):
@@ -151,6 +154,12 @@ class Build:
                      outputs, additional_outputs,
                      kw):
         target_dir = path.dirname(kw['target'].path(kw['build']))
+        target = kw['target']
+
+        if target in self.__emitted_targets:
+            tools.debug("Ignoring already generated target %s" % target)
+            return
+        self.__emitted_targets.add(target)
         self.__commands.setdefault(target_dir, []).append(
             (
                 action, cmd,
