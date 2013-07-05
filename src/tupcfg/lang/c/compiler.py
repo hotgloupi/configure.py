@@ -9,7 +9,7 @@ class Compiler(BaseCompiler):
 
     def build_object(self, src, **kw):
         target = super(Compiler, self).build_object(src, **kw)
-        pchs = kw.get('precompiled_headers', [])
+        pchs = kw.get('precompiled_headers', []) + self.precompiled_headers
         target.additional_inputs.extend(pchs)
         return target
 
