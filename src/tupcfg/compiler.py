@@ -186,9 +186,9 @@ class Compiler:
 
         def __init__(self, compiler, source, target, **kw):
             self.compiler = compiler
-            self.kw = kw
             self.source = source
             self.target = target
+            self.kw = kw
             assert isinstance(source, Source)
             assert isinstance(target, Target)
             Command.__init__(self, source)
@@ -201,6 +201,7 @@ class Compiler:
 
         def __init__(self, compiler, objects, **kw):
             self.compiler = compiler
+            self.objects = objects
             self.kw = kw
             Command.__init__(self, objects)
 
