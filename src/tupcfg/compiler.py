@@ -29,6 +29,7 @@ class Compiler:
             ('defines', []),
             ('library_directories', []),
             ('include_directories', []),
+            ('precompiled_headers', []),
             ('position_independent_code', False),
             ('standard', None),
             ('target_architecture', platform.ARCHITECTURE),

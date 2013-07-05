@@ -51,6 +51,11 @@ class Compiler(c_compiler.Compiler):
                 assert len(define) == 2 #key, value
                 flags.append('-D%s=%s' % define)
 
+        pchs = cmd.kw.get('precompiled_headers', []) + self.precompiled_headers
+        for pch in pchs:
+            if pch.force_include:
+                flags.extend(['-include', pch.source])
+
         return flags + list(
             ['-I', i] for i in self._include_directories(cmd)
         )
