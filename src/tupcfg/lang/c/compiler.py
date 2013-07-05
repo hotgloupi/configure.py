@@ -10,17 +10,19 @@ class Compiler(BaseCompiler):
     def build_object(self, src, **kw):
         target = super(Compiler, self).build_object(src, **kw)
         pchs = kw.get('precompiled_headers', [])
-        for pch in pchs:
-            target.additional_inputs.append(pch)
+        target.additional_inputs.extend(pchs)
         return target
 
-    def generate_precompiled_header(self, source, **kw):
+    def generate_precompiled_header(self, source, force_include = False, **kw):
+        cpy = self.build.fs.copy(source)
         command = self._generate_precompiled_header(
-            Source(source),
-            precompiled_header = True,
+            cpy,
             **kw
         )
-        return self.build.add_target(Target(source + '.gch', command))
+        target = Target(source + '.gch', command)
+        target.source = command.source
+        target.force_include = force_include
+        return self.build.add_target(target)
 
     def _generate_precompiled_header(self, source, **kw):
         raise Exception("Not implemented")
