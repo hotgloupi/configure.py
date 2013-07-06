@@ -52,6 +52,8 @@ class Compiler(c_compiler.Compiler):
                 flags.append('-D%s=%s' % define)
 
         pchs = cmd.kw.get('precompiled_headers', []) + self.precompiled_headers
+        if pchs:
+            flags.append('-Winvalid-pch')
         for pch in pchs:
             if pch.force_include:
                 flags.extend(['-include', pch.source])
