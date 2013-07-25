@@ -29,12 +29,11 @@ class Makefile(Generator):
                    additional_ouputs=None,
                    target=None):
         target_path = target.relpath(self.build.directory, self.build)
-        if target_path in self.targets:
-            print('#############', target_path, "is targetted twice or more")
-            return
-        self.targets[target_path] = (
-            target, inputs, additional_inputs, action,
-            list(build_command(command, build=self.build))
+        target_list = self.targets.setdefault(target_path, []).append(
+            (
+                target, inputs, additional_inputs, action,
+                list(build_command(command, build=self.build))
+            )
         )
         for i in inputs:
             if not isinstance(i, Target):
