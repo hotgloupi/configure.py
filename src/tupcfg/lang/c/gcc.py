@@ -5,6 +5,7 @@ import pipes
 
 from tupcfg import Target, path, tools, platform
 from . import compiler as c_compiler
+from . import library
 
 class Compiler(c_compiler.Compiler):
 
