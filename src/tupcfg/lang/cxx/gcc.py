@@ -13,10 +13,8 @@ class Compiler(cxx_compiler.Compiler, gcc.Compiler):
     }
 
     def __init__(self, project, build, **kw):
-        assert self.binary_name == 'g++'
-        assert self.binary_env_varname == 'CXX'
         kw.setdefault('lang', 'cxx')
-        super(Compiler, self).__init__(project, build, **kw)
+        super().__init__(project, build, **kw)
 
     def _get_build_flags(self, cmd):
         base_build_flags =  super(Compiler, self)._get_build_flags(cmd)
