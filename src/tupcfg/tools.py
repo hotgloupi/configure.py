@@ -11,7 +11,7 @@ VERBOSE = True
 
 def err(*args, **kwargs):
     kwargs['file'] = sys.stderr
-    return print(*args, **kwargs)
+    print(*args, **kwargs)
 
 warning = err
 error = err
@@ -173,3 +173,11 @@ def unique(seq):
         result.append(item)
     return result
 
+def python_command(file = None, module = None, args = []):
+    path = os.environ.get('PYTHONPATH', '')
+    if module is not None:
+        return ['PYTHONPATH=%s' % path, sys.executable, '-m', module] + args
+    elif file is not None:
+        return ['PYTHONPATH=%s' % path, sys.executable, file] + args
+    else:
+        raise Exception("You must specify file or module argument")
