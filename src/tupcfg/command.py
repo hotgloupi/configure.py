@@ -131,10 +131,11 @@ class Simple(Command):
 
 class Shell(Command):
     action = None
-    def __init__(self, action, command, working_directory = None, dependencies = []):
+    def __init__(self, action, command, working_directory = None, env = {}, dependencies = []):
         super(Shell, self).__init__(dependencies)
         self.action = action
         self.working_directory = working_directory
+        self.env = env;
         self.__command = command
 
     @property
@@ -143,9 +144,10 @@ class Shell(Command):
         if self.working_directory is not None:
             cmd = cmd_str(['cd', self.working_directory])
             cmd += ' && ' + cmd_str(self.__command)
-            return ['sh', '-c', cmd]
+            res = ['sh', '-c', cmd]
         else:
-            return self.__command
+            res = self.__command
+        return ['%s=%s' % (k, v) for k, v in self.env.items()] + res
 
     def command(self, target=None, build=None):
         return self.shell_command
