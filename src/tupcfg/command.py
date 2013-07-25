@@ -113,6 +113,9 @@ class Command(Node):
             *self.gen_command(shell_string=False, target=target, build=build)
         )
 
+    def __str__(self):
+        return str(self.action)
+
 
 class Simple(Command):
     def __init__(self, action, command, dependencies = []):
