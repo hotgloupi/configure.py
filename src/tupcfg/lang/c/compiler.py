@@ -7,6 +7,10 @@ from tupcfg.compiler import Compiler as BaseCompiler
 class Compiler(BaseCompiler):
     binary_env_varname = 'CC'
 
+    def __init__(self, project, build, **kw):
+        kw.setdefault('lang', 'c')
+        super().__init__(project, build, **kw)
+
     def build_object(self, src, **kw):
         target = super(Compiler, self).build_object(src, **kw)
         pchs = kw.get('precompiled_headers', []) + self.precompiled_headers
@@ -27,3 +31,4 @@ class Compiler(BaseCompiler):
 
     def _generate_precompiled_header(self, source, **kw):
         raise Exception("Not implemented")
+

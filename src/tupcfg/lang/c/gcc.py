@@ -17,9 +17,10 @@ class Compiler(c_compiler.Compiler):
         'c99': 'c99',
     }
 
+    Library = library.Library
+
     def __init__(self, project, build, **kw):
-        kw.setdefault('lang', 'c')
-        super(Compiler, self).__init__(project, build, **kw)
+        super().__init__(project, build, **kw)
         self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
         project.env.project_set('AR', self.ar_binary)
 
