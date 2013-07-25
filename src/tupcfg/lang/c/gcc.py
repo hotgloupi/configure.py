@@ -53,16 +53,20 @@ class Compiler(c_compiler.Compiler):
                 assert len(define) == 2 #key, value
                 flags.append('-D%s=%s' % define)
 
-        pchs = cmd.kw.get('precompiled_headers', []) + self.precompiled_headers
+        pchs = self.precompiled_headers + cmd.kw.get('precompiled_headers', [])
         if pchs:
             flags.append('-Winvalid-pch')
+        flags.append(
+            self._LazyUnique(
+                self._include_directories(cmd),
+                lambda e: ['-I', e]
+            )
+        )
         for pch in pchs:
             if pch.force_include:
                 flags.extend(['-include', pch.source])
+        return flags
 
-        return flags + list(
-            ['-I', i] for i in self._include_directories(cmd)
-        )
 
     def _build_object_cmd(self, cmd, target=None, build=None):
         assert len(cmd.dependencies) == 1
@@ -109,6 +113,8 @@ class Compiler(c_compiler.Compiler):
             link_flags.append('-fvisibility=hidden')
             link_flags.append('-fvisibility-inlines-hidden')
 
+        if platform.IS_MACOSX:
+            link_flags.append('-headerpad_max_install_names')
         if self.attr('use_build_type_flags', cmd):
             if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
                 link_flags.append('-g3')
@@ -123,7 +129,9 @@ class Compiler(c_compiler.Compiler):
                 dirs = self.directories
                 for lib in self.libs:
                     dirs.append(path.dirname(path.absolute(lib.path(build))))
-                dirs = tools.unique(dirs)
+
+                from tupcfg.build import command
+                dirs = tools.unique(command(dirs, build = build, cwd = cwd))
                 if platform.IS_MACOSX:
                     return list(('-Wl,-rpath,%s' % d) for d in dirs)
                 if dirs:
@@ -131,7 +139,7 @@ class Compiler(c_compiler.Compiler):
                 return ''
 
         rpath = RPathFlag()
-        for lib in cmd.kw.get('libraries', []):
+        for lib in self.libraries + cmd.kw.get('libraries', []):
             if isinstance(lib, Target):
                 link_flags.append(lib)
                 rpath.libs.append(lib)
@@ -148,23 +156,12 @@ class Compiler(c_compiler.Compiler):
             else:
                 link_flags.extend(['-framework', lib.name])
 
-                #for name in lib.names:
-                #    if not platform.IS_MACOSX:
-                #        if lib.shared:
-                #            link_flags.append('-Wl,-Bdynamic')
-                #        else:
-                #            link_flags.append('-Wl,-Bstatic')
-                #    if platform.IS_MACOSX and lib.macosx_framework:
-                #        link_flags.extend(['-framework', name])
-                #    else:
-                #        link_flags.append('-l%s' % name)
-
         if not platform.IS_MACOSX:
             link_flags.append('-Wl,-Bdynamic')
         rpath.directories.extend(library_directories)
         link_flags.append(rpath)
         link_flags.extend(self.additional_link_flags.get(self.name, []))
-        return list(('-L%s' % l) for l in tools.unique(library_directories)) + link_flags
+        return link_flags
 
     def _link_executable_cmd(self, cmd, target=None, build=None):
         return [
@@ -209,3 +206,16 @@ class Compiler(c_compiler.Compiler):
             '64bit': '-m64',
             '32bit': '-m32',
         }[self.attr('target_architecture', cmd)]
+
+    class _LazyUnique:
+        def __init__(self, objects, op = None):
+            self.objects = objects
+            self.op = op
+        def shell_string(self, build = None, cwd = None):
+            from tupcfg.build import command
+            res = tools.unique(
+                command(self.objects, build = build, cwd = cwd)
+            )
+            if self.op is not None:
+                return map(self.op, res)
+            return res
