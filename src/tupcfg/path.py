@@ -53,3 +53,5 @@ def is_executable(p, *path):
 def split(p, *path):
     dirname, basename = os.path.split(os.path.join(p, *path))
     return (clean(dirname), basename)
+
+make_path = os.makedirs
