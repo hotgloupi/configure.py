@@ -1,10 +1,13 @@
 # -*- encoding: utf-8 -*-
 
+from tupcfg import platform
+from tupcfg.build import command as build_command
+
 from ..library import Library
 
 class BoostLibrary(Library):
     def __init__(self, compiler, components=[], **kw):
-        super(BoostLibrary, self).__init__(
+        super().__init__(
             "boost",
             compiler,
             find_includes=['boost/config.hpp'],
@@ -36,3 +39,423 @@ class BoostLibrary(Library):
     def libraries(self):
         return self.components
 
+from tupcfg import path, tools, Dependency, Target
+from tupcfg.command import Shell as ShellCommand
+
+class BoostDependency(Dependency):
+
+    # Default options.
+    default_options = {
+        'python': {
+            # static build does not work for multiple modules.
+            'shared': True,
+        },
+
+
+        'coroutine': {
+            'shared': False,
+            'multithreading': True,
+        },
+
+        'context': {
+            'shared': False,
+            'multithreading': True,
+        },
+
+        'filesystem': {
+            # Dynamic linking causes segfaults with directory iterators on OSX.
+            'shared': False,
+        },
+
+        'thread': {
+            'multithreading': True,
+        }
+    }
+
+    # Libraries inter dependencies.
+    inter_dependencies = {
+        'python': ['system', ],
+        'thread': ['system', ],
+        'filesystem': ['system', ],
+        'coroutine': ['context', ],
+    }
+
+    def __init__(self,
+                 cxx_compiler,
+                 source_directory,
+                 shared: """
+                    Build shared libraries by default when set to True, static
+                    libraries when set to False, and will to both when set to
+                    None.
+                    Note: use <COMPONENT>_shared to force a particular component
+                """ = None,
+                 preferred_shared: """
+                    Final decision when both static and dynamic libraries are
+                    available and shared option is None.
+                 """ = False,
+                 runtime_link: """
+                    Set to False to link statically with standard libraries.
+                 """ = True,
+                 build_config = [],
+                 components: "Boost libraries to install (ex: ['threading', 'system'])" = [],
+                 version: "A tuble of (major, minor)" = None,
+                 debug: "Compile in debug mode" = False,
+                 multithreading: "Support for multithreading" = True,
+                 python: "Specify the python library" = None,
+                 **kw: "specify component options with <COMPONENT>-<OPTION>"
+                ):
+        if cxx_compiler.lang != 'cxx':
+            raise Exception("Boost need a C++ compiler (got %s)" % cxx_compiler)
+        build_config = build_config + [
+            cxx_compiler.name,
+            debug and 'debug' or 'release',
+        ]
+        if python is not None:
+            build_config += ['with-python%s.%s' % python.version]
+        if version is None or not isinstance(version, tuple) or len(version) != 2:
+            raise Exception("Please specify the tuple version. ex: (1, 54)")
+
+        super().__init__(
+            "Boost",
+            "boost%s.%s" % version,
+            build_config = build_config
+        )
+        self.compiler = cxx_compiler
+        self.source_directory = source_directory
+        self.shared = shared
+        self.preferred_shared = preferred_shared
+        self.runtime_link = runtime_link
+        self.version = version
+        self.debug = debug
+        self.multithreading = multithreading
+        self.component_names = components
+        self.component_options = dict((k, self.default_options.get(k, {})) for k in components)
+        for name in self.component_names:
+            for k, v in kw.items():
+                if k.split('_')[0] == name:
+                    self.component_options[name][k.split('_')[1:]] = v
+        print(self.component_options)
+        self.python = python
+        self.__libraries = None
+        self.__targets = {}
+
+    def option(self, component, option, default = None):
+        return self.component_options.get(component, {}).get(option, getattr(self, option, default))
+
+    def component_shared(self, component):
+        shared = self.option(component, 'shared', self.shared)
+        if shared is None:
+            shared = self.preferred_shared
+        assert isinstance(shared, bool)
+        return shared
+
+    def component_library_filename(self, component):
+        filename = 'libboost_%s' % component
+        filename += '.%s' % self.compiler.library_extension(self.component_shared(component))
+        return filename
+
+    def component_library_path(self, component):
+        return self.build_path(
+            'install', 'lib', self.component_library_filename(component),
+            abs = True
+        )
+
+    def component_sources(self, component):
+        srcs = None
+        if component == 'thread':
+            srcs = [
+                'future.cpp',
+                'pthread/once.cpp',
+                'pthread/once_atomic.cpp',
+                'pthread/thread.cpp',
+            ]
+        if srcs is not None:
+            return (
+                path.relative(
+                    str(self.source_path('libs', component, 'src', src, abs = True)),
+                    start = self.resolved_build.project.directory
+                ) for src in srcs
+            )
+        return tools.rglob(
+            '*.cpp',
+            path.relative(
+                str(self.source_path('libs', component, 'src', abs = True)),
+                start = self.resolved_build.project.directory
+            )
+        )
+    class lazy_arg:
+        def __init__(self, name, arg):
+            self.name = name
+            self.arg = arg
+        def __str__(self):
+            return self.name % self.arg
+
+    @property
+    def targets(self):
+        res = [
+            self._target(name) for name in self.component_names
+        ]
+        return res
+
+    def _target(self, name):
+        if name in self.__targets:
+            return self.__targets[name]
+        libraries = []
+        dependencies = []
+        if name == 'python' and self.python:
+            libraries.extend(self.python.libraries)
+            dependencies.extend(self.python.targets)
+        self.__targets[name] = self.compiler.link_library(
+            'libboost_' + name,
+            directory = self.build_path('install/lib'),
+            shared = self.component_shared(name),
+            sources = self.component_sources(name),
+            include_directories = [self.source_path()],
+            libraries = libraries,
+            build = self.resolved_build,
+            additional_inputs = dependencies,
+        )
+        return self.__targets[name]
+
+    @property
+    def libraries(self):
+        if self.__libraries is not None:
+            return self.__libraries
+        self.__libraries = [
+            Library(
+                self.name + '-' + component,
+                self.compiler,
+                shared = self.component_shared(component),
+                search_binary_files = False,
+                include_directories = [self.source_path(abs = True)],
+                directories = [self.build_path('install/lib', abs = True)],
+                files = [self.component_library_path(component)],
+                save_env_vars = False,
+            ) for component in self.component_names
+        ]
+        return self.__libraries
+    #@property
+    #def targets(self):
+    #    if self.__targets is not None:
+    #        return list(self.__targets.values())
+
+    #    bootstrap_script = self.source_path('bootstrap.sh')
+    #    b2_target = Target(
+    #        self.source_path('b2'),
+    #        ShellCommand(
+    #            "Bootstrap %s" % self.name,
+    #            [bootstrap_script],
+    #            env = {'CXX': self.compiler.binary},
+    #            working_directory = self.source_path()
+    #        ),
+    #    )
+    #    class JamConf:
+    #        def __init__(self, compiler, python,
+    #                     prefix = None,
+    #                     exec_prefix = "bin",
+    #                     library_directory = "lib",
+    #                     include_directory = "include"):
+    #            assert prefix is not None #########
+    #            self.prefix = prefix ###############
+    #            self.compiler = compiler ############
+    #            self.python = python #################
+    #            self.exec_prefix = exec_prefix ########
+    #            self.library_directory = library_directory
+    #            self.include_directory = include_directory
+
+    #        def __call__(self, **kw):
+    #            # XXX use shell strings
+    #            eval = lambda n: build_command([n], build = kw['build'])[0]
+    #            prefix = path.absolute(eval(self.prefix))
+    #            exec_prefix = path.join(prefix, eval(self.exec_prefix))
+    #            library_directory = path.join(prefix, eval(self.library_directory))
+    #            include_directory = path.join(prefix, eval(self.include_directory))
+    #            stdlib_flag = (
+    #                self.compiler.stdlib is False and "-nostdlib" or (
+    #                    isinstance(self.compiler.stdlib, str) and
+    #                    "-stdlib=%s" % self.compiler.stdlib or ""
+    #                )
+    #            )
+    #            flags =  ' '.join([
+    #                '-std=%s' % self.compiler.standard,
+    #                platform.IS_MACOSX and '-headerpad_max_install_names' or '',
+    #            ])
+    #            return '\n\n'.join((
+    #                "import toolset : using ;",
+    #                "import option ;",
+    #                "import feature ;",
+    #                (
+    #                    "using %(toolset)s\n"
+    #                    " : \n"
+    #                    " : %(binary)s ;\n"
+    #                ) % {
+    #                    'toolset': self.compiler.name,
+    #                    'binary': self.compiler.binary,
+    #                },
+    #                #"flags darwin.compile OPTIONS : -gdwarf-2 ;",
+    #                "using python\n : %s\n : %s\n : %s\n : %s ;" % (
+    #                    '%s.%s' % self.python.version,
+    #                    self.python.interpreter_path,
+    #                    self.python.libraries[0].include_directories[0],
+    #                    self.python.libraries[0].directories[0],
+    #                ),
+    #                "option.set prefix : %s ;" % prefix,
+    #                "option.set exec-prefix : %s ;" % exec_prefix,
+    #                "option.set libdir : %s ;" % library_directory,
+    #                "option.set includedir : %s ;" % include_directory,
+    #            ))
+
+    #    project_config = self.compiler.build.fs.generate(
+    #        self.source_path('project-config.jam'),
+    #        JamConf(self.compiler, self.python, prefix = self.build_path('install'))
+    #    )
+
+    #    # Include library dependencies
+    #    component_names = set(
+    #        sum((self.inter_dependencies.get(name, []) for name in self.component_names), [])
+    #        + self.component_names
+    #    )
+
+    #    # Sort them by dependency
+    #    def get_depth(name):
+    #        def _find(name, dep, lvl):
+    #            if name == dep:
+    #                return lvl
+    #            return min(list(
+    #                _find(name, d, lvl - 1)
+    #                for d in self.inter_dependencies.get(name, [name])
+    #                if d != dep
+    #            ) or [0])
+    #        return min(
+    #            _find(name, dep, 0) for dep in self.inter_dependencies.keys()
+    #        )
+    #    component_names = list(sorted(component_names, key = get_depth))
+
+
+    #    self.__targets = {}
+    #    for component in component_names:
+    #        self.__targets[component] = self._target(
+    #            component,
+    #            [b2_target] + self.python.targets + [project_config]
+    #        )
+    #    return list(self.__targets.values())
+
+    #def _target(self, component, dependencies):
+    #    shared = self.component_shared(component)
+    #    shared_arg = {
+    #        True: 'shared',
+    #        False: 'static',
+    #    }[shared]
+    #    multithreading = self.option(component, 'multithreading')
+    #    multithreading_arg = multithreading and 'multi' or 'single'
+
+    #    runtime_link = self.option(component, 'runtime_link')
+    #    runtime_link_arg = runtime_link and 'shared' or 'static'
+
+    #    include_directories = self.compiler.include_directories[:]
+    #    library_directories = self.compiler.library_directories[:]
+    #    for l in self.compiler.libraries:
+    #        include_directories.extend(l.include_directories)
+    #        library_directories.extend(l.directories)
+    #    build_args = [
+    #        self.lazy_arg('--build-dir=%s', self.build_path('build')),
+    #        self.lazy_arg('--prefix=%s', self.build_path('install', abs = True)),
+    #        '--layout=tagged',
+    #        '--reconfigure',
+    #        '--debug-configuration',
+    #        #'--debug-building',
+    #        '-o', 'build_test.log',
+    #        'toolset=%s' % self.compiler.name,
+    #        'variant=%s' % (self.debug and 'debug' or 'release'),
+    #        'link=%s' % shared_arg,
+    #        'threading=%s' % multithreading_arg,
+    #        'runtime-link=%s' % runtime_link_arg,
+    #        'include=%s' % ' '.join(map(str, include_directories)),
+    #        # XXX define =
+    #        'cxxflags=-std=c++11 -stdlib=libc++ %s' % ' '.join(
+    #            '-isystem %s' % i for i in include_directories
+    #        ),
+    #        'linkflags=-stdlib=libc++ %s -lc++' % ' '.join(
+    #            '-L %s' % i for i in library_directories
+    #        ),
+    #    ]
+
+    #    fixup_commands = []
+    #    if platform.IS_MACOSX and self.component_shared(component):
+    #        def change_install_name(of, in_):
+    #            filename = self.component_library_filename(of)
+    #            libpath = self.component_library_path(in_)
+    #            return ShellCommand(
+    #                "Link with a relative install name of %s" % of,
+    #                [
+    #                    'install_name_tool',
+    #                    '-change',
+    #                    filename,
+    #                    '@rpath/%s' % filename,
+    #                    libpath,
+    #                ]
+    #            )
+    #        fixup_commands.extend(
+    #            change_install_name(dep, component)
+    #            for dep in self.inter_dependencies.get(component, [])
+    #            if self.component_shared(dep)
+    #        )
+    #        filename = self.component_library_filename(component)
+    #        libpath = self.component_library_path(component)
+    #        fixup_commands.append(
+    #            ShellCommand(
+    #                "Set a relative install name",
+    #                [
+    #                    'install_name_tool',
+    #                    '-id', '@rpath/%s' % filename,
+    #                    libpath,
+    #                ]
+    #            )
+    #        )
+
+    #    filename = self.component_library_filename(component)
+    #    libpath = self.component_library_path(component)
+
+    #    return Target(
+    #        libpath,
+    #        [
+    #            ShellCommand(
+    #                "Build %s" % self.name,
+    #                [self.source_path('b2')] + build_args + [
+    #                    '--with-%s' % component,
+    #                    'release', 'install',
+    #                ],
+    #                env = {'CXX': self.compiler.binary},
+    #                working_directory = self.source_path(),
+    #                # We know that all dependencies will be in self.__targets
+    #                # because of the sort above
+    #                dependencies = dependencies + [
+    #                    self.__targets[dep]
+    #                    for dep in self.inter_dependencies.get(component, [])
+    #                ]
+    #            ),
+    #        ] + fixup_commands
+    #    )
+
+    #@property
+    #def libraries(self):
+    #    if self.__libraries is not None:
+    #        return self.__libraries
+    #    self.__libraries = [
+    #        Library(
+    #            self.name + '-' + component,
+    #            self.compiler,
+    #            shared = self.component_shared(component),
+    #            search_binary_files = False,
+    #            include_directories = [
+    #                self.build_path(
+    #                    'install/include',
+    #                    abs = True
+    #                )
+    #            ],
+    #            directories = [self.build_path('install/lib', abs = True)],
+    #            files = [self.component_library_path(component)],
+    #            save_env_vars = False,
+    #        ) for component in self.component_names
+    #    ]
+    #    return self.__libraries
