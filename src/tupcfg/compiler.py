@@ -23,25 +23,33 @@ class Compiler:
     # Compiled object extension
     object_extension = 'o'
 
+    # Available compilers for this language
+    compilers = []
+
+    # Library class for this compiler / language
+    Library = None
+
     def __init__(self, project, build, **kw):
         assert 'lang' in kw
         attrs = [
             ('defines', []),
-            ('library_directories', []),
-            ('include_directories', []),
-            ('precompiled_headers', []),
             ('position_independent_code', False),
             ('standard', None),
             ('target_architecture', platform.ARCHITECTURE),
             ('enable_warnings', True),
             ('use_build_type_flags', True),
             ('hidden_visibility', True),
-            ('stdlib', True),
-            ('static_libstd', False),
             ('force_architecture', True),
             ('additional_link_flags', {}),
             ('generate_source_dependencies_for_makefile',
-             generators.Makefile in build.generators),
+             any(isinstance(g, generators.Makefile) for g in build.generators)),
+
+            ('stdlib', True),
+            ('static_libstd', False),
+            ('libraries', []),
+            ('include_directories', []),
+            ('library_directories', []),
+            ('precompiled_headers', []),
         ]
         self._set_attributes_default(attrs, kw)
 
