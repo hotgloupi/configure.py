@@ -42,7 +42,7 @@ class Makefile(Generator):
             self.dependencies[i_path] = i
 
     def close(self):
-        cmd_str = lambda *cmd: ' '.join(map(pipes.quote, cmd))
+        cmd_str = lambda *cmd, **kw: kw.get('sep', ' ').join(map(pipes.quote, cmd))
 
         phony_rules = ['all', 'clean']
         makefile = '.PHONY:\n.PHONY: %s\n' % ' '.join(phony_rules)
@@ -91,28 +91,54 @@ class Makefile(Generator):
 
         makefile += '\n\n'
 
+        cmd_count = 0
         for depends_mode in (True, False):
-            for target_path, infos in self.targets.items():
-                target, inputs, additional_inputs, action, command = infos
+            for target_path, target_list in self.targets.items():
+                assert len(target_list) > 0
+                target = target_list[0][0]
                 target_str = str(target)
-                if (depends_mode and not target_str.endswith('.depends.mk')) or \
-                    not depends_mode and target_str.endswith('.depends.mk'):
+                header_dependency = bool(target_str.endswith('.depends.mk'))
+                if (depends_mode and not header_dependency) or \
+                   (not depends_mode and header_dependency):
                     continue
-                makefile += '%s:' % target
+
+                inputs = sum((t[1] for t in target_list), [])
+                additional_inputs = sum((t[2] for t in target_list), [])
+                makefile += '# ------- %s:\n' % path.basename(target.path(self.build))
+                makefile += '%s:' % target.relpath(self.build.directory, self.build)
                 if self.build.dependencies:
                     makefile += ' %s' % ' '.join(deps)
                 for i in inputs + additional_inputs:
                     makefile += ' %s' % i.relpath(self.build.directory, self.build)
 
-                makefile += '\n\t@%s' % cmd_str(
-                    'sh', '-c', cmd_str(
-                        'echo',
-                        '\033[0;34m' + action + '\033[0m ' +
-                        '\033[0;31m' + target.relpath(self.project.directory, self.build) + '\033[0m'
+                for idx, target_info in enumerate(target_list):
+                    _, _, _, action, command = target_info
+                    cmd_count += 1
+
+                    timer_path = \
+                            target.relpath(self.build.directory, self.build) + \
+                            '.timer.%s' % cmd_count
+                    makefile += '\n\t@%s' % cmd_str(
+                        'sh', '-c', 'python -c "import time; print(time.time())" > %s' %
+                        timer_path
                     )
-                )
-                working_directory = path.dirname(target_path)
-                makefile += '\n\t%s' % cmd_str(*command)
+
+                    # dump command
+                    makefile += '\n\t%s' % cmd_str(*command)
+
+                    # echo line
+                    makefile += '\n\t@echo `%s`' % (
+                         'python -c \'%s\'' % (
+                             'import time; print("' +
+                             '[%4f secs] ' +
+                             '\033[0;34m' + action + '\033[0m ' +
+                             '\033[0;31m' + target.relpath(self.project.directory, self.build) + '\033[0m' +
+                             '" % (time.time() - float(open("' +
+                             timer_path +
+                             '").read())))'
+                         )
+                    )
+                    makefile += '\n\t@%s' % cmd_str('rm', '-f', timer_path)
                 makefile += '\n\n'
 
                 if target_str.endswith('.depends.mk'):
