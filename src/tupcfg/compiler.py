@@ -71,7 +71,36 @@ class Compiler:
         self.lang = lang
         self.binary = binary
 
-    def build_object(self, src, **kw):
+    @classmethod
+    def from_bin(cls, bin, *args, **kw):
+        for c in cls.compilers:
+            if c.binary_name in bin.lower():
+                return c(*args, **kw)
+        raise Exception(
+            "Cannot detect %s compiler from binary %s" % (cls.lang, bin)
+        )
+
+    @classmethod
+    def find_compiler(cls, project, build, **kw):
+        cc = project.env.get(cls.binary_env_varname)
+        if cc is not None:
+            bin = tools.find_binary(cc)
+            return cls.from_bin(bin, project, build, **kw)
+
+        search_binary_files = [c.binary_name for c in cls.compilers]
+        for i, bin in enumerate(search_binary_files):
+            if tools.which(bin):
+                return cls.compilers[i](project, build, **kw)
+        raise Exception("Cannot detect any %s compiler" % cls.lang)
+
+
+    def find_library(self, name, **kw):
+        return self.Library(name, self, **kw)
+
+    def __str__(self):
+        return '%s compiler \'%s\' (%s)' % (self.lang, self.name, self.binary)
+
+    def build_object(self, src, additional_inputs = [], **kw):
         """Create a `Target` to build an object from source using @a
         BuildObject command. It also generate the associated dependencies of
         that source file if any (like makefile includes).
