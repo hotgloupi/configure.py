@@ -277,17 +277,16 @@ class Compiler:
 
         def __init__(self, compiler, objects, shared=True, **kw):
             self.shared = shared
-            Compiler.LinkCommand.__init__(self, compiler, objects, **kw)
+            super().__init__(compiler, objects, **kw)
 
         def command(self, **kw):
             return self.compiler._link_library_cmd(self, **kw)
 
     def _include_directories(self, cmd):
-        include_directories = (
-            self.include_directories +
-            cmd.kw.get('include_directories', [])
-        )
-        libraries = cmd.kw.get('libraries', [])
+        include_directories = self.include_directories[:]
+        include_directories += self.include_directories + \
+                cmd.kw.get('include_directories', [])
+        libraries = self.libraries + cmd.kw.get('libraries', [])
         for lib in libraries:
             if isinstance(lib, Target):
                 continue
