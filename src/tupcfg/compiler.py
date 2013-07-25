@@ -109,17 +109,24 @@ class Compiler:
         """
         target = Target(
             src.filename + '.' + self.object_extension,
-            self.BuildObject(self, src, **kw)
+            self.BuildObject(self, src, **kw),
+            additional_inputs = additional_inputs,
         )
         if self.generate_source_dependencies_for_makefile:
             mktarget = Target(
                 src.filename + '.' + self.object_extension + '.depends.mk',
-                self.BuildObjectDependencies(self, src, target, **kw)
+                self.BuildObjectDependencies(
+                    self,
+                    src,
+                    target,
+                    **kw
+                )
             )
             mktarget.additional_inputs.extend(target.additional_inputs)
             target.additional_inputs.append(mktarget)
-            self.build.add_target(mktarget)
-        return target
+            kw.get('build', self.build).add_target(mktarget)
+            #print('add', mktarget, 'to', kw.get('build', self.build.directory))
+        return kw.get('build', self.build).add_target(target)
 
     def link_executable(self, name, sources, directory='', ext=None, **kw):
         """Build a list of sources into a library.
@@ -127,26 +134,42 @@ class Compiler:
         Calls build_objects for intermediate objects, and use LinkExecutable
         for final linking.
         """
-        name = path.join(directory, self.__get_executable_name(name, ext))
+        name = path.join(str(directory), self.__get_executable_name(name, ext))
         sources_ = (Source(src) for src in sources)
         objects = (self.build_object(src, **kw) for src in sources_)
-        return self.build.add_target(
+        return kw.get('build', self.build).add_target(
             Target(name, self.LinkExecutable(self, list(objects), **kw))
         )
 
-    def link_library(self, name, sources, directory='', shared=True, ext=None, **kw):
+    def link_library(self,
+                     name,
+                     sources,
+                     directory = '',
+                     shared = True,
+                     ext = None,
+                     additional_inputs = [],
+                     **kw):
         """Build a list of sources into a library.
 
         Calls build_objects for intermediate objects, and use LinkLibrary for
         final linking.
         """
-        name = path.join(directory, self.__get_library_name(name, shared, ext))
+        name = path.join(str(directory), self.__get_library_name(name, shared, ext))
         sources_ = (Source(src) for src in sources)
-        objects = (self.build_object(src, **kw) for src in sources_)
-        return self.build.add_target(
+        objects = (
+            self.build_object(src, additional_inputs = additional_inputs, **kw)
+            for src in sources_
+        )
+        return kw.get('build', self.build).add_target(
             Target(
                 name,
-                self.LinkLibrary(self, list(objects), shared=shared, **kw)
+                self.LinkLibrary(
+                    self,
+                    list(objects),
+                    shared = shared,
+                    **kw
+                ),
+                additional_inputs = additional_inputs,
             )
         )
 
