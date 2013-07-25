@@ -27,5 +27,3 @@ class Filesystem:
         return self.build.add_target(
             Target(dest, Copy(Source(src)))
         )
-#
-#
