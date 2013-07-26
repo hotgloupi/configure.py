@@ -9,6 +9,8 @@ import shutil
 import stat
 import subprocess
 import sys
+import cgitb
+cgitb.enable(format = 'text')
 
 def cleanpath(p, **kwargs):
     p = os.path.normpath(p)
