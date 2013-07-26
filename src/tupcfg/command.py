@@ -107,7 +107,7 @@ class Command(Node):
 
     def execute(self, target=None, build=None):
         assert build is not None
-        super(Command, self).execute(target=target, build=build)
+        super().execute(target=target, build=build)
         build.emit_command(
             self.action,
             *self.gen_command(shell_string=False, target=target, build=build)

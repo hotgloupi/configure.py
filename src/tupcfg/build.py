@@ -121,6 +121,7 @@ class Build:
 
         self.__commands = {}
         for t in self.targets:
+            tools.debug("Exectuting {%s}/%s" % (self.directory, t))
             t.execute(build=self)
         for dir_, rules in self.__commands.items():
             if not path.exists(dir_):
@@ -157,13 +158,7 @@ class Build:
         target = kw['target']
         target_dir = path.dirname(target.path(kw['build']))
 
-        seen_commands = self.__target_commands.setdefault(target, set())
-        cmd_str = str(cmd)
-        if cmd_str in seen_commands:
-            tools.debug("Ignoring an already generated target's command: %s %s" % (cmd_str, target))
-            return
-        seen_commands.add(cmd_str)
-
+        tools.debug("Adding {%s}/%s command %s" % (self.directory, target, cmd))
         self.__commands.setdefault(target_dir, []).append(
             (
                 action, cmd,
