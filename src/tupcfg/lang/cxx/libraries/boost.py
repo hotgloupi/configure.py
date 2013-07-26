@@ -214,6 +214,7 @@ class BoostDependency(Dependency):
             libraries = libraries,
             build = self.resolved_build,
             additional_inputs = dependencies,
+            defines = ['BOOST_%s_SOURCE' % name.upper()],
         )
         return self.__targets[name]
 
