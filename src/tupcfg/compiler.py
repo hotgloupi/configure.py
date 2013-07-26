@@ -126,7 +126,7 @@ class Compiler:
             target.additional_inputs.append(mktarget)
             kw.get('build', self.build).add_target(mktarget)
             #print('add', mktarget, 'to', kw.get('build', self.build.directory))
-        return kw.get('build', self.build).add_target(target)
+        return target #kw.get('build', self.build).add_target(target)
 
     def link_executable(self, name, sources, directory='', ext=None, **kw):
         """Build a list of sources into a library.
