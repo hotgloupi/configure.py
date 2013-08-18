@@ -147,7 +147,14 @@ class Shell(Command):
             res = ['sh', '-c', cmd]
         else:
             res = self.__command
-        return ['%s=%s' % (k, v) for k, v in self.env.items()] + res
+        return [
+            'sh', '-c', "%s %s" % (
+                ' '.join(
+                    '%s=%s' % (k, pipes.quote(str(v))) for k, v in self.env.items()
+                ),
+                cmd_str(res)
+            )
+        ]
 
     def command(self, target=None, build=None):
         return self.shell_command
