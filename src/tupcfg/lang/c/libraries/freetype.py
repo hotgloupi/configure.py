@@ -45,45 +45,45 @@ class FreetypeDependency(Dependency):
     @property
     def targets(self):
         copy_target = Target(
-            self.build_path('source/autogen.sh'),
+            self.build_path('freetype2/autogen.sh'),
             ShellCommand(
                 "Copy Freetype2 sources",
                 [
-                    'cp', '-r', path.absolute(self.source_directory) + '/',
-                    self.build_path('source')
+                    'cp', '-r', path.absolute(self.source_directory),
+                    self.build_path()
                 ],
             )
         )
 
         autogen_target = Target(
-            self.build_path('source/configure'),
+            self.build_path('freetype2/configure'),
             ShellCommand(
                 "Generating configure script",
                 ['./autogen.sh'],
-                working_directory = self.build_path('source'),
+                working_directory = self.build_path('freetype2'),
                 dependencies = [copy_target]
             ),
         )
 
         configure_target = Target(
-            self.build_path('source/Makefile'),
+            self.build_path('freetype2/Makefile'),
             ShellCommand(
                 "Configuring Freetype2",
                 [
                     './configure', '--prefix', self.build_path('install', abs=True)
                 ],
-                working_directory = self.build_path('source'),
+                working_directory = self.build_path('freetype2'),
                 dependencies = [autogen_target],
                 env = self.env
             ),
         )
 
         build_target = Target(
-            self.build_path('source/freetype-config'),
+            self.build_path('freetype2/freetype-config'),
             ShellCommand(
                 "Building FreeType2",
                 ['make'],
-                working_directory = self.build_path('source'),
+                working_directory = self.build_path('freetype2'),
                 dependencies = [configure_target]
             ),
         )
@@ -93,7 +93,7 @@ class FreetypeDependency(Dependency):
             ShellCommand(
                 "Installing FreeType2",
                 ['make', 'install'],
-                working_directory = self.build_path('source'),
+                working_directory = self.build_path('freetype2'),
                 dependencies = [build_target]
             )
         )
