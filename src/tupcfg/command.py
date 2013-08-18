@@ -135,7 +135,7 @@ class Shell(Command):
         super(Shell, self).__init__(dependencies)
         self.action = action
         self.working_directory = working_directory
-        self.env = env;
+        self.env = env
         self.__command = command
 
     @property
