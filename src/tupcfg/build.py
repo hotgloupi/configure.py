@@ -47,7 +47,9 @@ class Build:
         self.dependencies = []
         self.fs = Filesystem(self)
         self.project = project
-        self.__target_commands = {}
+        # initialized by execute()
+        self.__commands = None
+        self.__seen_commands = None
 
         if not generator_names:
             generator_names = project.env.get(
@@ -75,10 +77,9 @@ class Build:
         assert len(self.generators)
 
     def add_target(self, target):
-        if target in self.targets:
-            return
-        tools.debug("add target {%s}/%s" % (self.directory, target))
-        self.targets.append(target)
+        if target not in self.targets:
+            tools.debug("add target {%s}/%s" % (self.directory, target))
+            self.targets.append(target)
         return target
 
     def add_targets(self, *targets):
@@ -120,6 +121,7 @@ class Build:
             deps_build.cleanup()
 
         self.__commands = {}
+        self.__seen_commands = set()
         for t in self.targets:
             tools.debug("Exectuting {%s}/%s" % (self.directory, t))
             t.execute(build=self)
@@ -157,6 +159,11 @@ class Build:
                      kw):
         target = kw['target']
         target_dir = path.dirname(target.path(kw['build']))
+        cmd_object = '-'.join(str(e) for e in command(cmd, build = self))
+        if cmd_object in self.__seen_commands:
+            tools.debug("Ignoring {%s}/%s command %s" % (self.directory, target, cmd))
+            return
+        self.__seen_commands.add(cmd_object)
 
         tools.debug("Adding {%s}/%s command %s" % (self.directory, target, cmd))
         self.__commands.setdefault(target_dir, []).append(
