@@ -51,6 +51,9 @@ class BoostDependency(Dependency):
             'shared': True,
         },
 
+        'config': {
+        },
+
 
         'coroutine': {
             'shared': False,
@@ -69,16 +72,90 @@ class BoostDependency(Dependency):
 
         'thread': {
             'multithreading': True,
-        }
+        },
+
+        'system': {
+
+        },
     }
 
     # Libraries inter dependencies.
     inter_dependencies = {
-        'python': ['system', ],
-        'thread': ['system', ],
-        'filesystem': ['system', ],
+        'algorithm': ['range'],
+        'bind': ['smart_ptr'],
+        'chrono': ['ratio'],
+        'config': ['detail', ],
+        'conversion': ['numeric/conversion'],
         'coroutine': ['context', ],
+        'date_time': ['chrono', ],
+        'detail': ['predef', ],
+        'exception': ['units', ],
+        'filesystem': [
+            'functional',
+            'io',
+            'range',
+            'smart_ptr',
+            'system',
+            'type_traits',
+            'utility',
+        ],
+        'format': ['array', 'math', 'container', ],
+        'function': ['bind', ],
+        'iterator': ['static_assert'],
+        'mpl': ['preprocessor', ],
+        'multi_index': ['foreach', 'serialization', ],
+        'python': [
+            'conversion',
+            'function',
+            'graph',
+            'mpl',
+            'smart_ptr',
+            'system',
+            'type_traits',
+            'utility',
+        ],
+        'property_map': ['concept_check', ],
+        'range': ['concept_check', ],
+        'signals2': ['any', 'variant', ],
+        'smart_ptr': ['exception', ],
+        'system': ['config', 'integer', 'utility', ],
+        'thread': [
+            'atomic',
+            'bind',
+            'date_time',
+            'function',
+            'functional',
+            'io',
+            'move',
+            'optional',
+            'system',
+            'tuple',
+            'type_traits',
+        ],
+        'graph': [
+            'unordered',
+            'tuple',
+            'optional',
+            'property_map',
+            'typeof',
+            'multi_index',
+            'parameter',
+            'range',
+        ],
+        'type_traits': ['mpl', ],
+        'units': ['algorithm', ],
+        'utility': ['iterator'],
+        'unordered': ['functional', 'move'],
     }
+
+    def __component_dependencies(self, component):
+        def gen(l):
+            for e in l:
+                yield e
+                for dep in gen(self.inter_dependencies.get(e, [])):
+                    yield dep
+        return tools.unique(gen(self.inter_dependencies.get(component, [])))
+
 
     def __init__(self,
                  cxx_compiler,
@@ -138,6 +215,7 @@ class BoostDependency(Dependency):
         self.python = python
         self.__libraries = None
         self.__targets = {}
+        self.__header_targets = {}
 
     def option(self, component, option, default = None):
         return self.component_options.get(component, {}).get(option, getattr(self, option, default))
@@ -197,6 +275,37 @@ class BoostDependency(Dependency):
         ]
         return res
 
+    def _header_targets(self, name):
+        if name not in self.__header_targets:
+            include_dir = str(
+                self.source_path('libs', name, 'include', abs = True)
+            )
+            res = []
+            for pat in ['*.h', '*.[hi]pp']:
+                for h in tools.rglob(pat, include_dir):
+                    res.append(self.resolved_build.fs.copy(
+                        h,
+                        dest = str(self.build_path(
+                            'install',
+                            'include',
+                            path.relative(h, start = include_dir)
+                        ))
+                    ))
+            self.__header_targets[name] = res
+        return self.__header_targets[name]
+
+    @property
+    def root_directory(self):
+        return self.build_path('install', abs = True)
+
+    @property
+    def include_directory(self):
+        return self.build_path('install', 'include', abs = True)
+
+    @property
+    def library_directory(self):
+        return self.build_path('install', 'lib', abs = True)
+
     def _target(self, name):
         if name in self.__targets:
             return self.__targets[name]
@@ -205,12 +314,20 @@ class BoostDependency(Dependency):
         if name == 'python' and self.python:
             libraries.extend(self.python.libraries)
             dependencies.extend(self.python.targets)
+        component_dependencies = self.__component_dependencies(name)
+        for component in tools.unique([name] + component_dependencies):
+            dependencies.extend(
+                self._header_targets(component)
+            )
+        print(name, "dependencies", component_dependencies)
         self.__targets[name] = self.compiler.link_library(
             'libboost_' + name,
             directory = self.build_path('install/lib'),
             shared = self.component_shared(name),
             sources = self.component_sources(name),
-            include_directories = [self.source_path()],
+            include_directories = [
+                str(self.build_path('install', 'include', abs = True))
+            ],
             libraries = libraries,
             build = self.resolved_build,
             additional_inputs = dependencies,
@@ -228,7 +345,9 @@ class BoostDependency(Dependency):
                 self.compiler,
                 shared = self.component_shared(component),
                 search_binary_files = False,
-                include_directories = [self.source_path(abs = True)],
+                include_directories = [
+                    self.build_path('install', 'include', abs = True)
+                ],
                 directories = [self.build_path('install/lib', abs = True)],
                 files = [self.component_library_path(component)],
                 save_env_vars = False,
