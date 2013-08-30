@@ -331,7 +331,13 @@ class BoostDependency(Dependency):
             libraries = libraries,
             build = self.resolved_build,
             additional_inputs = dependencies,
-            defines = ['BOOST_%s_SOURCE' % name.upper()],
+            defines = [
+                'BOOST_%s_SOURCE' % name.upper(),
+                'BOOST_%s_%s_LINK' % (
+                    name.upper(),
+                    self.component_shared(name) and 'DYN' or 'STATIC'
+                ),
+            ],
         )
         return self.__targets[name]
 
