@@ -83,7 +83,7 @@ class BoostDependency(Dependency):
     inter_dependencies = {
         'algorithm': ['range'],
         'bind': ['smart_ptr'],
-        'chrono': ['ratio'],
+        'chrono': ['ratio', 'mpl', 'system', ],
         'config': ['detail', ],
         'conversion': ['numeric/conversion'],
         'coroutine': ['context', ],
@@ -132,6 +132,7 @@ class BoostDependency(Dependency):
             'tuple',
             'type_traits',
         ],
+        'timer': ['config', 'chrono', 'type_traits', 'exception'],
         'graph': [
             'unordered',
             'tuple',
