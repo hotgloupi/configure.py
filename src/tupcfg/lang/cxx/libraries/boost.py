@@ -199,6 +199,7 @@ class BoostDependency(Dependency):
             build_config = build_config
         )
         self.compiler = cxx_compiler
+        self.project = self.compiler.project
         self.source_directory = source_directory
         self.shared = shared
         self.preferred_shared = preferred_shared
@@ -217,6 +218,7 @@ class BoostDependency(Dependency):
         self.__libraries = None
         self.__targets = {}
         self.__header_targets = {}
+        self.__component_sources = {}
 
     def option(self, component, option, default = None):
         return self.component_options.get(component, {}).get(option, getattr(self, option, default))
@@ -240,6 +242,9 @@ class BoostDependency(Dependency):
         )
 
     def component_sources(self, component):
+        if component in self.__component_sources:
+            return self.__component_sources[component]
+
         srcs = None
         if component == 'thread':
             srcs = [
@@ -249,19 +254,26 @@ class BoostDependency(Dependency):
                 'pthread/thread.cpp',
             ]
         if srcs is not None:
-            return (
+            srcs = list(
                 path.relative(
                     str(self.source_path('libs', component, 'src', src, abs = True)),
-                    start = self.resolved_build.project.directory
+                    start = self.project.directory
                 ) for src in srcs
             )
-        return tools.rglob(
-            '*.cpp',
-            path.relative(
-                str(self.source_path('libs', component, 'src', abs = True)),
-                start = self.resolved_build.project.directory
-            )
-        )
+        else:
+            srcs = list(tools.rglob(
+                '*.cpp',
+                path.relative(
+                    str(self.source_path('libs', component, 'src', abs = True)),
+                    start = self.project.directory
+                )
+            ))
+        self.__component_sources[component] = srcs
+        return srcs
+
+    def is_header_only(self, component):
+        return len(self.component_sources(component)) == 0
+
     class lazy_arg:
         def __init__(self, name, arg):
             self.name = name
@@ -273,6 +285,7 @@ class BoostDependency(Dependency):
     def targets(self):
         res = [
             self._target(name) for name in self.component_names
+            if not self.is_header_only(name)
         ]
         return res
 
@@ -346,6 +359,7 @@ class BoostDependency(Dependency):
     def libraries(self):
         if self.__libraries is not None:
             return self.__libraries
+        names = (name for name in self.component_names if not self.is_header_only(name))
         self.__libraries = [
             Library(
                 self.name + '-' + component,
@@ -358,7 +372,7 @@ class BoostDependency(Dependency):
                 directories = [self.build_path('install/lib', abs = True)],
                 files = [self.component_library_path(component)],
                 save_env_vars = False,
-            ) for component in self.component_names
+            ) for component in names
         ]
         return self.__libraries
     #@property
