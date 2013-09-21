@@ -66,7 +66,7 @@ class FreetypeDependency(Dependency):
         )
 
         configure_target = Target(
-            self.build_path('freetype2/Makefile'),
+            self.build_path('freetype2/config.mk'),
             ShellCommand(
                 "Configuring Freetype2",
                 [
@@ -79,7 +79,7 @@ class FreetypeDependency(Dependency):
         )
 
         build_target = Target(
-            self.build_path('freetype2/freetype-config'),
+            self.build_path('install/bin/freetype-config'),
             ShellCommand(
                 "Building FreeType2",
                 ['make'],
