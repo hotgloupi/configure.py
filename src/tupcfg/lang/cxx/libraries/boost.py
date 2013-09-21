@@ -301,7 +301,8 @@ class BoostDependency(Dependency):
 
     @property
     def include_directory(self):
-        return self.build_path('install', 'include', abs = True)
+        return self.source_path(abs = True)
+        #return self.build_path('install', 'include', abs = True)
 
     @property
     def library_directory(self):
@@ -316,10 +317,11 @@ class BoostDependency(Dependency):
             libraries.extend(self.python.libraries)
             dependencies.extend(self.python.targets)
         component_dependencies = self.__component_dependencies(name)
-        for component in tools.unique([name] + component_dependencies):
-            dependencies.extend(
-                self._header_targets(component)
-            )
+        #used when headers are copyied
+        #for component in tools.unique([name] + component_dependencies):
+        #    dependencies.extend(
+        #        self._header_targets(component)
+        #    )
         print(name, "dependencies", component_dependencies)
         self.__targets[name] = self.compiler.link_library(
             'libboost_' + name,
@@ -327,7 +329,9 @@ class BoostDependency(Dependency):
             shared = self.component_shared(name),
             sources = self.component_sources(name),
             include_directories = [
-                str(self.build_path('install', 'include', abs = True))
+                #when headers are copyied
+                #str(self.build_path('install', 'include', abs = True)),
+                str(self.source_path()),
             ],
             libraries = libraries,
             build = self.resolved_build,
@@ -353,7 +357,8 @@ class BoostDependency(Dependency):
                 shared = self.component_shared(component),
                 search_binary_files = False,
                 include_directories = [
-                    self.build_path('install', 'include', abs = True)
+                    #self.build_path('install', 'include', abs = True)
+                    self.include_directory
                 ],
                 directories = [self.build_path('install/lib', abs = True)],
                 files = [self.component_library_path(component)],
