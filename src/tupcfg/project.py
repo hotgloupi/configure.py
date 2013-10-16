@@ -97,7 +97,7 @@ class Project:
         if not path.exists(self.config_directory):
             os.makedirs(self.config_directory)
         with open(self.__config_file_template) as template:
-            data = template.read() % self.env
+            data = template.read()
         with open(self.config_file, 'w') as conf:
             conf.write(data)
 
