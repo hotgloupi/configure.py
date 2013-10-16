@@ -135,11 +135,11 @@ class Env:
         key = key.upper()
         var = self.__dict.get(
             key,
-            os.environ.get(
+            self.__vars['build'].get(
                 key,
-                self.__vars['build'].get(
+                self.__vars['project'].get(
                     key,
-                    self.__vars['project'].get(key)
+                    os.environ.get(key)
                 )
             )
         )
