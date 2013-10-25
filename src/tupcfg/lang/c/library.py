@@ -27,7 +27,8 @@ class Library:
                  use_system_paths = True,
                  search_binary_files = True,
                  only_one_binary_file = True,
-                 save_env_vars = True):
+                 save_env_vars = True,
+                 system = False):
         self.name = name
         self.compiler = compiler
         self.env = self.compiler.project.env
@@ -37,11 +38,19 @@ class Library:
         self.compiler = compiler
         self.env = self.compiler.project.env
         self.shared = shared
-        self.preferred_shared = self.env_var("SHARED", default=preferred_shared, type=bool)
+        self.preferred_shared = self.env_var(
+            "SHARED",
+            default = preferred_shared,
+            type = bool
+        )
         self.macosx_framework = macosx_framework
         self.search_macosx_framework_files = search_macosx_framework_files
         self.use_system_paths = use_system_paths
         self.only_one_binary_file = only_one_binary_file
+        self.system = system
+        if self.system:
+            self.search_binary_files = False
+            self.search_macosx_framework_files = False
         assert isinstance(find_includes, list)
         self.find_includes = find_includes
 
