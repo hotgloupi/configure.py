@@ -2,7 +2,7 @@
 
 from ..library import Library
 
-from tupcfg import path, Dependency, Target
+from tupcfg import path, platform, Dependency, Target
 from tupcfg.command import Shell as ShellCommand
 
 class FreetypeLibrary(Library):
@@ -24,7 +24,7 @@ class FreetypeDependency(Dependency):
     def __init__(self,
                  c_compiler,
                  source_directory,
-                 shared = True,
+                 shared = False,
                  build_config = []):
         super().__init__(
             "Freetype2",
@@ -41,9 +41,88 @@ class FreetypeDependency(Dependency):
         ext = self.compiler.library_extension(shared)
         self.library_filename = 'libfreetype.%s' % ext
         self.env = {'CC': c_compiler.binary}
+        sources = [
+            "src/base/ftsystem.c", #
+            "src/base/ftinit.c", #
+            "src/base/ftdebug.c", #
+            "src/base/ftbase.c", #
+            "src/base/ftbbox.c", #       -- recommended, see <freetype/ftbbox.h>
+            "src/base/ftglyph.c", #      -- recommended, see <freetype/ftglyph.h>
+            "src/base/ftbdf.c", #        -- optional, see <freetype/ftbdf.h>
+            "src/base/ftbitmap.c", #     -- optional, see <freetype/ftbitmap.h>
+            "src/base/ftcid.c", #        -- optional, see <freetype/ftcid.h>
+            "src/base/ftfstype.c", #     -- optional
+            "src/base/ftgasp.c", #       -- optional, see <freetype/ftgasp.h>
+            "src/base/ftgxval.c", #      -- optional, see <freetype/ftgxval.h>
+            "src/base/ftlcdfil.c", #     -- optional, see <freetype/ftlcdfil.h>
+            "src/base/ftmm.c", #         -- optional, see <freetype/ftmm.h>
+            "src/base/ftotval.c", #      -- optional, see <freetype/ftotval.h>
+            "src/base/ftpatent.c", #     -- optional
+            "src/base/ftpfr.c", #        -- optional, see <freetype/ftpfr.h>
+            "src/base/ftstroke.c", #     -- optional, see <freetype/ftstroke.h>
+            "src/base/ftsynth.c", #      -- optional, see <freetype/ftsynth.h>
+            "src/base/fttype1.c", #      -- optional, see <freetype/t1tables.h>
+            "src/base/ftwinfnt.c", #     -- optional, see <freetype/ftwinfnt.h>
+            "src/base/ftxf86.c", #       -- optional, see <freetype/ftxf86.h>
+
+            "src/bdf/bdf.c", #           -- BDF font driver
+            "src/cff/cff.c", #           -- CFF/OpenType font driver
+            "src/cid/type1cid.c", #      -- Type 1 CID-keyed font driver
+            "src/pcf/pcf.c", #           -- PCF font driver
+            "src/pfr/pfr.c", #           -- PFR/TrueDoc font driver
+            "src/sfnt/sfnt.c", #         -- SFNT files support (TrueType & OpenType)
+            "src/truetype/truetype.c", # -- TrueType font driver
+            "src/type1/type1.c", #       -- Type 1 font driver
+            "src/type42/type42.c", #     -- Type 42 font driver
+            "src/winfonts/winfnt.c", #   -- Windows FONT / FNT font driver
+
+            "src/raster/raster.c", #     -- monochrome rasterizer
+            "src/smooth/smooth.c", #     -- anti-aliasing rasterizer
+
+            "src/autofit/autofit.c", #   -- auto hinting module
+            "src/cache/ftcache.c", #     -- cache sub-system (in beta)
+            "src/gzip/ftgzip.c", #       -- support for compressed fonts (.gz)
+            "src/lzw/ftlzw.c", #         -- support for compressed fonts (.Z)
+            "src/bzip2/ftbzip2.c", #     -- support for compressed fonts (.bz2)
+            "src/gxvalid/gxvalid.c", #   -- TrueTypeGX/AAT table validation
+            "src/otvalid/otvalid.c", #   -- OpenType table validation
+            "src/psaux/psaux.c", #       -- PostScript Type 1 parsing
+            "src/pshinter/pshinter.c", # -- PS hinting module
+            "src/psnames/psnames.c", #   -- PostScript glyph names support
+        ]
+
+        if platform.IS_MACOSX:
+            sources.append(
+                "src/base/ftmac.c" #        -- only on the Macintosh
+            )
+        self.__sources = [
+            path.relative(
+                str(self.source_path(s, abs=True)),
+                start = self.compiler.project.directory
+            ) for s in sources
+        ]
+        self.__targets = None
 
     @property
     def targets(self):
+        if self.__targets is None:
+            self.__targets = [
+                self.compiler.link_library(
+                    'libfreetype',
+                    directory = self.build_path('install/lib'),
+                    shared = self.shared,
+                    defines = ['FT2_BUILD_LIBRARY'],
+                    build = self.resolved_build,
+                    sources = self.__sources,
+                    include_directories = [
+                        self.source_path('include', abs = True),
+                    ]
+                )
+            ]
+        return self.__targets
+
+
+    def old_targets(self):
         copy_target = Target(
             self.build_path('freetype2/autogen.sh'),
             ShellCommand(
@@ -55,34 +134,40 @@ class FreetypeDependency(Dependency):
             )
         )
 
-        autogen_target = Target(
-            self.build_path('freetype2/configure'),
-            ShellCommand(
-                "Generating configure script",
-                ['./autogen.sh'],
-                working_directory = self.build_path('freetype2'),
-                dependencies = [copy_target]
-            ),
-        )
+        if platform.IS_WINDOWS:
+            configure_target = copy_target
+        else:
+            autogen_target = Target(
+                self.build_path('freetype2/configure'),
+                ShellCommand(
+                    "Generating configure script",
+                    ['./autogen.sh'],
+                    working_directory = self.build_path('freetype2'),
+                    dependencies = [copy_target]
+                ),
+            )
 
-        configure_target = Target(
-            self.build_path('freetype2/config.mk'),
-            ShellCommand(
-                "Configuring Freetype2",
-                [
-                    './configure', '--prefix', self.build_path('install', abs=True)
-                ],
-                working_directory = self.build_path('freetype2'),
-                dependencies = [autogen_target],
-                env = self.env
-            ),
-        )
+            configure_target = Target(
+                self.build_path('freetype2/config.mk'),
+                ShellCommand(
+                    "Configuring Freetype2",
+                    [
+                        './configure', '--prefix', self.build_path('install', abs=True)
+                    ],
+                    working_directory = self.build_path('freetype2'),
+                    dependencies = [autogen_target],
+                    env = {
+                        'CC': self.compiler.binary,
+                        'MAKE': self.resolved_build.make_program,
+                    }
+                ),
+            )
 
         build_target = Target(
             self.build_path('install/bin/freetype-config'),
             ShellCommand(
                 "Building FreeType2",
-                ['make'],
+                [self.resolved_build.make_program],
                 working_directory = self.build_path('freetype2'),
                 dependencies = [configure_target]
             ),
@@ -108,7 +193,7 @@ class FreetypeDependency(Dependency):
                 shared = self.shared,
                 search_binary_files = False,
                 include_directories = [
-                    self.build_path('install/include/freetype2', abs = True)
+                    self.source_path('include', abs = True)
                 ],
                 directories = [self.build_path('install/lib', abs = True)],
                 files = [self.build_path('install/lib', self.library_filename, abs = True)],
