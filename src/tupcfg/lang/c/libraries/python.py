@@ -5,7 +5,7 @@ from tupcfg import path
 
 from sysconfig import get_config_var as var
 
-from tupcfg import path, Dependency, Target
+from tupcfg import path, platform, Dependency, Target
 from tupcfg.command import Shell as ShellCommand
 
 class PythonLibrary(Library):
@@ -24,6 +24,7 @@ class PythonLibrary(Library):
         if var('base'):
             directories.append(path.join(var('base'), 'libs'))
             directories.append(path.join(var('base'), 'DLLs'))
+        self.version = (var('py_version')[0], var('py_version')[2])
         name_suffixes = ['', var('py_version')[0]]
         for k in ['LDVERSION', 'py_version_nodot', 'py_version_short']:
             if var(k):
@@ -38,9 +39,10 @@ class PythonLibrary(Library):
             include_directories = var('INCLUDEPY') and [var('INCLUDEPY')] or [],
             directories = directories,
             preferred_shared = preferred_shared,
+            shared = kw.get('shared'),
         )
         components = []
-        if False and not shared:
+        if platform.IS_WINDOWS and not self.shared:
             components = ['pyexpat', 'unicodedata']
         self.components = list(
             Library(
@@ -49,7 +51,7 @@ class PythonLibrary(Library):
                 prefixes = [prefix],
                 include_directories = var('INCLUDEPY') and [var('INCLUDEPY')] or [],
                 directories = directories,
-                shared = shared,
+                shared = self.shared,
             ) for component in components
         )
 
@@ -159,7 +161,7 @@ class PythonDependency(Dependency):
             self.build_path('install/lib', self.library_filename),
             ShellCommand(
                 "Installing %s" % self.name,
-                ['make', 'install'],
+                [self.resolved_build.make_program, 'install'],
                 working_directory = self.build_path('build'),
                 dependencies = [configure_target]
             )
