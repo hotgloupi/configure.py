@@ -121,6 +121,8 @@ class Compiler(c_compiler.Compiler):
 
         if platform.IS_MACOSX:
             link_flags.append('-headerpad_max_install_names')
+        if platform.IS_WINDOWS:
+            link_flags.append('--enable-stdcall-fixup')
         if self.attr('use_build_type_flags', cmd):
             if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
                 link_flags.append('-g3')
