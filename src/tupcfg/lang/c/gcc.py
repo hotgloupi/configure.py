@@ -62,9 +62,15 @@ class Compiler(c_compiler.Compiler):
                 lambda e: ['-I', e]
             )
         )
+        force_includes = cmd.kw.get('force_includes', []) + self.force_includes
+        flags.append(self._LazyUnique(
+            force_includes,
+            lambda e: ['-include', e]
+        ))
         for pch in pchs:
             if pch.force_include:
                 flags.extend(['-include', pch.source])
+
         return flags
 
 

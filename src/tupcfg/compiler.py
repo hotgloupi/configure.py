@@ -51,6 +51,7 @@ class Compiler:
             ('include_directories', []),
             ('library_directories', []),
             ('precompiled_headers', []),
+            ('force_includes', [])
         ]
         self._set_attributes_default(attrs, kw)
 
