@@ -82,6 +82,11 @@ class Library:
     def names(self):
         return [self.name]
 
+    @property
+    def targets(self):
+        """Libraries are compatible with dependencies, but have no target"""
+        return []
+
     def _env_varname(self, name):
         return self.name.upper() + '_' + name.upper()
 
