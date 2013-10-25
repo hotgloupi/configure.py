@@ -194,16 +194,21 @@ class Compiler:
     def library_extension(self, shared):
         """Generic library extensions.
         """
-        if shared:
-            if platform.IS_MACOSX:
-                return 'dylib'
-            else:
-                return 'so'
-        else:
-            return 'a'
+        return self.library_extensions(shared)[0]
 
     def library_extensions(self, shared, for_linker = False):
-        return [self.library_extension(shared)]
+        if shared:
+            if platform.IS_MACOSX:
+                return ['dylib', 'so']
+            elif platform.IS_WINDOWS:
+                return ['dll', 'so']
+            else:
+                return ['so']
+        else:
+            if platform.IS_WINDOWS:
+                return ['a', 'lib']
+            else:
+                return ['a']
 
     def _set_attributes_default(self, attrs, kw):
         for key, default in attrs:
