@@ -157,11 +157,11 @@ class Compiler(c_compiler.Compiler):
                 link_flags.append('-l%s' % lib.name)
             elif not lib.macosx_framework:
                 for f in lib.files:
-                    if not platform.IS_MACOSX:
-                        if lib.shared:
-                            link_flags.append('-Wl,-Bdynamic')
-                        else:
-                            link_flags.append('-Wl,-Bstatic')
+                    #if not platform.IS_MACOSX:
+                    #    if lib.shared:
+                    #        link_flags.append('-Wl,-Bdynamic')
+                    #    else:
+                    #        link_flags.append('-Wl,-Bstatic')
                     link_flags.append(f)
                 for dir_ in lib.directories:
                     library_directories.append(dir_)
@@ -170,8 +170,8 @@ class Compiler(c_compiler.Compiler):
         if self.attr('recursive_linking', cmd):
             link_flags.append('-Wl,-)')
 
-        if not platform.IS_MACOSX:
-            link_flags.append('-Wl,-Bdynamic')
+        #if not platform.IS_MACOSX:
+        #    link_flags.append('-Wl,-Bdynamic')
         rpath.directories.extend(library_directories)
         link_flags.append(rpath)
         link_flags.extend(self.additional_link_flags.get(self.name, []))
