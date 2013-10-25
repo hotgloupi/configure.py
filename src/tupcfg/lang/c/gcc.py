@@ -173,7 +173,8 @@ class Compiler(c_compiler.Compiler):
         #if not platform.IS_MACOSX:
         #    link_flags.append('-Wl,-Bdynamic')
         rpath.directories.extend(library_directories)
-        link_flags.append(rpath)
+        if not platform.IS_WINDOWS:
+            link_flags.append(rpath)
         link_flags.extend(self.additional_link_flags.get(self.name, []))
         return link_flags
 
