@@ -24,6 +24,7 @@ class OpenGLLibrary(Library):
             shared = kw.get('shared', True),
             macosx_framework = platform.IS_MACOSX,
             binary_file_names = binary_file_names,
+            **kw
         )
 
         self.components = list(
