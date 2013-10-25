@@ -354,6 +354,7 @@ class BoostDependency(Dependency):
                 #str(self.build_path('install', 'include', abs = True)),
                 str(self.source_path()),
             ],
+            force_includes = ['cmath'],
             libraries = libraries,
             build = self.resolved_build,
             additional_inputs = dependencies,
