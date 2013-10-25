@@ -99,11 +99,17 @@ class Filesystem:
         """
         return Generate(dst, content = content_gen, lazy = lazy)
 
-    def copy(self, src, dest=None):
+    def copy(self, src, dest = None, dest_dir = None):
         """
         """
         if dest is None:
-            dest = src
+            if dest_dir is not None:
+                dest = path.join(dest_dir, path.basename(str(src)))
+            else:
+                dest = src
+        if not isinstance(src, Target):
+            src = Source(src)
+
         return self.build.add_target(
-            Target(dest, Copy(Source(src)))
+            Target(dest, Copy(src))
         )
