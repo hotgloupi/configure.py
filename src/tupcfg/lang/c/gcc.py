@@ -153,6 +153,8 @@ class Compiler(c_compiler.Compiler):
             if isinstance(lib, Target):
                 link_flags.append(lib)
                 rpath.libs.append(lib)
+            elif lib.system == True:
+                link_flags.append('-l%s' % lib.name)
             elif not lib.macosx_framework:
                 for f in lib.files:
                     if not platform.IS_MACOSX:
