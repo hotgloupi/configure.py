@@ -138,6 +138,8 @@ class Compiler(c_compiler.Compiler):
                     return '-Wl,-rpath,' + ':'.join(map(str, dirs))
                 return ''
 
+        if self.attr('recursive_linking', cmd):
+            link_flags.append('-Wl,-(')
         rpath = RPathFlag()
         for lib in self.libraries + cmd.kw.get('libraries', []):
             if isinstance(lib, Target):
@@ -155,6 +157,8 @@ class Compiler(c_compiler.Compiler):
                     library_directories.append(dir_)
             else:
                 link_flags.extend(['-framework', lib.name])
+        if self.attr('recursive_linking', cmd):
+            link_flags.append('-Wl,-)')
 
         if not platform.IS_MACOSX:
             link_flags.append('-Wl,-Bdynamic')

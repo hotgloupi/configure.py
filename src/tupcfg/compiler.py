@@ -36,11 +36,12 @@ class Compiler:
             ('position_independent_code', False),
             ('standard', None),
             ('target_architecture', platform.ARCHITECTURE),
+            ('force_architecture', True),
             ('enable_warnings', True),
             ('use_build_type_flags', True),
             ('hidden_visibility', True),
-            ('force_architecture', True),
             ('additional_link_flags', {}),
+            ('recursive_linking', True),
             ('generate_source_dependencies_for_makefile',
              any(isinstance(g, generators.Makefile) for g in build.generators)),
 
