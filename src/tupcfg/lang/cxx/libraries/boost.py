@@ -248,10 +248,19 @@ class BoostDependency(Dependency):
         if component == 'thread':
             srcs = [
                 'future.cpp',
-                'pthread/once.cpp',
-                'pthread/once_atomic.cpp',
-                'pthread/thread.cpp',
             ]
+            if not platform.IS_WINDOWS:
+                srcs.extend([
+                    'pthread/once.cpp',
+                    'pthread/once_atomic.cpp',
+                    'pthread/thread.cpp',
+                ])
+            else:
+                srcs.extend([
+                    'win32/thread.cpp',
+                    'win32/tss_dll.cpp',
+                    'win32/tss_pe.cpp',
+                ])
         if srcs is not None:
             srcs = list(
                 path.relative(
