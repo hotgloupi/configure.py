@@ -213,7 +213,6 @@ class BoostDependency(Dependency):
             for k, v in kw.items():
                 if k.split('_')[0] == name:
                     self.component_options[name][k.split('_')[1:]] = v
-        print(self.component_options)
         self.python = python
         self.__libraries = None
         self.__targets = {}
@@ -335,7 +334,7 @@ class BoostDependency(Dependency):
         #    dependencies.extend(
         #        self._header_targets(component)
         #    )
-        print(name, "dependencies", component_dependencies)
+        #print(name, "dependencies", component_dependencies)
         self.__targets[name] = self.compiler.link_library(
             'libboost_' + name,
             directory = self.build_path('install/lib'),
