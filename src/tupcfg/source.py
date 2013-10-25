@@ -8,8 +8,12 @@ class Source(Node):
     def __init__(self, filename):
         if isinstance(filename, list):
             raise Exception("Give a list of Source, not the opposite")
-        self.filename = filename
+        self.__filename = filename
         super(Source, self).__init__(None)
+
+    @property
+    def filename(self):
+        return str(self.__filename)
 
     def path(self, build):
         return path.absolute(build.root_directory, self.filename)
