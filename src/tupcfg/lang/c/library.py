@@ -179,8 +179,14 @@ class Library:
             ]
         else:
             extensions_list = [
-                (self.preferred_shared, self.compiler.library_extensions(self.preferred_shared, for_linker = True)),
-                (not self.preferred_shared, self.compiler.library_extensions(not self.preferred_shared, for_linker = True)),
+                (
+                    self.preferred_shared,
+                    self.compiler.library_extensions(self.preferred_shared, for_linker = True)
+                ),
+                (
+                    not self.preferred_shared,
+                    self.compiler.library_extensions(not self.preferred_shared, for_linker = True)
+                ),
             ]
 
         for name in names:
