@@ -75,6 +75,7 @@ class Build:
             cls = getattr(_generators, gen)
             self.generators.append(cls(project = project, build = self))
         assert len(self.generators)
+        self.__make_program = None
 
     def add_target(self, target):
         if target not in self.targets:
@@ -174,3 +175,13 @@ class Build:
                 kw
             )
         )
+
+    @property
+    def make_program(self):
+        if self.__make_program is None:
+            self.__make_program = tools.find_binary(
+                'make',
+                self.project.env,
+                'MAKE'
+            )
+        return self.__make_program
