@@ -70,7 +70,7 @@ class Makefile(Generator):
             for dep in deps:
                 makefile += '\n\n%s:' % dep
                 makefile += '\n\t@%s' % cmd_str(
-                    'make',
+                    self.build.make_program,
                     '-C',
                     deps_dir,
                     path.relative(dep, start = deps_dir)
