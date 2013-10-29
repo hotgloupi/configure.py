@@ -17,6 +17,10 @@ class Compiler(c_compiler.Compiler):
         'c99': 'c99',
     }
 
+    __warnings_map = {
+        'unused_typedefs': 'unused-local-typedefs',
+    }
+
     Library = library.Library
 
     def __init__(self, project, build, **kw):
@@ -34,6 +38,9 @@ class Compiler(c_compiler.Compiler):
             flags.append('-fvisibility-inlines-hidden')
         if self.attr('enable_warnings', cmd):
             flags.extend(['-Wall', '-Wextra'])
+        disabled_warnings = cmd.kw.get('disabled_warnings', []) + self.disabled_warnings
+        for warning in self.disabled_warnings:
+            flags.append('-Wno-' + self.__warnings_map[warning])
 
         if self.attr('use_build_type_flags', cmd):
             if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':

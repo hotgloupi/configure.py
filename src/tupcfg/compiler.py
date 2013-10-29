@@ -29,6 +29,9 @@ class Compiler:
     # Library class for this compiler / language
     Library = None
 
+    supported_warnings = [
+        'unused_typedefs',
+    ]
     def __init__(self, project, build, **kw):
         assert 'lang' in kw
         attrs = [
@@ -51,7 +54,8 @@ class Compiler:
             ('include_directories', []),
             ('library_directories', []),
             ('precompiled_headers', []),
-            ('force_includes', [])
+            ('force_includes', []),
+            ('disabled_warnings', ['unused_typedefs',]),
         ]
         self._set_attributes_default(attrs, kw)
 
@@ -67,7 +71,11 @@ class Compiler:
         if kw:
             tools.warning("Unused arguments given to %s:" % self.__class__.__name__)
             for item in kw.items():
-                tools.warning("\tunused argument %s: %s" % item)
+                tools.warning("\tUnused argument %s: %s" % item)
+        for warning in self.disabled_warnings:
+            if warning not in self.supported_warnings:
+                tools.warning("Unknown warning name:", warning)
+
         self.project = project
         self.build = build
         self.lang = lang
