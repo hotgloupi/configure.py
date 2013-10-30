@@ -44,13 +44,12 @@ class Library:
             type = bool
         )
         self.macosx_framework = macosx_framework
-        self.search_macosx_framework_files = search_macosx_framework_files
         self.use_system_paths = use_system_paths
         self.only_one_binary_file = only_one_binary_file
         self.system = system
         if self.system:
-            self.search_binary_files = False
-            self.search_macosx_framework_files = False
+            search_binary_files = False
+            search_macosx_framework_files = False
         assert isinstance(find_includes, list)
         self.find_includes = find_includes
 
@@ -59,7 +58,7 @@ class Library:
 
         self.prefixes = tools.unique(self._env_prefixes() + prefixes)
 
-        if self.macosx_framework and not self.search_macosx_framework_files:
+        if self.macosx_framework and not search_macosx_framework_files:
             self.include_directories = []
             self.directories = []
             tools.debug("Files search for", self.name, "framework is not enabled.")
@@ -70,6 +69,9 @@ class Library:
         tools.debug(self.name, "library include directories:", self.include_directories)
         if search_binary_files:
             self._set_directories_and_files(directories)
+        elif self.compiler.name == 'msvc' and self.system:
+            self.files = [self.name + '.' + self.compiler.library_extension(self.shared)]
+            self.directories = []
         else:
             self.files = self._env_files() + files
             self.directories = self._env_directories() + directories
