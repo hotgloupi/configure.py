@@ -32,9 +32,11 @@ class Compiler:
     supported_warnings = [
         'unused_typedefs',
     ]
-    def __init__(self, project, build, **kw):
-        assert 'lang' in kw
-        attrs = [
+
+    # Compiler attributes and their default values. All of those attributes can
+    # be used in the compiler constructor, or accessed later as normal instance
+    # attributes. Note that subclasses might add attributes to that list.
+    attributes = [
             ('defines', []),
             ('position_independent_code', False),
             ('standard', None),
@@ -45,9 +47,7 @@ class Compiler:
             ('hidden_visibility', True),
             ('additional_link_flags', {}),
             ('recursive_linking', True),
-            ('generate_source_dependencies_for_makefile',
-             any(isinstance(g, generators.Makefile) for g in build.generators)),
-
+            ('generate_source_dependencies_for_makefile', False),
             ('stdlib', True),
             ('static_libstd', False),
             ('libraries', []),
@@ -56,8 +56,11 @@ class Compiler:
             ('precompiled_headers', []),
             ('force_includes', []),
             ('disabled_warnings', ['unused_typedefs',]),
-        ]
-        self._set_attributes_default(attrs, kw)
+    ]
+
+    def __init__(self, project, build, **kw):
+        assert 'lang' in kw
+        self._set_attributes_default(self.attributes, kw)
 
         assert self.binary_name is not None
         assert self.binary_env_varname is not None
