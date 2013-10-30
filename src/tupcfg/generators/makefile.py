@@ -26,7 +26,7 @@ class Makefile(Generator):
                    inputs=None,
                    additional_inputs=None,
                    outputs=None,
-                   additional_ouputs=None,
+                   additional_outputs=None,
                    target=None):
         target_path = target.relpath(self.build.directory, self.build)
         target_list = self.targets.setdefault(target_path, []).append(

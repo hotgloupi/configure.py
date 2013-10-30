@@ -142,7 +142,7 @@ class Build:
                             inputs=i,
                             additional_inputs=ai,
                             outputs=o,
-                            additional_ouputs=ao,
+                            additional_outputs=ao,
                             target=kw['target'],
                         )
 

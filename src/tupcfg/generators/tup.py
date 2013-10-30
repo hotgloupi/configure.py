@@ -53,7 +53,7 @@ class Tup(Generator):
                    inputs=None,
                    additional_inputs=None,
                    outputs=None,
-                   additional_ouputs=None,
+                   additional_outputs=None,
                    target=None):
         tools.debug("Add Tup rule for %s" % target)
         write = lambda *args: print(*(args + ('\\',)), file=self.tupfile)
