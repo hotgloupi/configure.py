@@ -61,7 +61,7 @@ def find_binary(name, env=None, var_name=None):
             )
         else:
             raise Exception("Cannot find binary '%s'" % name)
-    return binary
+    return path.clean(binary)
 
 
 def glob(pattern, dir=None, recursive=False):
