@@ -1,5 +1,33 @@
-#!/usr/bin/env python3
-# -*- encoding: utf-8 -*-
+#!/bin/sh
+__SHELL_PROTECT=""" "
+
+SCRIPT="$0"
+PYTHON=`which python3`
+
+if [ -z "$PYTHON" ]
+then
+	PYTHON=`which python`
+fi
+
+if [ -z "$PYTHON" ]
+then
+	echo "Cannot find python executable"
+	exit 1
+fi
+
+"$PYTHON" "$0"
+
+exit $?
+
+__SHELL_PROTECT=" """
+
+import sys
+try:
+    if sys.version_info[0] != 3:
+        raise Exception("Invalid python version")
+except:
+    print("Invalid python version")
+    sys.exit(1)
 
 import argparse
 import os
