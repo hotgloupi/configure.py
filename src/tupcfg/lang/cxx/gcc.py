@@ -16,26 +16,26 @@ class Compiler(cxx_compiler.Compiler, gcc.Compiler):
         kw.setdefault('lang', 'cxx')
         super().__init__(project, build, **kw)
 
-    def _get_build_flags(self, cmd):
-        base_build_flags =  super(Compiler, self)._get_build_flags(cmd)
-        if cmd.kw.get('precompiled_header'):
+    def _get_build_flags(self, kw):
+        base_build_flags =  super()._get_build_flags(kw)
+        if kw.get('precompiled_header'):
             lang = 'c++-header'
         else:
             lang = 'c++'
         return (
             ['-x', lang] + base_build_flags +
-            self.__get_stdlib_flags(cmd)
+            self.__get_stdlib_flags(kw)
         )
 
-    def _get_link_flags(self, cmd):
-        flags = super(Compiler, self)._get_link_flags(cmd)
-        if self.attr('static_libstd', cmd):
+    def _get_link_flags(self, kw):
+        flags = super()._get_link_flags(kw)
+        if self.attr('static_libstd', kw):
             flags.append('-L%s' % self.static_stdlib_directory)
             flags.append('-static-libstdc++')
-        return flags + self.__get_stdlib_flags(cmd)
+        return flags + self.__get_stdlib_flags(kw)
 
-    def __get_stdlib_flags(self, cmd):
-        stdlib = self.attr('stdlib', cmd)
+    def __get_stdlib_flags(self, kw):
+        stdlib = self.attr('stdlib', kw)
         flags = []
         if not stdlib:
             flags.append('-nostdlib')

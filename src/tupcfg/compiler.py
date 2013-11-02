@@ -15,10 +15,13 @@ class Compiler:
     libraries or executables.
     """
 
-    # Standard binary name (Should be overriden)
+    # Standard compiler name (defined by subclasses).
+    name = None
+
+    # Standard binary name (defined by subclasses).
     binary_name = None
 
-    # Environment variable name that might contain the binary name (Should be overriden)
+    # Environment variable name that might contain the binary name.
     binary_env_varname = None
 
     # Compiled object extension
@@ -34,56 +37,57 @@ class Compiler:
         'unused_typedefs',
     ]
 
-    # Compiler attributes and their default values. All of those attributes can
-    # be used in the compiler constructor, or accessed later as normal instance
-    # attributes. Note that subclasses might add attributes to that list.
+    # Compiler attributes and their default value. All of those attributes can
+    # be used in the compiler constructor, through all build commands or
+    # accessed later as normal instance attributes. Note that subclasses might
+    # add attributes to that list.
     attributes = [
-            ('defines', []),
-            ('position_independent_code', False),
-            ('standard', None),
-            ('target_architecture', platform.ARCHITECTURE),
-            ('force_architecture', True),
-            ('enable_warnings', True),
-            ('use_build_type_flags', True),
-            ('hidden_visibility', True),
-            ('additional_link_flags', {}),
-            ('recursive_linking', True),
-            ('generate_source_dependencies_for_makefile', False),
-            ('stdlib', True),
-            ('static_libstd', False),
-            ('libraries', []),
-            ('include_directories', []),
-            ('library_directories', []),
-            ('precompiled_headers', []),
-            ('force_includes', []),
-            ('disabled_warnings', ['unused_typedefs',]),
+        ('lang', None),
+        ('defines', []),
+        ('position_independent_code', False),
+        ('standard', None),
+        ('target_architecture', platform.ARCHITECTURE),
+        ('force_architecture', True),
+        ('enable_warnings', True),
+        ('use_build_type_flags', True),
+        ('hidden_visibility', True),
+        ('additional_link_flags', {}),
+        ('recursive_linking', not platform.IS_MACOSX),
+        ('generate_source_dependencies_for_makefile', False),
+        ('stdlib', True),
+        ('static_libstd', False),
+        ('libraries', []),
+        ('include_directories', []),
+        ('library_directories', []),
+        ('precompiled_headers', []),
+        ('force_includes', []),
+        ('disabled_warnings', ['unused_typedefs',]),
     ]
 
     def __init__(self, project, build, **kw):
-        assert 'lang' in kw
-        self._set_attributes_default(self.attributes, kw)
-
+        assert self.name is not None
         assert self.binary_name is not None
         assert self.binary_env_varname is not None
+        self.project = project
+        self.build = build
 
         binary = project.env.get('FORCE_%s' % self.binary_env_varname)
         if not binary:
             binary = tools.find_binary(self.binary_name, project.env, self.binary_env_varname)
         project.env.build_set(self.binary_env_varname, binary)
-        lang = kw['lang']
-        kw.pop('lang')
+        self.binary = binary
+
+        self.__set_attributes(self.attributes, kw)
+
         if kw:
             tools.warning("Unused arguments given to %s:" % self.__class__.__name__)
             for item in kw.items():
                 tools.warning("\tUnused argument %s: %s" % item)
+
         for warning in self.disabled_warnings:
             if warning not in self.supported_warnings:
                 tools.warning("Unknown warning name:", warning)
 
-        self.project = project
-        self.build = build
-        self.lang = lang
-        self.binary = binary
 
     @classmethod
     def from_bin(cls, bin, *args, **kw):
@@ -114,46 +118,61 @@ class Compiler:
     def __str__(self):
         return '%s compiler \'%s\' (%s)' % (self.lang, self.name, self.binary)
 
-    def build_object(self, src, additional_inputs = [], **kw):
+    def build_object(self, src, **kw):
         """Create a `Target` to build an object from source using @a
         BuildObject command. It also generate the associated dependencies of
         that source file if any (like makefile includes).
 
         Returns the object target.
         """
-        target = Target(
-            src.filename + '.' + self.object_extension,
-            self.BuildObject(self, src, **kw),
-            additional_inputs = additional_inputs,
-        )
-        if self.generate_source_dependencies_for_makefile:
+        build = self.attr('build', kw)
+        assert isinstance(src, Node)
+        target = Target(build, src.relative_path + '.' + self.object_extension)
+        command = self._build_object_cmd(target, src, **kw)
+
+        if self.attr('generate_source_dependencies_for_makefile', kw):
             mktarget = Target(
-                src.filename + '.' + self.object_extension + '.depends.mk',
-                self.BuildObjectDependencies(
-                    self,
-                    src,
-                    target,
-                    **kw
-                )
+                build,
+                src.relative_path + '.' + self.object_extension + '.depends.mk',
             )
-            mktarget.additional_inputs.extend(target.additional_inputs)
-            target.additional_inputs.append(mktarget)
-            kw.get('build', self.build).add_target(mktarget)
-            #print('add', mktarget, 'to', kw.get('build', self.build.directory))
-        return target #kw.get('build', self.build).add_target(target)
+            mkcmd = self._build_object_dependencies_cmd(
+                mktarget,
+                target,
+                src,
+                **kw
+            )
+            assert isinstance(mkcmd, Command)
+            target.dependencies.append(mktarget)
+        return target
+
+    def _build_object_cmd(self, target, sources, **kw):
+        """Implementation specific code that returns a command instance."""
+        return NotImplemented
+
+    def _build_object_dependencies_cmd(self, target, object, source, **kw):
+        """Implementation specific code that returns a command instance."""
+        return NotImplemented
 
     def link_executable(self, name, sources, directory='', ext=None, **kw):
         """Build a list of sources into a library.
 
-        Calls build_objects for intermediate objects, and use LinkExecutable
-        for final linking.
+        Calls build_objects for intermediate objects, and returns the targetted
+        executable.
         """
+        build = self.attr('build', kw)
         name = path.join(str(directory), self.__get_executable_name(name, ext))
-        sources_ = (Source(src) for src in sources)
-        objects = (self.build_object(src, **kw) for src in sources_)
-        return kw.get('build', self.build).add_target(
-            Target(name, self.LinkExecutable(self, list(objects), **kw))
+        target = Target(build, name)
+        objects = list(
+            self.build_object(Source(build, src), **kw) for src in sources
         )
+        command = self._link_executable_cmd(target, objects, **kw)
+        assert isinstance(command, Command)
+        assert command.target is target
+        return target
+
+    def _link_executable_cmd(self, target, objects, **kw):
+        """Implementation specific code that returns a command instance."""
+        return NotImplemented
 
     def link_library(self,
                      name,
@@ -161,31 +180,26 @@ class Compiler:
                      directory = '',
                      shared = True,
                      ext = None,
-                     additional_inputs = [],
                      **kw):
         """Build a list of sources into a library.
 
-        Calls build_objects for intermediate objects, and use LinkLibrary for
-        final linking.
+        Calls build_objects for intermediate objects, and returns the targetted
+        library.
         """
+        build = self.attr('build', kw)
         name = path.join(str(directory), self.__get_library_name(name, shared, ext))
-        sources_ = (Source(src) for src in sources)
-        objects = (
-            self.build_object(src, additional_inputs = additional_inputs, **kw)
-            for src in sources_
-        )
-        return kw.get('build', self.build).add_target(
-            Target(
-                name,
-                self.LinkLibrary(
-                    self,
-                    list(objects),
-                    shared = shared,
-                    **kw
-                ),
-                additional_inputs = additional_inputs,
-            )
-        )
+        sources_ = (Source(build, src) for src in sources)
+        objects = list(self.build_object(src, **kw) for src in sources_)
+        target = Target(build, name)
+        command = self._link_library_cmd(target, objects, shared = shared, **kw)
+        assert isinstance(command, Command)
+        assert command.target is target
+        return target
+
+
+    def _link_library_cmd(self, target, objects, shared = None, **kw):
+        """Implementation specific code that returns a command instance."""
+        return NotImplemented
 
     def link_static_library(self, name, sources, **kw):
         """Forward to link_library."""
@@ -222,109 +236,37 @@ class Compiler:
             else:
                 return ['a']
 
-    def _set_attributes_default(self, attrs, kw):
+    def __set_attributes(self, attrs, kw):
         for key, default in attrs:
             setattr(self, key, kw.get(key, default))
             if key in kw:
                 kw.pop(key)
 
-    def attr(self, attribute, cmd):
+    def attr(self, attribute, kw):
         """Returns an attribute value with correct priority"""
-        return cmd.kw.get(attribute, getattr(self, attribute))
+        assert isinstance(kw, dict)
+        return kw.get(attribute, getattr(self, attribute))
 
+    def list_attr(self, attribute, kw):
+        """Returns the sum of the compiler and the command attributes."""
+        assert isinstance(kw, dict)
+        return kw.get(attribute, []) + getattr(self, attribute)
 
-
-    class BuildObject(Command):
-        """Calls _build_object_cmd compiler method."""
-
-        @property
-        def action(self):
-            return "Building %s object" % self.compiler.lang
-
-        def __init__(self, compiler, source, **kw):
-            if not isinstance(source, (Source, Target)):
-                raise Exception(
-                    "Cannot build compiler object from '%s' (of type %s): should be a Source or a Target instance" %
-                    (source, type(source))
-                )
-            self.compiler = compiler
-            self.source = source
-            self.kw = kw
-            Command.__init__(self, source)
-
-        def command(self, **kw):
-            cmd = self.compiler._build_object_cmd(self, **kw)
-            return cmd
-
-    class BuildObjectDependencies(Command):
-        """Calls _build_object_dependencies_cmd compiler method."""
-
-        @property
-        def action(self):
-            return "Building %s object dependencies" % self.compiler.lang
-
-        def __init__(self, compiler, source, target, **kw):
-            self.compiler = compiler
-            self.source = source
-            self.target = target
-            self.kw = kw
-            assert isinstance(source, Source)
-            assert isinstance(target, Target)
-            Command.__init__(self, source)
-
-        def command(self, **kw):
-            return self.compiler._build_object_dependencies_cmd(self, **kw)
-
-    class LinkCommand(Command):
-        """Base class for linking commands"""
-
-        def __init__(self, compiler, objects, **kw):
-            self.compiler = compiler
-            self.objects = objects
-            self.kw = kw
-            Command.__init__(self, objects)
-
-    class LinkExecutable(LinkCommand):
-        """Calls _link_executable_cmd compiler method."""
-        action = "Linking executable"
-        def command(self, **kw):
-            return self.compiler._link_executable_cmd(self, **kw)
-
-    class LinkLibrary(LinkCommand):
-        """Calls _link_library_cmd compiler method."""
-        action = "Linking library"
-
-        def __init__(self, compiler, objects, shared=True, **kw):
-            self.shared = shared
-            super().__init__(compiler, objects, **kw)
-
-        def command(self, **kw):
-            return self.compiler._link_library_cmd(self, **kw)
-
-    def _include_directories(self, cmd):
-        include_directories = self.include_directories[:]
-        include_directories += self.include_directories + \
-                cmd.kw.get('include_directories', [])
-        libraries = self.libraries + cmd.kw.get('libraries', [])
+    def _include_directories(self, kw):
+        include_directories = self.list_attr('include_directories', kw)
+        libraries = self.list_attr('libraries', kw)
         for lib in libraries:
             if isinstance(lib, Target):
                 continue
             include_directories.extend(lib.include_directories)
 
-        class RelativeDirectory:
-            def __init__(self, dir_):
-                self._dir = dir_
-            def shell_string(self, cwd=None, build=None):
-                return path.relative(self._dir, start = cwd)
-
         dirs = []
         for dir_ in tools.unique(include_directories):
             if isinstance(dir_, str) and \
                path.absolute(dir_).startswith(self.project.directory):
-                dirs.append(RelativeDirectory(dir_))
+                dirs.append(Source(self.attr('build', kw), dir_))
             else:
                 dirs.append(dir_)
-
         return dirs
 
     def __get_library_name(self, name, shared, ext):

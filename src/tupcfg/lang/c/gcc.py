@@ -4,6 +4,8 @@ import sys
 import pipes
 
 from tupcfg import Target, path, tools, platform
+from tupcfg.command import Command
+
 from . import compiler as c_compiler
 from . import library
 
@@ -28,31 +30,32 @@ class Compiler(c_compiler.Compiler):
         self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
         project.env.project_set('AR', self.ar_binary)
 
-    def _get_build_flags(self, cmd):
+    def _get_build_flags(self, kw):
         flags = []
-        pic = self.attr('position_independent_code', cmd)
+        pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
             flags.append('-fPIC')
-        if self.attr('hidden_visibility', cmd):
+        if self.attr('hidden_visibility', kw):
             flags.append('-fvisibility=hidden')
             flags.append('-fvisibility-inlines-hidden')
-        if self.attr('enable_warnings', cmd):
+        if self.attr('enable_warnings', kw):
             flags.extend(['-Wall', '-Wextra'])
-        disabled_warnings = cmd.kw.get('disabled_warnings', []) + self.disabled_warnings
+
+        disabled_warnings = self.list_attr('disabled_warnings', kw)
         for warning in self.disabled_warnings:
             flags.append('-Wno-' + self.__warnings_map[warning])
 
-        if self.attr('use_build_type_flags', cmd):
+        if self.attr('use_build_type_flags', kw):
             if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
                 flags.append('-g3')
             else:
                 flags.append('-O2')
 
-        std = self.attr('standard', cmd)
+        std = self.attr('standard', kw)
         if std:
             flags.append('-std=%s' % self.__standards_map[std])
 
-        defines = cmd.kw.get('defines', []) + self.defines
+        defines = self.list_attr('defines', kw)
         for define in defines:
             if isinstance(define, str):
                 flags.append('-D' + define)
@@ -60,69 +63,61 @@ class Compiler(c_compiler.Compiler):
                 assert len(define) == 2 #key, value
                 flags.append('-D%s=%s' % define)
 
-        pchs = self.precompiled_headers + cmd.kw.get('precompiled_headers', [])
+        pchs = self.list_attr('precompiled_headers', kw)
         if pchs:
             flags.append('-Winvalid-pch')
-        flags.append(
-            self._LazyUnique(
-                self._include_directories(cmd),
-                lambda e: ['-I', e]
-            )
-        )
-        force_includes = cmd.kw.get('force_includes', []) + self.force_includes
-        flags.append(self._LazyUnique(
-            force_includes,
-            lambda e: ['-include', e]
-        ))
+
+        for d in tools.unique(self._include_directories(kw)):
+            flags.extend(['-I', d])
+
+        force_includes = self.list_attr('force_includes', kw)
+        for i in tools.unique(force_includes):
+            flags.extend(['-include', i])
         for pch in pchs:
-            if pch.force_include:
-                flags.extend(['-include', pch.source])
+            flags.extend(['-include', pch.dependencies[0]])
 
         return flags
 
+    def _build_object_cmd(self, target, source, **kw):
+        return Command(
+            action = kw.get('action', "Build object"),
+            command = [
+                self.binary,
+                self.__architecture_flag(kw),
+                self._get_build_flags(kw),
+                '-c', source,
+                '-o', target,
+            ],
+            target = target,
+            inputs = [source],
+        )
 
-    def _build_object_cmd(self, cmd, target=None, build=None):
-        assert len(cmd.dependencies) == 1
-        return [
-            self.binary,
-            self.__architecture_flag(cmd),
-            self._get_build_flags(cmd),
-            '-c', cmd.dependencies[0],
-            '-o', target,
-        ]
-
-    def _build_object_dependencies_cmd(self, cmd, target=None, build=None):
-        class ObjectTarget:
-            def __init__(self, target):
-                self.target = target
-            def shell_string(self, cwd=None, build=None):
-                return self.target.shell_string(cwd=cwd, build=build)
-
-        return [
-            self.binary,
-            self.__architecture_flag(cmd),
-            self._get_build_flags(cmd),
-            '-c', cmd.source,
-#            '-o', ObjectTarget(cmd.target),
-            '-MM',
-            '-MT', ObjectTarget(cmd.target),
-            '-MF', target,
-        ]
-
-    def _generate_precompiled_header(self, source, **kw):
-        return self.BuildObject(self, source, **kw)
-
+    def _build_object_dependencies_cmd(self, target, object, source, **kw):
+        return Command(
+            action = "Build dependencies makefile",
+            command = [
+                self.binary,
+                self.__architecture_flag(kw),
+                self._get_build_flags(kw),
+                '-c', source,
+                '-MM',
+                '-MT', object,
+                '-MF', target,
+            ],
+            target = target,
+            inputs = [source]
+        )
 
     def __add_rpath(self, lib, **kw):
         return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 
-    def _get_link_flags(self, cmd):
+    def _get_link_flags(self, kw):
         library_directories = self.library_directories[:]
         link_flags = []
-        pic = self.attr('position_independent_code', cmd)
+        pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
             link_flags.append('-fPIC')
-        if self.attr('hidden_visibility', cmd):
+        if self.attr('hidden_visibility', kw):
             link_flags.append('-fvisibility=hidden')
             link_flags.append('-fvisibility-inlines-hidden')
 
@@ -130,36 +125,19 @@ class Compiler(c_compiler.Compiler):
             link_flags.append('-headerpad_max_install_names')
         if platform.IS_WINDOWS:
             link_flags.append('--enable-stdcall-fixup')
-        if self.attr('use_build_type_flags', cmd):
+        if self.attr('use_build_type_flags', kw):
             if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
                 link_flags.append('-g3')
             else:
                 link_flags.append('-O2')
-        class RPathFlag:
-            def __init__(self):
-                self.libs = []
-                self.directories = []
 
-            def shell_string(self, cwd=None, build=None):
-                dirs = self.directories
-                for lib in self.libs:
-                    dirs.append(path.dirname(path.absolute(lib.path(build))))
-
-                from tupcfg.build import command
-                dirs = tools.unique(command(dirs, build = build, cwd = cwd))
-                if platform.IS_MACOSX:
-                    return list(('-Wl,-rpath,%s' % d) for d in dirs)
-                if dirs:
-                    return '-Wl,-rpath,' + ':'.join(map(str, dirs))
-                return ''
-
-        if self.attr('recursive_linking', cmd):
+        if self.attr('recursive_linking', kw):
             link_flags.append('-Wl,-(')
-        rpath = RPathFlag()
-        for lib in self.libraries + cmd.kw.get('libraries', []):
+        rpath_dirs = []
+        for lib in self.list_attr('libraries', kw):
             if isinstance(lib, Target):
                 link_flags.append(lib)
-                rpath.libs.append(lib)
+                rpath_dirs.append(path.dirname(lib.path))
             elif lib.system == True:
                 link_flags.append('-l%s' % lib.name)
             elif not lib.macosx_framework:
@@ -174,29 +152,39 @@ class Compiler(c_compiler.Compiler):
                     library_directories.append(dir_)
             else:
                 link_flags.extend(['-framework', lib.name])
-        if self.attr('recursive_linking', cmd):
+        if self.attr('recursive_linking', kw):
             link_flags.append('-Wl,-)')
 
         #if not platform.IS_MACOSX:
         #    link_flags.append('-Wl,-Bdynamic')
-        rpath.directories.extend(library_directories)
-        if not platform.IS_WINDOWS:
-            link_flags.append(rpath)
+        rpath_dirs.extend(library_directories)
+        rpath_dirs = tools.unique(path.clean(p) for p in rpath_dirs)
+        if platform.IS_MACOSX:
+            link_flags.extend(('-Wl,-rpath,%s' % d) for d in rpath_dirs)
+        elif not platform.IS_WINDOWS:
+            link_flags.append('-Wl,-rpath,' + ':'.join(rpath_dirs))
         link_flags.extend(self.additional_link_flags.get(self.name, []))
         return link_flags
 
-    def _link_executable_cmd(self, cmd, target=None, build=None):
-        return [
-            self.binary,
-            cmd.dependencies,
-            self.__architecture_flag(cmd),
-            '-o', target,
-            self._get_link_flags(cmd)
-        ]
+    def _link_executable_cmd(self, target, objects, **kw):
+        return Command(
+            action = "Link executable",
+            command = [
+                self.binary,
+                objects,
+                self.__architecture_flag(kw),
+                '-o', target,
+                self._get_link_flags(kw)
+            ],
+            target = target,
+            inputs = objects,
+            additional_outputs = []
+        )
 
-    def _link_library_cmd(self, cmd, target=None, build=None):
-        if cmd.shared:
-            name = path.basename(target.path(build))
+    def _link_library_cmd(self, target, objects, shared = None, **kw):
+        assert isinstance(shared, bool)
+        if shared:
+            name = target.basename
             if platform.IS_MACOSX:
                 link_flag = 'dynamiclib'
                 soname_flag = 'install_name'
@@ -204,30 +192,36 @@ class Compiler(c_compiler.Compiler):
             else:
                 link_flag = 'shared'
                 soname_flag = 'soname'
-            return [
+            shell = [
                 self.binary,
                 '-%s' % link_flag,
-                self.__architecture_flag(cmd),
-                cmd.dependencies,
+                self.__architecture_flag(kw),
+                objects,
                 ('-Wl,-%s,' % soname_flag) + name,
                 '-o', target,
-                self._get_link_flags(cmd)
+                self._get_link_flags(kw)
             ]
         else:
-            return [
+            shell = [
                 self.ar_binary,
                 'rcs',
                 target,
-                cmd.dependencies,
+                objects,
             ]
+        return Command(
+            action = "Link %s library" % (shared and "shared" or "static"),
+            command = shell,
+            target = target,
+            inputs = objects,
+        )
 
-    def __architecture_flag(self, cmd):
+    def __architecture_flag(self, kw):
         if self.force_architecture is False:
             return []
         return {
             '64bit': '-m64',
             '32bit': '-m32',
-        }[self.attr('target_architecture', cmd)]
+        }[self.attr('target_architecture', kw)]
 
     class _LazyUnique:
         def __init__(self, objects, op = None):
