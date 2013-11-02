@@ -197,6 +197,7 @@ class Build:
             with open(path, 'rb') as f:
                 if f.read().decode('utf8') == script:
                     return
+            is_new = False
         else:
             is_new = True
         with open(path, 'wb') as f:
