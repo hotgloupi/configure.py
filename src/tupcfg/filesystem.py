@@ -104,12 +104,17 @@ class Filesystem:
         """
         if dest is None:
             if dest_dir is not None:
-                dest = path.join(dest_dir, path.basename(str(src)))
+                dest = path.join(dest_dir, src.basename)
             else:
                 dest = src
-        if not isinstance(src, Target):
-            src = Source(src)
 
-        return self.build.add_target(
-            Target(dest, Copy(src))
-        )
+        if not isinstance(src, Target):
+            src = Source(self.build, src)
+
+        target = Target(self.build, dest)
+        return Command(
+            action = "Copy",
+            command = ['cp', src, target],
+            target = target,
+            inputs = [src]
+        ).target
