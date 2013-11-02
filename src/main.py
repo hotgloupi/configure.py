@@ -247,9 +247,9 @@ def prepare_build(args, defines, exports):
                         continue
 
                     if args.dump_build:
-                        build.dump(project)
+                        build.dump()
                     else:
-                        build.execute(project)
+                        build.generate()
 
     except tupcfg.Project.NeedUserEdit:
         print(
