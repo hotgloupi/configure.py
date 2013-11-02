@@ -38,7 +38,6 @@ import stat
 import subprocess
 import sys
 import cgitb
-cgitb.enable(format = 'text')
 
 def cleanpath(p, **kwargs):
     p = os.path.normpath(p)
@@ -327,6 +326,9 @@ def main():
 
     DEBUG = args.debug
     VERBOSE = args.verbose
+
+    if DEBUG:
+        cgitb.enable(format = 'text')
 
     from os.path import exists, join
 
