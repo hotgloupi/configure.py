@@ -29,42 +29,20 @@ class Generator:
         self.project = project
         self.build = build
 
-    def __call__(self, working_directory=None):
-        """Assign `working_directory' attribute."""
-        assert working_directory is not None
-        self.working_directory = working_directory
-        return self
+    def __call__(self, node):
+        """Visit node"""
+        raise Exception("NotImplemented")
 
     def __enter__(self):
-        """Entering in a new build working directory."""
+        """Starting generation by calling begin()."""
+        self.begin()
         return self
 
     def __exit__(self, type_, value, traceback):
-        """Finalize a working directory."""
-        pass
+        """Finalize generation by calling close() if no error happened."""
+        if type_ is None:
+            self.close()
 
-    def apply_rule(self,
-                   action=None,
-                   command=None,
-                   inputs=None,
-                   additional_inputs=None,
-                   outputs=None,
-                   additional_ouputs=None,
-                   target=None):
-        """Apply a rule to create the target.
-
-        parameters:
-            action: A string for the rule
-            command: A list of the shell command to create the target
-            inputs: A list of input files (instance of `Source`)
-            additional_inputs: Additionl input files (inputs that are generated elsewhere but implicitly used)
-            outputs: The output files (contains the target instance)
-            additional_outputs: Additional output files (implicitly created)
-            target: The `Target` instance represent the file to be created
-        """
-        raise Exception("Not implemented")
-
-    def close(self):
-        """Finalize a build generation."""
-        pass
+    def begin(self): pass
+    def end(self): pass
 
