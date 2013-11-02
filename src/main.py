@@ -235,12 +235,9 @@ def prepare_build(args, defines, exports):
             for k, v in project.env.project_vars.items():
                 status("\t - %s = %s" % (k, v))
 
-        generators = []
-        if args.generator:
-            generators.append(args.generator)
         with project:
             for build_dir in build_dirs:
-                with project.configure(build_dir, defines, generators) as build:
+                with project.configure(build_dir, defines, args.generator) as build:
                     if args.dump_vars:
                         status("Build variables for directory '%s':" % build_dir)
                         build_vars = project.env.build_vars

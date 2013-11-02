@@ -37,7 +37,7 @@ class Build:
     def __init__(self,
                  project: "The project instance",
                  directory: "The build directory",
-                 generator_names: "A list of generator names",
+                 generator_name: "generator name" = None,
                  save_generator = True,
                  dependencies_directory = 'dependencies'):
         self.directory = directory
@@ -51,30 +51,24 @@ class Build:
         self.__commands = None
         self.__seen_commands = None
 
-        if not generator_names:
-            generator_names = project.env.get(
-                'BUILD_GENERATORS',
-                type = list,
-                default = []
+        if not generator_name:
+            generator_name = project.env.get(
+                'BUILD_GENERATOR',
+                default = 'Makefile'
             )
         elif save_generator:
-            project.env.build_set('BUILD_GENERATORS', generator_names)
+            project.env.build_set('BUILD_GENERATOR', generator_name)
 
-        if not generator_names:
+        if not generator_name:
             if tools.which('tup'):
-                generator_names = ['Tup']
+                generator_name = 'Tup'
             else:
                 tools.warning("Using makefile generator (tup not found)")
-                generator_names = ['Makefile']
+                generator_name = 'Makefile'
 
-        assert len(generator_names)
-
-        self.generators = []
-        from . import generators as _generators
-        for gen in generator_names:
-            cls = getattr(_generators, gen)
-            self.generators.append(cls(project = project, build = self))
-        assert len(self.generators)
+        from . import generators
+        cls = getattr(generators, generator_name)
+        self.generator = cls(project = project, build = self)
         self.__make_program = None
 
     def add_target(self, target):
