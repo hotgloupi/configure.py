@@ -260,14 +260,10 @@ class Compiler:
                 continue
             include_directories.extend(lib.include_directories)
 
-        dirs = []
-        for dir_ in tools.unique(include_directories):
-            if isinstance(dir_, str) and \
-               path.absolute(dir_).startswith(self.project.directory):
-                dirs.append(Source(self.attr('build', kw), dir_))
-            else:
-                dirs.append(dir_)
-        return dirs
+        return tools.unique(
+            path.relative(inc, start = self.attr('build', kw).directory)
+            for inc in include_directories
+        )
 
     def __get_library_name(self, name, shared, ext):
         if ext is None:
