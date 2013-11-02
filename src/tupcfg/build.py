@@ -166,3 +166,40 @@ class Build:
                 'MAKE'
             )
         return self.__make_program
+
+    def generate_commands(self, commands):
+        path = commands[0].path
+        assert all(cmd.path == path for cmd in commands)
+        script = "#!%s\n" % sys.executable
+        script += '\n# -*- encoding: utf-8 -*-'
+        script += '\nimport subprocess, sys, os'
+        for cmd in commands:
+            if not os.path.exists(cmd.working_directory):
+                raise Exception("Command working directory %s does not exists" % cmd.working_directory)
+            args = []
+            for el in cmd.command:
+                args.append('"""%s"""' % el)
+            env = []
+            for item in cmd.env.items():
+                env.append('"""%s""": """%s"""' % item)
+            env.append('"PATH": os.environ["PATH"]')
+            script += '\nprint("""%s %s""")' % (cmd.action, cmd.target.relative_path)
+            script += '\nif os.environ.get("TUPCFG_DEBUG"):print("""%s""")' % ' '.join(cmd.command)
+            script += '\nsys.exit(subprocess.call(\n[\n\t%s\n],\ncwd = """%s""",\nenv = {\n\t%s\n}))' % (
+                ',\n\t'.join(args),
+                cmd.working_directory,
+                ',\n\t'.join(env)
+            )
+        script += '\n'
+
+
+        if os.path.exists(path):
+            with open(path, 'rb') as f:
+                if f.read().decode('utf8') == script:
+                    return
+        else:
+            is_new = True
+        with open(path, 'wb') as f:
+            f.write(script.encode('utf8'))
+        if is_new:
+            os.chmod(path, 0o744)
