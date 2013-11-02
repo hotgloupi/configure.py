@@ -1,9 +1,8 @@
 # -*- encoding: utf-8 -*-
 
-from .node import Node
-from . import path
+from . import path as PATH
 
-class Dependency(Node):
+class Dependency:
     """Represent a project or a build dependency.
 
     Dependencies are checked and built separatly, as they are externals to the
@@ -13,65 +12,54 @@ class Dependency(Node):
     """
 
     def __init__(self,
-                 name: "Dependency name",
-                 directory: "Directory name",
-                 dependencies: "Dependencies" = [],
-                 build_config: "strings that make this build specific" = []):
+                 build,
+                 name,
+                 source_directory,
+                 dependencies = [],
+                 build_config = tuple()):
+        """
+        name: Dependency name
+        source_directory: Directory name
+        dependencies: Dependencies
+        build_config: strings that make this build specific
+        """
+        from .build import Build
+        assert isinstance(build, Build)
+        self.build = build
+
         self.name = name
-        self.directory = directory
-        self.build_config = build_config
-        self.__build = None
-        super(Dependency, self).__init__(dependencies)
+        self.source_directory = source_directory
+        self.build_config = tuple(build_config)
+        self.dependencies = dependencies
 
-    def set_build(self, build):
-        self.__build = build
 
-    @property
-    def resolved_build(self):
-        return self.__build
-
-    def build_path(self, *args, abs = False):
+    def build_path(self, *args):
         """Build a path relative to the dependency build directory.
 
         Since the build is not known until dependencies have been checked by
         the project, this function return a "lazy" resolver.
         """
-        return self._Path(
-            self,
-            *(tuple(self.build_config) + args),
-            abs = abs
+        components = self.build_config + args
+        return PATH.join(
+            self.name,
+            *components
         )
 
-    def source_path(self, *args, abs = False):
-        return self._Path(self, *args, abs = abs, from_source = True)
+    def absolute_build_path(self, *args):
+        return PATH.absolute(
+            self.build.directory,
+            self.build_path(*args)
+        )
 
-    class _Path:
-        def __init__(self, dependency, *args, abs = False, from_source = False):
-            self.dependency = dependency
-            self.args = args
-            self.abs = abs
-            self.from_source = from_source
+    def source_path(self, *args):
+        return PATH.join(
+            self.source_directory,
+            *args
+        )
 
-        def shell_string(self, build=None, cwd=None):
-            return str(self)
-
-        def __str__(self):
-            if self.dependency.resolved_build is None:
-                bdir = '<unresolved "%s" %s directory>' % (
-                    self.dependency.name,
-                    self.from_source and 'source' or 'build'
-                )
-            else:
-                bdir = path.absolute(self.dependency.resolved_build.directory)
-
-            if self.from_source:
-                res = path.join(self.dependency.source_directory, *self.args)
-            else:
-                res = path.join(bdir, self.dependency.directory, *self.args)
-
-
-            if self.abs:
-                return path.absolute(res)
-            else:
-                return path.relative(res, start = bdir)
+    def absolute_source_path(self, *args):
+        return PATH.absolute(
+            self.build.project.directory,
+            self.source_path(*args)
+        )
 

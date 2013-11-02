@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 
 import os
+import sys
 import types
 
 from . import tools, path
 from .filesystem import Filesystem
+from .command import Command
+from .target import Target
+from .dependency import Dependency
 
 def command(cmd, build=None, cwd=None):
     """Yield a build command relative to cwd if provided or build.directory"""
@@ -44,11 +48,10 @@ class Build:
         self.root_directory = project.directory
         self.dependencies_directory = path.join(directory, dependencies_directory)
         self.targets = []
-        self.dependencies = []
+        self.__dependencies = []
+        self.__dependencies_build = None
         self.fs = Filesystem(self)
         self.project = project
-        # initialized by execute()
-        self.__commands = None
         self.__seen_commands = None
 
         if not generator_name:
@@ -70,10 +73,33 @@ class Build:
         cls = getattr(generators, generator_name)
         self.generator = cls(project = project, build = self)
         self.__make_program = None
+        self.__target_commands = {}
+
+    @property
+    def dependencies_build(self):
+        if self.__dependencies_build is None:
+            self.__dependencies_build = Build(
+                self.project,
+                self.dependencies_directory,
+                'Makefile',
+                save_generator = False,
+            )
+        return self.__dependencies_build
+
+    @property
+    def dependencies(self):
+        return self.__dependencies
+
+    def add_command(self, command):
+        assert isinstance(command, Command)
+        tools.debug("add command %s" % command)
+        self.__target_commands.setdefault(command.target, []).append(command)
+        return command
 
     def add_target(self, target):
+        assert isinstance(target, Target)
         if target not in self.targets:
-            tools.debug("add target {%s}/%s" % (self.directory, target))
+            tools.debug("add target %s" % target)
             self.targets.append(target)
         return target
 
@@ -84,91 +110,52 @@ class Build:
             else:
                 self.add_target(t)
 
-    def add_dependency(self, dependency):
-        self.dependencies.append(dependency)
+    def add_dependency(self, cls, *args, **kw):
+        assert issubclass(cls, Dependency)
+        tools.debug("add dependency", cls, args, kw)
+        dependency = cls(self.dependencies_build, *args, **kw)
+        self.__dependencies.append(dependency)
+        self.dependencies_build.add_targets(dependency.targets)
         return dependency
 
-    def add_dependencies(self, *dependencies):
-        for dep in dependencies:
-            if tools.isiterable(dep):
-                self.add_targets(*dep)
-            else:
-                self.add_target(dep)
-
-    def dump(self, project, **kwargs):
+    def dump(self):
+        print("Build: ", self)
+        class Visitor:
+            def __init__(self):
+                self.inc = 2
+            def __call__(self, node):
+                print(self.inc * ' ', repr(node))
+                self.inc += 2
+                for dep in node.dependencies:
+                    self(dep)
+                self.inc -= 2
+        v = Visitor()
         for t in self.targets:
-            t.dump(build=self, **kwargs)
+            v(t)
 
-    def execute(self, project):
+    def generate(self):
         tools.verbose("Entering build directory '%s'" % self.directory)
 
-        if self.dependencies:
-            deps_build = Build(
-                project,
-                self.dependencies_directory,
-                ['Makefile'],
-                save_generator = False,
-            )
-            for dep in self.dependencies:
-                dep.set_build(deps_build)
-                deps_build.add_targets(dep.targets)
-            deps_build.execute(project)
-            deps_build.cleanup()
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
 
-        self.__commands = {}
-        self.__seen_commands = set()
-        for t in self.targets:
-            tools.debug("Exectuting {%s}/%s" % (self.directory, t))
-            t.execute(build=self)
-        for dir_, rules in self.__commands.items():
-            if not path.exists(dir_):
-                os.makedirs(dir_)
-            for generator in self.generators:
-                self.generator = generator
-                with generator(working_directory=dir_) as gen:
-                    tools.verbose(
-                        " -> Working on", path.relative(dir_, start = self.directory)
-                    )
-                    for action, cmd, i, ai, o, ao, kw in rules:
-                        gen.apply_rule(
-                            action=action,
-                            command=cmd,
-                            inputs=i,
-                            additional_inputs=ai,
-                            outputs=o,
-                            additional_outputs=ao,
-                            target=kw['target'],
-                        )
+        if self.__dependencies_build is not None:
+            self.__dependencies_build.generate()
+            self.__dependencies_build.cleanup()
 
-        for generator in self.generators:
-            generator.close()
+        for target in self.targets:
+            dirname = target.dirname
+            if not os.path.exists(dirname):
+                tools.debug("Creating directory", dirname)
+                os.makedirs(dirname)
+        with self.generator:
+            for target in self.targets:
+                target.visit(self.generator)
+
         tools.verbose("Leaving build directory '%s'" % self.directory)
 
     def cleanup(self):
         pass
-
-    def emit_command(self, action,
-                     cmd,
-                     inputs, additional_inputs,
-                     outputs, additional_outputs,
-                     kw):
-        target = kw['target']
-        target_dir = path.dirname(target.path(kw['build']))
-        cmd_object = '-'.join(str(e) for e in command(cmd, build = self))
-        if cmd_object in self.__seen_commands:
-            tools.debug("Ignoring {%s}/%s command %s" % (self.directory, target, cmd))
-            return
-        self.__seen_commands.add(cmd_object)
-
-        tools.debug("Adding {%s}/%s command %s" % (self.directory, target, cmd))
-        self.__commands.setdefault(target_dir, []).append(
-            (
-                action, cmd,
-                inputs, additional_inputs,
-                outputs, additional_outputs,
-                kw
-            )
-        )
 
     @property
     def make_program(self):

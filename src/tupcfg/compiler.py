@@ -6,6 +6,7 @@ from . import path, tools, platform, generators
 from .command import Command
 from .source import Source
 from .target import Target
+from .node import Node
 
 class Compiler:
     """Base class for all compiler.
