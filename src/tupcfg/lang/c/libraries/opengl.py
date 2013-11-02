@@ -18,7 +18,7 @@ class OpenGLLibrary(Library):
         else:
             name = 'GL'
 
-        super(OpenGLLibrary, self).__init__(
+        super().__init__(
             name,
             compiler,
             shared = kw.get('shared', True),

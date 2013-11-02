@@ -1,12 +1,14 @@
 # -*- encoding: utf-8 -*-
 
+import os
+
 from ..library import Library
 from tupcfg import path
 
 from sysconfig import get_config_var as var
 
 from tupcfg import path, platform, Dependency, Target
-from tupcfg.command import Shell as ShellCommand
+from tupcfg.command import Command
 
 class PythonLibrary(Library):
     def __init__(self, compiler,
@@ -65,6 +67,7 @@ class PythonLibrary(Library):
 class PythonDependency(Dependency):
 
     def __init__(self,
+                 build,
                  c_compiler,
                  source_directory,
                  shared = True,
@@ -84,8 +87,9 @@ class PythonDependency(Dependency):
         if not wide_unicode:
             build_config.append('no-wide-unicode')
         super().__init__(
-            "Python",
-            "python%s%s" % version,
+            build,
+            name = "Python%s%s" % version,
+            source_directory = source_directory,
             build_config = build_config,
         )
         if c_compiler.lang != 'c':
@@ -94,7 +98,6 @@ class PythonDependency(Dependency):
             )
 
         self.compiler = c_compiler
-        self.source_directory = source_directory
         self.shared = shared
         self.version = version
         self.with_valgrind_support = with_valgrind_support
@@ -105,14 +108,10 @@ class PythonDependency(Dependency):
         self.library_filename = 'libpython%s.%s%s.%s' % (
             version + (self.suffix, library_ext,)
         )
-        self.interpreter_path = self.build_path(
+        self.interpreter_path = self.absolute_build_path(
             'install/bin/python%s.%s%s' % (version + (self.suffix,)),
-            abs = True
         )
-        self.prefix_directory = self.build_path(
-            'install',
-            abs = True
-        )
+        self.prefix_directory = self.absolute_build_path('install')
         self.__libraries = None
         self.__targets = None
 
@@ -133,7 +132,7 @@ class PythonDependency(Dependency):
         if self.__targets is not None:
             return self.__targets
         configure_args = [
-            '--prefix', self.build_path('install', abs=True),
+            '--prefix', self.absolute_build_path('install'),
             '--without-suffix',
         ]
         if self.shared:
@@ -147,25 +146,26 @@ class PythonDependency(Dependency):
             #'--%s-wide-unicode' % bool_with(self.wide_unicode), #XXX version?
         ])
 
-        configure_script = path.absolute(self.source_directory, 'configure')
-        configure_target = Target(
-            self.build_path('build/Makefile'),
-            ShellCommand(
-                "Configuring %s" % self.name,
-                [configure_script] + configure_args,
-                env = {'CC': self.compiler.binary},
-                working_directory = self.build_path('build')
-            ),
-        )
-        install_target = Target(
-            self.build_path('install/lib', self.library_filename),
-            ShellCommand(
-                "Installing %s" % self.name,
-                [self.resolved_build.make_program, 'install'],
-                working_directory = self.build_path('build'),
-                dependencies = [configure_target]
-            )
-        )
+        configure_script = self.absolute_source_path('configure')
+        configure_target = Command(
+            action = "Configuring %s" % self.name,
+            target = Target(self.build, self.build_path('build/Makefile')),
+            command = [configure_script] + configure_args,
+            env = {'CC': self.compiler.binary},
+            working_directory = self.absolute_build_path('build')
+        ).target
+
+        install_target = Command(
+            action = "Installing %s" % self.name,
+            target = Target(self.build, self.build_path('install/lib', self.library_filename)),
+            command = [self.build.make_program, 'install'],
+            working_directory = self.absolute_build_path('build'),
+            inputs = [configure_target],
+            env = {
+                'PATH': os.environ['PATH'],
+            }
+        ).target
+
         self.__targets = [install_target]
         return self.__targets
 
@@ -180,13 +180,12 @@ class PythonDependency(Dependency):
                 shared = self.shared,
                 search_binary_files = False,
                 include_directories = [
-                    self.build_path(
+                    self.absolute_build_path(
                         'install/include/python%s.%s%s' % (self.version + (self.suffix,)),
-                        abs = True
                     )
                 ],
-                directories = [self.build_path('install/lib', abs = True)],
-                files = [self.build_path('install/lib', self.library_filename, abs = True)],
+                directories = [self.absolute_build_path('install/lib')],
+                files = [self.absolute_build_path('install/lib', self.library_filename)],
                 save_env_vars = False,
             )
         ]

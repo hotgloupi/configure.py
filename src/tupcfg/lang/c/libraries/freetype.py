@@ -3,7 +3,7 @@
 from ..library import Library
 
 from tupcfg import path, platform, Dependency, Target
-from tupcfg.command import Shell as ShellCommand
+from tupcfg.command import Command
 
 class FreetypeLibrary(Library):
 
@@ -22,13 +22,15 @@ class FreetypeLibrary(Library):
 
 class FreetypeDependency(Dependency):
     def __init__(self,
+                 build,
                  c_compiler,
                  source_directory,
                  shared = False,
                  build_config = []):
         super().__init__(
-            "Freetype2",
-            "freetype2",
+            build,
+            name = "Freetype2",
+            source_directory = source_directory,
             build_config = build_config or [c_compiler.name, ],
         )
         if c_compiler.lang != 'c':
@@ -36,7 +38,6 @@ class FreetypeDependency(Dependency):
                 "Freetype needs a C compiler, got %s" % c_compiler
             )
         self.compiler = c_compiler
-        self.source_directory = source_directory
         self.shared = shared
         ext = self.compiler.library_extension(shared)
         self.library_filename = 'libfreetype.%s' % ext
@@ -97,7 +98,7 @@ class FreetypeDependency(Dependency):
             )
         self.__sources = [
             path.relative(
-                str(self.source_path(s, abs=True)),
+                self.source_path(s),
                 start = self.compiler.project.directory
             ) for s in sources
         ]
@@ -112,10 +113,10 @@ class FreetypeDependency(Dependency):
                     directory = self.build_path('install/lib'),
                     shared = self.shared,
                     defines = ['FT2_BUILD_LIBRARY'],
-                    build = self.resolved_build,
+                    build = self.build,
                     sources = self.__sources,
                     include_directories = [
-                        self.source_path('include', abs = True),
+                        self.source_path('include'),
                     ]
                 )
             ]
@@ -128,7 +129,7 @@ class FreetypeDependency(Dependency):
             ShellCommand(
                 "Copy Freetype2 sources",
                 [
-                    'cp', '-r', path.absolute(self.source_directory),
+                    'cp', '-r', self.source_path(),
                     self.build_path()
                 ],
             )
@@ -152,13 +153,13 @@ class FreetypeDependency(Dependency):
                 ShellCommand(
                     "Configuring Freetype2",
                     [
-                        './configure', '--prefix', self.build_path('install', abs=True)
+                        './configure', '--prefix', self.absolute_build_path('install')
                     ],
                     working_directory = self.build_path('freetype2'),
                     dependencies = [autogen_target],
                     env = {
                         'CC': self.compiler.binary,
-                        'MAKE': self.resolved_build.make_program,
+                        'MAKE': self.build.make_program,
                     }
                 ),
             )
@@ -167,7 +168,7 @@ class FreetypeDependency(Dependency):
             self.build_path('install/bin/freetype-config'),
             ShellCommand(
                 "Building FreeType2",
-                [self.resolved_build.make_program],
+                [self.build.make_program],
                 working_directory = self.build_path('freetype2'),
                 dependencies = [configure_target]
             ),
@@ -193,10 +194,10 @@ class FreetypeDependency(Dependency):
                 shared = self.shared,
                 search_binary_files = False,
                 include_directories = [
-                    self.source_path('include', abs = True)
+                    self.absolute_source_path('include')
                 ],
-                directories = [self.build_path('install/lib', abs = True)],
-                files = [self.build_path('install/lib', self.library_filename, abs = True)],
+                directories = [self.absolute_build_path('install/lib')],
+                files = [self.absolute_build_path('install/lib', self.library_filename)],
                 save_env_vars = False,
             )
         ]

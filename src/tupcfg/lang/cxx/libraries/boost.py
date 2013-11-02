@@ -40,7 +40,7 @@ class BoostLibrary(Library):
         return self.components
 
 from tupcfg import path, tools, Dependency, Target
-from tupcfg.command import Shell as ShellCommand
+from tupcfg.command import Command
 
 class BoostDependency(Dependency):
 
@@ -159,6 +159,7 @@ class BoostDependency(Dependency):
 
 
     def __init__(self,
+                 build,
                  cxx_compiler,
                  source_directory,
                  shared: """
@@ -194,13 +195,13 @@ class BoostDependency(Dependency):
             raise Exception("Please specify the tuple version. ex: (1, 54)")
 
         super().__init__(
-            "Boost",
-            "boost%s.%s" % version,
+            build,
+            "Boost%s.%s" % version,
+            source_directory = source_directory,
             build_config = build_config
         )
         self.compiler = cxx_compiler
         self.project = self.compiler.project
-        self.source_directory = source_directory
         self.shared = shared
         self.preferred_shared = preferred_shared
         self.runtime_link = runtime_link
@@ -235,9 +236,8 @@ class BoostDependency(Dependency):
         return filename
 
     def component_library_path(self, component):
-        return self.build_path(
+        return self.absolute_build_path(
             'install', 'lib', self.component_library_filename(component),
-            abs = True
         )
 
     def component_sources(self, component):
@@ -264,7 +264,7 @@ class BoostDependency(Dependency):
         if srcs is not None:
             srcs = list(
                 path.relative(
-                    str(self.source_path('libs', component, 'src', src, abs = True)),
+                    str(self.absolute_source_path('libs', component, 'src', src)),
                     start = self.project.directory
                 ) for src in srcs
             )
@@ -272,7 +272,7 @@ class BoostDependency(Dependency):
             srcs = list(tools.rglob(
                 '*.cpp',
                 path.relative(
-                    str(self.source_path('libs', component, 'src', abs = True)),
+                    str(self.absolute_source_path('libs', component, 'src')),
                     start = self.project.directory
                 )
             ))
@@ -300,12 +300,12 @@ class BoostDependency(Dependency):
     def _header_targets(self, name):
         if name not in self.__header_targets:
             include_dir = str(
-                self.source_path('libs', name, 'include', abs = True)
+                self.absolute_source_path('libs', name, 'include')
             )
             res = []
             for pat in ['*.h', '*.[hi]pp']:
                 for h in tools.rglob(pat, include_dir):
-                    res.append(self.resolved_build.fs.copy(
+                    res.append(self.build.fs.copy(
                         h,
                         dest = str(self.build_path(
                             'install',
@@ -318,16 +318,15 @@ class BoostDependency(Dependency):
 
     @property
     def root_directory(self):
-        return self.build_path('install', abs = True)
+        return self.absolute_build_path('install')
 
     @property
     def include_directory(self):
-        return self.source_path(abs = True)
-        #return self.build_path('install', 'include', abs = True)
+        return self.absolute_source_path()
 
     @property
     def library_directory(self):
-        return self.build_path('install', 'lib', abs = True)
+        return self.absolute_build_path('install', 'lib')
 
     def _target(self, name):
         if name in self.__targets:
@@ -338,13 +337,7 @@ class BoostDependency(Dependency):
             libraries.extend(self.python.libraries)
             dependencies.extend(self.python.targets)
         component_dependencies = self.__component_dependencies(name)
-        #used when headers are copyied
-        #for component in tools.unique([name] + component_dependencies):
-        #    dependencies.extend(
-        #        self._header_targets(component)
-        #    )
-        #print(name, "dependencies", component_dependencies)
-        self.__targets[name] = self.compiler.link_library(
+        target = self.__targets[name] = self.compiler.link_library(
             'libboost_' + name,
             directory = self.build_path('install/lib'),
             shared = self.component_shared(name),
@@ -356,8 +349,7 @@ class BoostDependency(Dependency):
             ],
             force_includes = ['cmath'],
             libraries = libraries,
-            build = self.resolved_build,
-            additional_inputs = dependencies,
+            build = self.build,
             defines = [
                 'BOOST_%s_SOURCE' % name.upper(),
                 'BOOST_%s_%s_LINK' % (
@@ -366,7 +358,9 @@ class BoostDependency(Dependency):
                 ),
             ],
         )
-        return self.__targets[name]
+        for dep in dependencies:
+            target.dependencies.insert(0, dep)
+        return target
 
     @property
     def libraries(self):
@@ -383,7 +377,7 @@ class BoostDependency(Dependency):
                     #self.build_path('install', 'include', abs = True)
                     self.include_directory
                 ],
-                directories = [self.build_path('install/lib', abs = True)],
+                directories = [self.absolute_build_path('install/lib')],
                 files = [self.component_library_path(component)],
                 save_env_vars = False,
             ) for component in names
