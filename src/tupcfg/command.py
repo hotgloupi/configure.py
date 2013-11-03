@@ -31,6 +31,8 @@ class Command(Source):
 
         if working_directory is None:
             working_directory = target.build.directory
+        elif not PATH.is_absolute(working_directory):
+            working_directory = PATH.absolute(target.build.directory, working_directory)
         self.__working_directory = PATH.absolute(working_directory)
 
         assert isinstance(env, dict)
