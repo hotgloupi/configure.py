@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-from .sdl import SDLLibrary
+from .sdl import SDLLibrary, SDLDependency, SDLImageDependency
 from .python import PythonLibrary, PythonDependency
 from .freetype import FreetypeLibrary, FreetypeDependency
 from .opengl import OpenGLLibrary
