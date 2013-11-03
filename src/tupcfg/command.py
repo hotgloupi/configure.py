@@ -41,10 +41,11 @@ class Command(Source):
         assert isinstance(target, Target)
         self.__outputs = (target,) + tuple(additional_outputs)
         target.dependencies.extend(inputs)
-        inputs = set(target.dependencies)
+
+        seen = set(el.path for el in target.dependencies)
+        seen.update(el.path for el in self.__outputs)
         target.dependencies.extend(
-            input for input in self.__find_other_inputs(command, inputs)
-            if input not in self.__outputs
+            input for input in self.__find_other_inputs(command, seen)
         )
         target.dependencies.append(self)
 
@@ -95,7 +96,8 @@ class Command(Source):
             if isinstance(el, str):
                 yield el
             elif isinstance(el, Node):
-                yield el.make_relative_path(working_directory)
+                for subel in self.__parse_command(el.shell(working_directory), working_directory):
+                    yield subel
             elif tools.isiterable(el):
                 for subel in self.__parse_command(el, working_directory):
                     yield subel
@@ -109,10 +111,10 @@ class Command(Source):
             elif tools.isiterable(el):
                 for subel in self.__find_other_inputs(el, found):
                     yield subel
-            elif el in found:
+            elif el.path in found or el.is_directory:
                 continue
             elif isinstance(el, Node):
-                found.add(el)
+                found.add(el.path)
                 yield el
             else:
                 raise Exception("Unknown command element: %s" % el)

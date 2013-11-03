@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 from tupcfg import path, tools
-from tupcfg import Target, Command
+from tupcfg import Target, Command, Node
 
 from . import compiler as c_compiler
 
@@ -89,20 +89,35 @@ class Compiler(c_compiler.Compiler):
         ]
         dirs = []
         files = []
+        system_files = []
         for library in self.list_attr('libraries', kw):
             if isinstance(library, Target):
                 continue
             dirs.extend(library.directories)
-            files.extend(
-                f for f in map(str, library.files) if not f.endswith('.dll')
-            )
+            if library.system:
+                system_files.extend(library.files)
+            else:
+                files.extend(
+                    f for f in library.files if not f.endswith('.dll')
+                )
         dirs = tools.unique(dirs)
         flags.extend(
-            self._flag('LIBPATH') + ':' + dir_ for dir_ in map(str, dirs)
+            Node(
+                self.attr('build', kw),
+                dir_,
+                is_directory = True,
+                shell_formatter = lambda p: [self._flag('LIBPATH:') + p],
+            ) for dir_ in dirs
         )
+        print(files)
         flags.extend(
-            path.basename(f) for f in files
+            Node(
+                self.attr('build', kw),
+                f,
+                shell_formatter = lambda p: [path.basename(p)]
+            ) for f in files
         )
+        flags.extend(system_files)
         flags.append(self.__architecture_flag(kw))
         return flags
 
@@ -140,7 +155,11 @@ class Compiler(c_compiler.Compiler):
                 self.link_binary,
                 self._flag('nologo'),   # no print while invoking cl.exe
                 objects,
-                self._flag('out:') + target.path,
+                Node(
+                    self.attr('build', kw),
+                    target.path,
+                    shell_formatter = lambda p: [self._flag('out:') + p]
+                ),
                 #self._flag('link'), # only while using cl.exe
                 self._flag('LTCG'),
                 self._flag('subsystem:') + 'console',
@@ -150,7 +169,6 @@ class Compiler(c_compiler.Compiler):
             ],
             target = target,
             additional_outputs = [
-                target.dirname
             ],
         )
 
