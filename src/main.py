@@ -15,7 +15,7 @@ then
 	exit 1
 fi
 
-"$PYTHON" "$0"
+"$PYTHON" "$0" "$@"
 
 exit $?
 
