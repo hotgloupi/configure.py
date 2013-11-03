@@ -14,8 +14,6 @@ class Target(Node):
         super().__init__(build, PATH.absolute(build.directory, path))
         build.add_target(self)
 
-    def _root_directory(self):
+    @property
+    def root_directory(self):
         return self.build.directory
-
-    def __str__(self):
-        return str(self.relative_path)

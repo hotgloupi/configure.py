@@ -13,6 +13,7 @@ class Source(Node):
             dependencies = dependencies
         )
 
-    def _root_directory(self):
+    @property
+    def root_directory(self):
         return self.build.project.directory
 

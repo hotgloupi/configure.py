@@ -127,13 +127,13 @@ class Compiler:
         """
         build = self.attr('build', kw)
         assert isinstance(src, Node)
-        target = Target(build, src.relative_path + '.' + self.object_extension)
+        target = Target(build, src.relative_path() + '.' + self.object_extension)
         command = self._build_object_cmd(target, src, **kw)
 
         if self.attr('generate_source_dependencies_for_makefile', kw):
             mktarget = Target(
                 build,
-                src.relative_path + '.' + self.object_extension + '.depends.mk',
+                src.relative_path() + '.' + self.object_extension + '.depends.mk',
             )
             mkcmd = self._build_object_dependencies_cmd(
                 mktarget,

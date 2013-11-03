@@ -26,16 +26,20 @@ class Makefile(Generator):
 
     def __call__(self, node):
         if isinstance(node, Target):
-            assert self.targets.get(node.relative_path, node) is node
+            p = node.relative_path(self.build.directory)
+            assert self.targets.get(p, node) is node
             if node in self.dependencies:
                 pass
-            elif node.relative_path in self.targets:
-                self.targets.pop(node.relative_path)
+            elif node.relative_path(p) in self.targets:
+                self.targets.pop(p)
                 self.dependencies.add(node)
             else:
-                self.targets[node.relative_path] = node
+                self.targets[p] = node
         elif isinstance(node, Command):
-            self.commands.setdefault(node.target.relative_path, []).append(node)
+            self.commands.setdefault(
+                node.target.relative_path(self.build.directory),
+                []
+            ).append(node)
 
     def close(self):
         cmd_str = lambda *cmd, **kw: kw.get('sep', ' ').join(map(pipes.quote, cmd))
@@ -55,18 +59,18 @@ class Makefile(Generator):
         if self.build.dependencies:
             for dep in self.build.dependencies:
                 for target in dep.targets:
-                    deps.append(target.relative_path)
+                    deps.append(target.relative_path(self.build.directory))
             deps_dir = path.relative(
                 self.build.dependencies_directory,
                 start = self.build.directory,
             )
             for dep in deps:
-                makefile += '\n\n%s:' % path.join(deps_dir, dep)
+                makefile += '\n\n%s:' % dep
                 makefile += '\n\t@%s' % cmd_str(
                     self.build.make_program,
                     '-C',
                     deps_dir,
-                    dep
+                    path.relative(dep, start = deps_dir),
                 )
 
 
@@ -74,7 +78,7 @@ class Makefile(Generator):
         for target in self.targets.keys():
             makefile += "\n\t@%s" % cmd_str('rm', '-fv', target)
         for target in self.dependencies:
-            makefile += "\n\t@%s" % cmd_str('rm', '-fv', target.relative_path)
+            makefile += "\n\t@%s" % cmd_str('rm', '-fv', target.relative_path(self.build.directory))
 
         makefile += '\n'
 
@@ -86,10 +90,10 @@ class Makefile(Generator):
                 #makefile += (79 - prev) * ' ' + '\\\n  %s' % cmd.relative_path
                 #prev = len(cmd.relative_path) + 2
                 for input in cmd.dependencies + cmd.target.dependencies:
-                    p = input.make_relative_path(self.build.directory)
+                    p = input.relative_path(self.build.directory)
                     makefile += (78 - prev) * ' ' + '\\\n  %s' %  p
                     prev = len(p) + 2
-            makefile += '\n\t@$(PYTHON) %s' % cmd_str(commands[0].relative_path)
+            makefile += '\n\t@$(PYTHON) %s' % cmd_str(commands[0].relative_path(self.build.directory))
             self.build.generate_commands(commands)
 
 

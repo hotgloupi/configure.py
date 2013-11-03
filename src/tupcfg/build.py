@@ -186,7 +186,7 @@ class Build:
             script += '\nenv.update(os.environ)'
             script += '\nenv.update({\n\t%s\n})' % ',\n\t'.join(env)
             env.append('"PATH": os.environ["PATH"]')
-            script += '\nprint("""%s %s""")' % (cmd.action, cmd.target.relative_path)
+            script += '\nprint("""%s %s""")' % (cmd.action, cmd.target.relative_path(cmd.working_directory))
             script += '\nif os.environ.get("TUPCFG_DEBUG"):print("""%s""")' % ' '.join(cmd.command)
             script += '\nsys.exit(subprocess.call(\n[\n\t%s\n],\ncwd = """%s""",\nenv = env))' % (
                 ',\n\t'.join(args),
