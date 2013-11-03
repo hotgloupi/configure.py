@@ -18,11 +18,11 @@ class OpenGLLibrary(Library):
         else:
             name = 'GL'
 
+        kw.setdefault('macosx_framework', platform.IS_MACOSX)
         super().__init__(
             name,
             compiler,
             shared = kw.get('shared', True),
-            macosx_framework = platform.IS_MACOSX,
             binary_file_names = binary_file_names,
             **kw
         )
