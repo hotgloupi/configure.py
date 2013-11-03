@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 from tupcfg import path, tools
-from tupcfg import Target
+from tupcfg import Target, Command
 
 from . import compiler as c_compiler
 
@@ -37,7 +37,7 @@ class Compiler(c_compiler.Compiler):
     def _lang_flag(self):
         return self._flag('Tc')
 
-    def _get_build_flags(self, cmd):
+    def _get_build_flags(self, kw):
         flags = [
             self._flag('nologo'),   # no print while invoking cl.exe
             self._flag('c'),        # compiles without linking
@@ -48,19 +48,19 @@ class Compiler(c_compiler.Compiler):
             self._flag('Gd'), #__cdecl convention
             #self._flag('Gr'), #__fastcall convention
         ]
-        if self.attr('enable_warnings', cmd):
+        if self.attr('enable_warnings', kw):
             flags += [
                 self._flag('W3'),   # warning level (0 -> 4)
                 self._flag('WL'),   # Enables one-line diagnostics for error
                                     # and warning messages when compiling C++
                                     # source code from the command line.
             ]
-        for dir_ in self._include_directories(cmd):
+        for dir_ in self._include_directories(kw):
             flags.extend([
                 self._flag('I'),
                 dir_,
             ])
-        for define in self.attr('defines', cmd):
+        for define in self.attr('defines', kw):
             print("define", define)
             if isinstance(define, str):
                 flags.extend([self._flag('D'), define])
@@ -70,22 +70,26 @@ class Compiler(c_compiler.Compiler):
                 flags.append("%s%s=%s" % (self._flag('D'), key, val))
         return flags
 
-    def _build_object_cmd(self, cmd, target=None, build=None):
-        assert len(cmd.dependencies) == 1
-        return [
-            self.binary,
-            self._get_build_flags(cmd),
-            self._lang_flag, cmd.dependencies[0],
-            self._flag('Fo') + target.path(build),
-        ]
+    def _build_object_cmd(self, target, source, **kw):
+        return Command(
+            action = kw.get('action', "Build object"),
+            command = [
+                self.binary,
+                self._get_build_flags(kw),
+                self._lang_flag, source,
+                self._flag('Fo') + target.path,
+            ],
+            target = target,
+            inputs = [source],
+        )
 
-    def _link_flags(self, cmd):
+    def _link_flags(self, kw):
         flags = [
             #self._flag('WX'), # Linker warnings are errors
         ]
         dirs = []
         files = []
-        for library in cmd.kw.get('libraries'):
+        for library in self.list_attr('libraries', kw):
             if isinstance(library, Target):
                 continue
             dirs.extend(library.directories)
@@ -99,48 +103,62 @@ class Compiler(c_compiler.Compiler):
         flags.extend(
             path.basename(f) for f in files
         )
-        flags.append(self.__architecture_flag(cmd))
+        flags.append(self.__architecture_flag(kw))
         return flags
 
 
-    def _link_library_cmd(self, cmd, target=None, build=None):
-        if cmd.shared:
-            return [
+    def _link_library_cmd(self, target, objects, shared = None, **kw):
+        assert isinstance(shared, bool)
+        if shared:
+            cmd = [
                 self.binary,
                 self._flag('nologo'),   # no print while invoking cl.exe
                 self._flag('LD'), # dynamic library
-                cmd.dependencies,
-                self._flag('Fo') + target.path(build),
+                objects,
+                self._flag('Fo') + target.path,
                 self._flag('link'),
-                self._link_flags(cmd),
+                self._link_flags(kw),
             ]
         else:
-            return [
+            cmd = [
                 self.lib_binary,
-                cmd.dependencies,
-                self._flag('out:') + target.path(build),
-                self._link_flags(cmd)
+                objects,
+                self._flag('out:') + target.path,
+                self._link_flags(kw)
             ]
+        return Command(
+            action = "Link %s library" % (shared and "shared" or "static"),
+            command = cmd,
+            target = target,
+            inputs = objects,
+        )
 
-    def _link_executable_cmd(self, cmd, target=None, build=None):
-        return [
-            self.link_binary,
-            self._flag('nologo'),   # no print while invoking cl.exe
-            cmd.dependencies,
-            self._flag('out:') + target.path(build),
-            #self._flag('link'), # only while using cl.exe
-            self._flag('LTCG'),
-            self._flag('subsystem:') + 'console',
-            self._flag('NODEFAULTLIB:') + 'MSVCRT',
-            #self._flag('NODEFAULTLIB:') + 'LIBCMT',
-            self._link_flags(cmd),
-        ]
+    def _link_executable_cmd(self, target, objects, **kw):
+        return Command(
+            action = "Link executable",
+            command = [
+                self.link_binary,
+                self._flag('nologo'),   # no print while invoking cl.exe
+                objects,
+                self._flag('out:') + target.path,
+                #self._flag('link'), # only while using cl.exe
+                self._flag('LTCG'),
+                self._flag('subsystem:') + 'console',
+                self._flag('NODEFAULTLIB:') + 'MSVCRT',
+                #self._flag('NODEFAULTLIB:') + 'LIBCMT',
+                self._link_flags(kw),
+            ],
+            target = target,
+            additional_outputs = [
+                target.dirname
+            ],
+        )
 
-    def __architecture_flag(self, cmd):
+    def __architecture_flag(self, kw):
         return {
             '64bit': self._flag('MACHINE:')+'x64',
             '32bit': self._flag('MACHINE:')+'x86',
-        }[self.attr('target_architecture', cmd)]
+        }[self.attr('target_architecture', kw)]
 
 ###############################################################################
 # link.exe options
