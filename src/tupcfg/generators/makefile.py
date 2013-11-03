@@ -48,7 +48,7 @@ class Makefile(Generator):
         prev = len('all:')
         for target in sorted(self.targets.keys()):
             assert target not in self.dependencies
-            makefile += (79 - prev) * ' ' + '\\\n  %s' % target
+            makefile += (78 - prev) * ' ' + '\\\n  %s' % target
             prev = len(target) + 2
 
         deps = []
@@ -87,7 +87,7 @@ class Makefile(Generator):
                 #prev = len(cmd.relative_path) + 2
                 for input in cmd.dependencies + cmd.target.dependencies:
                     p = input.make_relative_path(self.build.directory)
-                    makefile += (79 - prev) * ' ' + '\\\n  %s' %  p
+                    makefile += (78 - prev) * ' ' + '\\\n  %s' %  p
                     prev = len(p) + 2
             makefile += '\n\t@$(PYTHON) %s' % cmd_str(commands[0].relative_path)
             self.build.generate_commands(commands)
