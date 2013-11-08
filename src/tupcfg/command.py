@@ -27,7 +27,7 @@ class Command(Source):
                  working_directory = None,
                  env = {}):
         self.__action = action
-        self.__command = command
+        self.__command = list(self.__make_flat(command))
 
         if working_directory is None:
             working_directory = target.build.directory
@@ -45,7 +45,7 @@ class Command(Source):
         seen = set(el.path for el in target.dependencies)
         seen.update(el.path for el in self.__outputs)
         target.dependencies.extend(
-            input for input in self.__find_other_inputs(command, seen)
+            input for input in self.__find_other_inputs(self.__command, seen)
         )
         target.dependencies.append(self)
 
@@ -98,19 +98,26 @@ class Command(Source):
             elif isinstance(el, Node):
                 for subel in self.__parse_command(el.shell(working_directory), working_directory):
                     yield subel
-            elif tools.isiterable(el):
-                for subel in self.__parse_command(el, working_directory):
-                    yield subel
             else:
                 raise Exception("Unknown command element: %s" % el)
+
+    def find_instances(self, type):
+        for el in self.__command:
+            if isinstance(el, type):
+                yield el
+
+    def __make_flat(self, cmd):
+        for el in cmd:
+            if tools.isiterable(el):
+                for subel in self.__make_flat(el):
+                    yield subel
+            else:
+                yield el
 
     def __find_other_inputs(self, cmd, found):
         for el in cmd:
             if isinstance(el, (str, Command)):
                 continue
-            elif tools.isiterable(el):
-                for subel in self.__find_other_inputs(el, found):
-                    yield subel
             elif el.path in found or el.is_directory:
                 continue
             elif isinstance(el, Node):
