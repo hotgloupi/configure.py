@@ -1,8 +1,13 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg.compiler import Compiler as BaseCompiler
+from tupcfg import Source
+import tupcfg.compiler
 
-class Compiler(BaseCompiler):
+class CXXSource(Source):
+    pass
+
+class Compiler(tupcfg.compiler.Compiler):
     binary_env_varname = 'CXX'
 
+    Source = CXXSource
 

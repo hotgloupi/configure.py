@@ -4,9 +4,14 @@ import sys
 
 from . import path, tools, platform, generators
 from .command import Command
-from .source import Source
+from . import source
 from .target import Target
 from .node import Node
+
+class IncludeDirectory(Node):
+    def __init__(self, build, dir, *args, **kw):
+        kw['is_directory'] = True
+        super().__init__(build, dir, *args, **kw)
 
 class Compiler:
     """Base class for all compiler.
@@ -14,6 +19,10 @@ class Compiler:
     The Basic compiler provides most common API to compile source files into
     libraries or executables.
     """
+
+    # Class type used to designate source files (might be overriden).
+    Source = source.Source
+    IncludeDirectory = IncludeDirectory
 
     # Standard compiler name (defined by subclasses).
     name = None
@@ -163,7 +172,7 @@ class Compiler:
         name = path.join(str(directory), self.__get_executable_name(name, ext))
         target = Target(build, name)
         objects = list(
-            self.build_object(Source(build, src), **kw) for src in sources
+            self.build_object(self.Source(build, src), **kw) for src in sources
         )
         command = self._link_executable_cmd(target, objects, **kw)
         assert isinstance(command, Command)
@@ -188,7 +197,7 @@ class Compiler:
         """
         build = self.attr('build', kw)
         name = path.join(str(directory), self.__get_library_name(name, shared, ext))
-        sources_ = (Source(build, src) for src in sources)
+        sources_ = (self.Source(build, src) for src in sources)
         objects = list(self.build_object(src, **kw) for src in sources_)
         target = Target(build, name)
         command = self._link_library_cmd(target, objects, shared = shared, **kw)
@@ -254,16 +263,27 @@ class Compiler:
 
     def _include_directories(self, kw):
         include_directories = self.list_attr('include_directories', kw)
+
         libraries = self.list_attr('libraries', kw)
         for lib in libraries:
             if isinstance(lib, Target):
                 continue
             include_directories.extend(lib.include_directories)
 
-        return tools.unique(
-            path.relative(inc, start = self.attr('build', kw).directory)
-            for inc in include_directories
-        )
+        results = []
+        for dir in tools.unique(include_directories):
+            if not path.is_absolute(dir):
+                dir = path.join(self.project.directory, dir)
+            if not dir.startswith(self.project.directory):
+                results.append(dir)
+            else:
+                results.append(
+                    self.IncludeDirectory(
+                        self.attr('build', kw),
+                        dir,
+                    )
+                )
+        return results
 
     def __get_library_name(self, name, shared, ext):
         if ext is None:

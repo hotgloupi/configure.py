@@ -1,11 +1,16 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import Source, Target
+from tupcfg import Source, Target, Node
 
-from tupcfg.compiler import Compiler as BaseCompiler
+import tupcfg.compiler
 
-class Compiler(BaseCompiler):
+class CSource(Source):
+    pass
+
+class Compiler(tupcfg.compiler.Compiler):
     binary_env_varname = 'CC'
+
+    Source = CSource
 
     def __init__(self, project, build, **kw):
         kw.setdefault('lang', 'c')
