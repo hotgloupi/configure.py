@@ -41,20 +41,65 @@ class Makefile(Generator):
                 []
             ).append(node)
 
-    def close(self):
+    def end(self):
         cmd_str = lambda *cmd, **kw: kw.get('sep', ' ').join(map(pipes.quote, cmd))
         makefile = '# Generated makefile\n\n'
         makefile += 'PYTHON=%s\n' % sys.executable
+        makefile += 'MAKE_DEPENDS=$(PYTHON) %s --root %s --makefile' % (
+            path.absolute(path.dirname(__file__), 'find_dependencies.py'),
+            '.'
+        )
         phony_rules = ['all', 'clean']
         makefile += '\n.PHONY:\n.PHONY: %s\n' % ' '.join(phony_rules)
 
-        makefile += '\nall:'
+        #######################################################################
+        # Find C/C++ header dependencies
+        from tupcfg.lang.c.compiler import CSource
+        from tupcfg.lang.cxx.compiler import CXXSource
+        from tupcfg.compiler import IncludeDirectory
+
+        found_c_sources = {}
+        target_sources = {}
+        for p, commands in self.commands.items():
+            for cmd in commands:
+                for input in cmd.target.dependencies:
+                    if input in found_c_sources:
+                        continue
+                    if isinstance(input, (CSource, CXXSource)):
+                        found_c_sources[input] = list(cmd.find_instances(IncludeDirectory))
+                        target_sources.setdefault(cmd.target, set()).add(input)
+
+        #######################################################################
+        # Dump 'all' rule
+        makefile += '\n\nall:'
         prev = len('all:')
         for target in sorted(self.targets.keys()):
             assert target not in self.dependencies
             makefile += (78 - prev) * ' ' + '\\\n  %s' % target
             prev = len(target) + 2
+        for target in target_sources.keys():
+            depend = target.relative_path(self.build.directory) + '.depend.mk'
+            makefile += (78 - prev) * ' ' + '\\\n  %s' % depend
+            prev = len(depend) + 2
 
+        #######################################################################
+        # Dump 'clean' rule
+        makefile += '\n\nclean:'
+        for target in self.targets.keys():
+            makefile += "\n\t@%s" % cmd_str('rm', '-fv', target)
+        for target in self.dependencies:
+            makefile += "\n\t@%s" % cmd_str('rm', '-fv', target.relative_path(self.build.directory))
+
+        # XXX Dependencies are always built ...
+        for target in target_sources.keys():
+            depend = target.relative_path(self.build.directory) + '.depend.mk'
+            makefile += "\n\t@%s" % cmd_str('rm', '-fv', depend)
+        count = len(self.targets) + len(self.dependencies) #+ len(target_sources)
+        makefile += '\n\t@sh -c "echo \'%s targets removed\'"' % count
+
+
+        #######################################################################
+        # Dump dependencies rules
         deps = []
         if self.build.dependencies:
             for dep in self.build.dependencies:
@@ -73,15 +118,33 @@ class Makefile(Generator):
                     path.relative(dep, start = deps_dir),
                 )
 
+        #######################################################################
+        # Dump C/C++ header dependencies rules
+        for target, sources in target_sources.items():
+            target_path = target.relative_path(self.build.directory)
+            depend = target_path + '.depend.mk'
+            makefile += '\n\n%s:' % depend
+            prev = len(depend) + 1
+            for input in sources:
+                p = input.relative_path(self.build.directory)
+                makefile += (78 - prev) * ' ' + '\\\n  %s' %  p
+                prev = len(p) + 2
+            cmd = '@$(MAKE_DEPENDS) -o %s -t %s' % (depend, target_path)
+            makefile += '\n\t' + cmd
+            prev = len(cmd) + 8
+            for input in sources:
+                p = input.relative_path(self.build.directory)
+                makefile += (78 - prev) * ' ' + '\\\n\t  %s' %  p
+                prev = len(p) + 8 + 2
+                for dir in found_c_sources[input]:
+                    p = dir.relative_path(self.build.directory)
+                    makefile += (78 - prev) * ' ' + '\\\n\t  -I %s' %  p
+                    prev = len(p) + 8 + 2 + 3
+            makefile += '\n\n-include %s' % depend
+            #makefile += '\n%s: %s' % (target_path, depend)
 
-        makefile += '\n\nclean:'
-        for target in self.targets.keys():
-            makefile += "\n\t@%s" % cmd_str('rm', '-fv', target)
-        for target in self.dependencies:
-            makefile += "\n\t@%s" % cmd_str('rm', '-fv', target.relative_path(self.build.directory))
-
-        makefile += '\n'
-
+        #######################################################################
+        # Dump commands
         for p, commands in self.commands.items():
             makefile += '\n\n%s:' % p
             commands = tools.unique(commands)
