@@ -67,6 +67,10 @@ class Command(Source):
         return self.__working_directory
 
     @property
+    def outputs(self):
+        return self.__outputs
+
+    @property
     def original_command(self):
         return self.__command
 
