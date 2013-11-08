@@ -52,6 +52,8 @@ class Node:
         return PATH.relative(self.path, start = start)
 
     def shell(self, start = None):
+        if start is None:
+            return self.shell_formatter(self.path)
         return self.shell_formatter(self.relative_path(start))
 
     #@property
