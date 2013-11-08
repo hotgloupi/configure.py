@@ -112,8 +112,8 @@ class Compiler(c_compiler.Compiler):
         return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 
     def _get_link_flags(self, kw):
+        link_flags = ['-no-canonical-prefixes']
         library_directories = self.library_directories[:]
-        link_flags = []
         pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
             link_flags.append('-fPIC')
