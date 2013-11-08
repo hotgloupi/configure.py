@@ -41,7 +41,7 @@ class Generator:
     def __exit__(self, type_, value, traceback):
         """Finalize generation by calling close() if no error happened."""
         if type_ is None:
-            self.close()
+            self.end()
 
     def begin(self): pass
     def end(self): pass
