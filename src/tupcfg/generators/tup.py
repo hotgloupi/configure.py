@@ -1,18 +1,20 @@
 # -*- encoding: utf-8 -*-
 
 from ..generator import Generator
+from ..target import Target
+from ..command import Command
 from .. import path
 from .. import build
 from .. import tools
 
-import os, pipes
+import os, sys, pipes
 
 MAKEFILE_TEMPLATE = """
 .PHONY:
 .PHONY: all monitor
 
 all: %(tup_config_dir)s %(dependencies)s
-	@sh -c 'cd %(root_dir)s && %(tup_bin)s upd'
+	@sh -c 'cd %(root_dir)s && %(tup_bin)s upd %(build_dir)s'
 
 %(tup_config_dir)s:
 	@sh -c 'cd %(root_dir)s && %(tup_bin)s init'
@@ -34,67 +36,79 @@ class Tup(Generator):
         self.tup_bin = tup_bin
 
 
-    def __enter__(self):
-        """Entering in a new build working directory."""
-        p = path.join(self.working_directory, 'Tupfile')
-        tools.debug(path.exists(p) and 'Updating' or 'Creating', p)
-        self.tupfile = open(p, 'w')
-        self.tupfiles.add(path.absolute(p))
-        return self
+    #def __enter__(self):
+    #    """Entering in a new build working directory."""
+    #    p = path.join(self.working_directory, 'Tupfile')
+    #    tools.debug(path.exists(p) and 'Updating' or 'Creating', p)
+    #    self.tupfile = open(p, 'w')
+    #    self.tupfiles.add(path.absolute(p))
+    #    return self
 
-    def __exit__(self, type_, value, traceback):
-        """Finalize a working directory."""
-        self.tupfile.close()
-        self.tupfile = None
+    def begin(self):
+        self.targets = {}
+        self.directories = {}
+        self.commands = {}
 
-    def apply_rule(self,
-                   action=None,
-                   command=None,
-                   inputs=None,
-                   additional_inputs=None,
-                   outputs=None,
-                   additional_outputs=None,
-                   target=None):
-        tools.debug("Add Tup rule for %s" % target)
-        write = lambda *args: print(*(args + ('\\',)), file=self.tupfile)
-        write(":")
-        for input_ in inputs:
-            #write('\t', input_.shell_string(**kw))
-            write('\t', input_.relpath(target, self.build))
-        for input_ in additional_inputs:
-            #write('\t', input_.shell_string(**kw))
-            write('\t', input_.relpath(target, self.build))
-        write("|>")
-        write("^", action, path.basename(str(target)), "^")
-        for e in build.command(command, build = self.build, cwd = self.working_directory):
-            write('\t', e)
-        write("|>", target.shell_string(target, build=self.build))
-        self.tupfile.write('\n')
+    def __call__(self, node):
+        if isinstance(node, Target):
+            if node.path not in self.targets:
+                self.targets[node.path] = node
+                self.directories.setdefault(node.dirname, []).append(node)
+            assert self.targets[node.path] is node
+        elif isinstance(node, Command):
+            p = node.target.path
+            assert self.commands.get(p, node) is node
+            self.commands[p] = node
 
-
-    def close(self):
+    def end(self):
+        tupfiles = set()
+        for dir, targets in self.directories.items():
+            tupfile = path.join(dir, 'Tupfile')
+            tupfiles.add(tupfile)
+            with open(tupfile, 'w') as tupfile:
+                for target in targets:
+                    self.write_rule(dir, tupfile, target)
         for tupfile in tools.find_files(name = 'Tupfile',
                                         working_directory = self.build.directory):
             tupfile = path.absolute(tupfile)
-            if tupfile not in self.tupfiles:
+            if tupfile not in tupfiles:
                 tools.debug("Removing obsolete Tupfile", tupfile)
                 os.unlink(tupfile)
+        self.generate_makefile()
+
+    def write_rule(self, dir, tupfile, target):
+        tools.debug("Add Tup rule for %s" % target)
+        def write(*args):
+            args = args + ('\\',)
+            print(*args, file = tupfile)
+
+        command = self.commands[target.path]
+        write(":")
+        for input in command.target.dependencies:
+            write('\t', input.relative_path(dir))
+        write("|> ^c", command.action, target.basename, "^")
+        write("%s -B %s" % (sys.executable, command.basename))
+        write("|>", ' '.join(
+            output.relative_path(dir)
+            for output in command.outputs
+        ))
+        tupfile.write('\n')
+        self.build.generate_commands([command], from_target = True, force_working_directory = self.project.directory)
+
+
+    def generate_makefile(self):
         deps = []
         if self.build.dependencies:
             for dep in self.build.dependencies:
                 for target in dep.targets:
-                    deps.append(
-                        path.relative(
-                            target.path(dep.resolved_build),
-                            start = self.build.directory
-                        )
-                    )
+                    deps.append(target.relative_path(self.build.directory))
         makefile_content = MAKEFILE_TEMPLATE % {
             'tup_config_dir': path.absolute(self.project.directory, '.tup'),
             'tup_bin': self.tup_bin,
             'root_dir': path.absolute(self.project.directory),
             'project_config_dir': path.absolute(self.project.config_directory),
-            'dependencies': ' '.join(deps)
+            'dependencies': ' '.join(deps),
+            'build_dir': path.relative(self.build.directory, start = self.project.directory)
         }
 
         cmd_str = lambda *cmd: ' '.join(map(pipes.quote, cmd))
