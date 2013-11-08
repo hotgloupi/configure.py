@@ -115,7 +115,7 @@ class Library:
         dir_ = self.env.get(singular.upper())
         dirs += dir_ is not None and [dir_] or []
         dirs += self.env.get(plural.upper(), type=list)
-        return dirs
+        return tools.unique(path.clean(d) for d in dirs)
 
 
     def _env_prefixes(self):
