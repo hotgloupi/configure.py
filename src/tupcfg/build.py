@@ -167,42 +167,64 @@ class Build:
             )
         return self.__make_program
 
-    def generate_commands(self, commands):
-        path = commands[0].path
-        assert all(cmd.path == path for cmd in commands)
+    def generate_commands(self,
+                          commands,
+                          force_working_directory = None,
+                          from_target = False):
+        cmd_path = commands[0].path
+        assert all(cmd.path == cmd_path for cmd in commands)
+
         script = "#!%s\n" % sys.executable
         script += '\n# -*- encoding: utf-8 -*-'
         script += '\nimport subprocess, sys, os'
+
+        script += '\nos_env = {'
+        for item in os.environ.items():
+            script += '\n\t"""%s""": """%s""",' % item
+        script += '\n}'
+
+
         for cmd in commands:
-            if not os.path.exists(cmd.working_directory):
-                raise Exception("Command working directory %s does not exists" % cmd.working_directory)
-            args = []
-            for el in cmd.command:
-                args.append('"""%s"""' % el)
-            env = []
-            for item in cmd.env.items():
-                env.append('"""%s""": """%s"""' % item)
             script += '\nenv = {}'
-            script += '\nenv.update(os.environ)'
-            script += '\nenv.update({\n\t%s\n})' % ',\n\t'.join(env)
-            env.append('"PATH": os.environ["PATH"]')
-            script += '\nprint("""%s %s""")' % (cmd.action, cmd.target.relative_path(cmd.working_directory))
-            script += '\nif os.environ.get("TUPCFG_DEBUG"):print("""%s""")' % ' '.join(cmd.command)
-            script += '\nsys.exit(subprocess.call(\n[\n\t%s\n],\ncwd = """%s""",\nenv = env))' % (
-                ',\n\t'.join(args),
-                cmd.working_directory,
-            )
+            script += '\nenv.update(os_env)'
+            script += '\nenv.update({'
+            for item in cmd.env.items():
+                script += '\n\t"""%s""": """%s""",' % item
+            script += '\n})'
+
+            if force_working_directory is None:
+                working_directory = cmd.working_directory
+            else:
+                working_directory = force_working_directory
+
+            if not path.exists(working_directory):
+                raise Exception("Command working directory %s does not exists" % working_directory)
+            args = []
+            for el in cmd.relative_command(working_directory):
+                args.append('"""%s"""' % el)
+            script += '\nprint("""%s %s""")' % (cmd.action, cmd.target.relative_path(working_directory))
+            script += '\nif os.environ.get("TUPCFG_DEBUG") or True:print("""%s""")' % ' '.join(cmd.command)
+            script += '\nsys.exit('
+            script += '\n\tsubprocess.call('
+            script += '\n\t\t[\n\t\t\t%s\n\t\t],' % ',\n\t\t\t'.join(args)
+            if from_target:
+                script += '\n\t\tcwd = """%s""",' % path.relative(working_directory, start = cmd.target.dirname)
+            else:
+                script += '\n\t\tcwd = """%s""",' % working_directory
+            script += '\n\t\tenv = env,'
+            script += '\n\t)'
+            script += '\n)'
         script += '\n'
 
 
-        if os.path.exists(path):
-            with open(path, 'rb') as f:
+        if os.path.exists(cmd_path):
+            with open(cmd_path, 'rb') as f:
                 if f.read().decode('utf8') == script:
                     return
             is_new = False
         else:
             is_new = True
-        with open(path, 'wb') as f:
+        with open(cmd_path, 'wb') as f:
             f.write(script.encode('utf8'))
         if is_new:
-            os.chmod(path, 0o744)
+            os.chmod(cmd_path, 0o744)
