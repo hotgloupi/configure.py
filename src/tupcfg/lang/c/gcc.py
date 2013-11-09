@@ -31,7 +31,9 @@ class Compiler(c_compiler.Compiler):
         project.env.project_set('AR', self.ar_binary)
 
     def _get_build_flags(self, kw):
-        flags = []
+        flags = [
+            '-fno-common', # Ensure objects are not shared unless explicitly.
+        ]
         pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
             flags.append('-fPIC')
