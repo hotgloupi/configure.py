@@ -179,8 +179,8 @@ class Build:
         script += '\nimport subprocess, sys, os'
 
         script += '\nos_env = {'
-        for item in os.environ.items():
-            script += '\n\t"""%s""": """%s""",' % item
+        for k, v in sorted(os.environ.items()):
+            script += '\n\t%s: %s,' % (repr(k), repr(v))
         script += '\n}'
 
 
@@ -188,8 +188,8 @@ class Build:
             script += '\nenv = {}'
             script += '\nenv.update(os_env)'
             script += '\nenv.update({'
-            for item in cmd.env.items():
-                script += '\n\t"""%s""": """%s""",' % item
+            for k, v in sorted(cmd.env.items()):
+                script += '\n\t%s: %s,' % (repr(k), repr(v))
             script += '\n})'
 
             if force_working_directory is None:
@@ -201,30 +201,33 @@ class Build:
                 raise Exception("Command working directory %s does not exists" % working_directory)
             args = []
             for el in cmd.relative_command(working_directory):
-                args.append('"""%s"""' % el)
-            script += '\nprint("""%s %s""")' % (cmd.action, cmd.target.relative_path(working_directory))
-            script += '\nif os.environ.get("TUPCFG_DEBUG") or True:print("""%s""")' % ' '.join(cmd.command)
+                args.append(repr(el))
+            script += '\nprint(%s, %s)' % (repr(cmd.action), repr(cmd.target.relative_path(working_directory)))
+            script += '\nif os.environ.get("TUPCFG_DEBUG") or True:print(%s)' % ', '.join(repr(e) for e in cmd.command)
             script += '\nsys.exit('
             script += '\n\tsubprocess.call('
             script += '\n\t\t[\n\t\t\t%s\n\t\t],' % ',\n\t\t\t'.join(args)
             if from_target:
-                script += '\n\t\tcwd = """%s""",' % path.relative(working_directory, start = cmd.target.dirname)
+                script += '\n\t\tcwd = %s,' % repr(path.relative(working_directory, start = cmd.target.dirname))
             else:
-                script += '\n\t\tcwd = """%s""",' % working_directory
+                script += '\n\t\tcwd = %s,' % repr(working_directory)
             script += '\n\t\tenv = env,'
             script += '\n\t)'
             script += '\n)'
         script += '\n'
-
 
         if os.path.exists(cmd_path):
             with open(cmd_path, 'rb') as f:
                 if f.read().decode('utf8') == script:
                     return
             is_new = False
+            tools.status("Overriding command", cmd_path)
         else:
             is_new = True
+            tools.status("Creating command", cmd_path)
         with open(cmd_path, 'wb') as f:
             f.write(script.encode('utf8'))
         if is_new:
             os.chmod(cmd_path, 0o744)
+
+
