@@ -61,7 +61,7 @@ class _Dependency(Dependency):
         if platform.IS_MACOSX:
             # on macosx SDL does compile with the default compiler
             return 'gcc'
-        return self.compiler.binary,
+        return self.compiler.binary
 
     @property
     def targets(self):
@@ -88,12 +88,14 @@ class SDLDependency(_Dependency):
             action = "Configure %s" % self.name,
             target = Target(self.build, self.build_path('build/Makefile')),
             command = [
+                'sh',
                 configure_script,
                 '--prefix', self.absolute_build_path('install'),
             ],
             working_directory = self.build_path('build'),
             env = {
                 'CC': self.compiler_binary,
+                'MAKE': self.build.make_program,
             },
         ).target
         install_target = Command(
@@ -147,17 +149,21 @@ class SDLImageDependency(_Dependency):
             action = "Configure %s" % self.name,
             target = Target(self.build, self.build_path('build/Makefile')),
             command = [
+                'sh',
                 configure_script,
                 '--prefix', self.absolute_build_path('install'),
                 '--with-sdl-prefix=%s' % self.__sdl.absolute_install_directory,
                 '--disable-sdltest',
                 '--disable-webp',
+                '--enable-fast-install',
+                '--disable-dependency-tracking',
+                '--enable-silent-rules',
+                '--with-pic',
             ],
             working_directory = self.build_path('build'),
             env = {
-                'CC': self.compiler_binary,
-                # on windows, passing MAKE env var generate errorneous makefiles...
-                #'MAKE': path.basename(self.compiler.build.make_program),
+                #'CC': 'gcc',# self.compiler_binary,
+                #'MAKE': 'make' #self.compiler.build.make_program,
             },
             inputs = self.__sdl.targets,
         ).target
