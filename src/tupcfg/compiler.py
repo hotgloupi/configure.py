@@ -64,7 +64,6 @@ class Compiler:
         ('hidden_visibility', True),
         ('additional_link_flags', {}),
         ('recursive_linking', not platform.IS_MACOSX),
-        ('generate_source_dependencies_for_makefile', False),
         ('stdlib', True),
         ('static_libstd', False),
         ('libraries', []),
@@ -131,8 +130,7 @@ class Compiler:
 
     def build_object(self, src, **kw):
         """Create a `Target` to build an object from source using @a
-        BuildObject command. It also generate the associated dependencies of
-        that source file if any (like makefile includes).
+        BuildObject command.
 
         Returns the object target.
         """
@@ -140,20 +138,6 @@ class Compiler:
         assert isinstance(src, Node)
         target = Target(build, src.relative_path() + '.' + self.object_extension)
         command = self._build_object_cmd(target, src, **kw)
-
-        if self.attr('generate_source_dependencies_for_makefile', kw):
-            mktarget = Target(
-                build,
-                src.relative_path() + '.' + self.object_extension + '.depends.mk',
-            )
-            mkcmd = self._build_object_dependencies_cmd(
-                mktarget,
-                target,
-                src,
-                **kw
-            )
-            assert isinstance(mkcmd, Command)
-            target.dependencies.append(mktarget)
         return target
 
     def _build_object_cmd(self, target, sources, **kw):
