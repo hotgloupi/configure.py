@@ -20,7 +20,7 @@ class Compiler(c_compiler.Compiler):
     }
 
     __warnings_map = {
-        'unused_typedefs': 'unused-local-typedefs',
+        'unused-typedefs': 'unused-local-typedefs',
     }
 
     Library = library.Library

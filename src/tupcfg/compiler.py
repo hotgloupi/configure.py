@@ -43,7 +43,9 @@ class Compiler:
     Library = None
 
     supported_warnings = [
-        'unused_typedefs',
+        'unused-typedefs',
+        'unknown-pragmas',
+        'unused-but-set-parameters',
     ]
 
     # Compiler attributes and their default value. All of those attributes can
@@ -70,7 +72,7 @@ class Compiler:
         ('library_directories', []),
         ('precompiled_headers', []),
         ('force_includes', []),
-        ('disabled_warnings', ['unused_typedefs',]),
+        ('disabled_warnings', ['unused-typedefs',]),
     ]
 
     def __init__(self, project, build, **kw):
