@@ -5,7 +5,7 @@ from . import path as PATH
 
 class Target(Node):
 
-    __slots__ = ()
+    #__slots__ = ()
 
     def __init__(self, build, path):
         from .build import Build

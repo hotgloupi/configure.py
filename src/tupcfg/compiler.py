@@ -189,6 +189,7 @@ class Compiler:
         command = self._link_library_cmd(target, objects, shared = shared, **kw)
         assert isinstance(command, Command)
         assert command.target is target
+        target.shared = shared
         return target
 
 
