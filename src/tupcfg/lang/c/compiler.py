@@ -12,6 +12,10 @@ class Compiler(tupcfg.compiler.Compiler):
 
     Source = CSource
 
+    attributes = [
+        ('allow_unresolved_symbols', False),
+    ] + tupcfg.compiler.Compiler.attributes
+
     def __init__(self, project, build, **kw):
         kw.setdefault('lang', 'c')
         super().__init__(project, build, **kw)
