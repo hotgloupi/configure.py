@@ -25,6 +25,7 @@ if __name__ == '__main__':
 from .command import Command
 from .source import Source
 from .target import Target
+from .node import Node
 
 from . import path
 
@@ -102,14 +103,14 @@ class Filesystem:
     def copy(self, src, dest = None, dest_dir = None):
         """
         """
+        if not isinstance(src, Node):
+            src = Source(self.build, path.absolute(src))
+
         if dest is None:
             if dest_dir is not None:
                 dest = path.join(dest_dir, src.basename)
             else:
-                dest = src
-
-        if not isinstance(src, Target):
-            src = Source(self.build, src)
+                dest = src.relative_path()
 
         target = Target(self.build, dest)
         return Command(
