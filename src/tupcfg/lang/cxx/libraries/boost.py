@@ -362,25 +362,28 @@ class BoostDependency(Dependency):
             target.dependencies.insert(0, dep)
         return target
 
+    def component_library(self, component):
+        return Library(
+            self.name + '-' + component,
+            self.compiler,
+            shared = self.component_shared(component),
+            search_binary_files = False,
+            include_directories = [
+                #self.build_path('install', 'include', abs = True)
+                self.include_directory
+            ],
+            directories = [self.absolute_build_path('install/lib')],
+            files = [self.component_library_path(component)],
+            save_env_vars = False,
+        )
+
     @property
     def libraries(self):
         if self.__libraries is not None:
             return self.__libraries
         names = (name for name in self.component_names if not self.is_header_only(name))
         self.__libraries = [
-            Library(
-                self.name + '-' + component,
-                self.compiler,
-                shared = self.component_shared(component),
-                search_binary_files = False,
-                include_directories = [
-                    #self.build_path('install', 'include', abs = True)
-                    self.include_directory
-                ],
-                directories = [self.absolute_build_path('install/lib')],
-                files = [self.component_library_path(component)],
-                save_env_vars = False,
-            ) for component in names
+            self.component_library(component) for component in names
         ]
         return self.__libraries
     #@property
