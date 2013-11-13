@@ -1,6 +1,5 @@
 #!/bin/sh
 __SHELL_PROTECT=""" "
-
 SCRIPT="$0"
 PYTHON=`which python3`
 
@@ -14,6 +13,8 @@ then
 	echo "Cannot find python executable"
 	exit 1
 fi
+
+export TUPCFG_ROOT_DIR="`dirname $SCRIPT`"
 
 "$PYTHON" "$0" "$@"
 
@@ -101,18 +102,30 @@ def cmd(cmd, stdin = b'', cwd = None, env=None):
 
 DEBUG = True
 VERBOSE = True
-ROOT_DIR = cleanpath(os.path.dirname(__file__))
+ROOT_DIR = None
 HOME_URL = "http://hotgloupi.fr/tupcfg.html"
 TUP_HOME_URL = "http://gittup.org"
 PROJECT_CONFIG_DIR_NAME = ".config"
-PROJECT_CONFIG_DIR = cleanjoin(ROOT_DIR, PROJECT_CONFIG_DIR_NAME)
+PROJECT_CONFIG_DIR = None
 PROJECT_CONFIG_FILENAME = "project.py"
-TUP_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tup')
+TUP_INSTALL_DIR = None
 TUP_GIT_URL = "git://github.com/gittup/tup.git"
 TUP_WINDOWS_URL = "http://gittup.org/tup/win32/tup-latest.zip"
-TUPCFG_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tupcfg-install')
+TUPCFG_INSTALL_DIR = None
 TUPCFG_GIT_URL = "git://github.com/hotgloupi/tupcfg.git"
 TUPCFG_GENERATORS = ['Tup', 'Makefile']
+
+
+def reset_root_dir(root):
+    global ROOT_DIR, PROJECT_CONFIG_DIR, TUP_INSTALL_DIR, TUPCFG_INSTALL_DIR
+    ROOT_DIR = cleanpath(root)
+    PROJECT_CONFIG_DIR = cleanjoin(ROOT_DIR, PROJECT_CONFIG_DIR_NAME)
+    TUP_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tup')
+    TUPCFG_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tupcfg-install')
+reset_root_dir(
+    os.environ.get("TUPCFG_ROOT_DIR", os.path.dirname(__file__))
+)
+
 
 def self_install(args):
     status("Installing tupcfg in", TUPCFG_INSTALL_DIR)
@@ -286,6 +299,9 @@ def parse_args():
     parser.add_argument('--generator', '-G', default = None,
                         help = "Generate build rules for another build system",
                        choices = TUPCFG_GENERATORS)
+    parser.add_argument('--root-dir', help = "Root project directory",
+                        action = 'store',
+                        default = ROOT_DIR)
 
     return parser, parser.parse_args()
 
@@ -323,13 +339,15 @@ def main():
 
     DEBUG = args.debug
     VERBOSE = args.verbose
+    reset_root_dir(args.root_dir)
 
     if DEBUG:
+        status("root directory set to", ROOT_DIR)
         cgitb.enable(format = 'text')
 
-    from os.path import exists, join
 
-    sys.path.insert(0, os.path.join(PROJECT_CONFIG_DIR,'tupcfg/src'))
+    from os.path import exists, join
+    sys.path.insert(0, join(PROJECT_CONFIG_DIR,'tupcfg/src'))
     sys.path.insert(0, PROJECT_CONFIG_DIR)
 
     have_tupcfg = False
