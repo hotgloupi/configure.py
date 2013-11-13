@@ -86,7 +86,7 @@ class Tup(Generator):
         write(":")
         for input in command.target.dependencies:
             write('\t', input.relative_path(dir))
-        write("|> ^c", command.action, target.basename, "^")
+        write("|> ^", command.action, target.basename, "^")
         write("%s -B %s" % (sys.executable, command.basename))
         write("|>", ' '.join(
             output.relative_path(dir)
