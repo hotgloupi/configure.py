@@ -356,6 +356,10 @@ class BoostDependency(Dependency):
                     name.upper(),
                     self.component_shared(name) and 'DYN' or 'STATIC'
                 ),
+                'BOOST_%s_BUILD_%s' % (
+                    name.upper(),
+                    self.component_shared(name) and 'DLL' or 'LIB'
+                ),
             ],
         )
         for dep in dependencies:
