@@ -14,7 +14,7 @@ MAKEFILE_TEMPLATE = """
 .PHONY: all monitor
 
 all: %(tup_config_dir)s %(dependencies)s
-	@sh -c 'cd %(root_dir)s && %(tup_bin)s upd %(build_dir)s'
+	@sh -c "cd %(root_dir)s && %(tup_bin)s upd %(build_dir)s" -j$(NUMJOBS)
 
 %(tup_config_dir)s:
 	@sh -c 'cd %(root_dir)s && %(tup_bin)s init'
