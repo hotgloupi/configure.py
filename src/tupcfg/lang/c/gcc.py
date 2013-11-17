@@ -21,6 +21,9 @@ class Compiler(c_compiler.Compiler):
 
     __warnings_map = {
         'unused-typedefs': 'unused-local-typedefs',
+        'unknown-pragmas': 'unknown-pragmas',
+        'unused-but-set-parameters': 'unused-but-set-parameters',
+        'return-type': 'return-type',
     }
 
     Library = library.Library

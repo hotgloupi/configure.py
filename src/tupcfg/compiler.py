@@ -46,6 +46,7 @@ class Compiler:
         'unused-typedefs',
         'unknown-pragmas',
         'unused-but-set-parameters',
+        'return-type',
     ]
 
     # Compiler attributes and their default value. All of those attributes can
