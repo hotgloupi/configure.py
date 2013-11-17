@@ -50,6 +50,10 @@ class Compiler(c_compiler.Compiler):
         for warning in self.disabled_warnings:
             flags.append('-Wno-' + self.__warnings_map[warning])
 
+        forbidden_warnings = self.list_attr('forbidden_warnings', kw)
+        for warning in self.forbidden_warnings:
+            flags.append('-Werror-' + self.__warnings_map[warning])
+
         if self.attr('use_build_type_flags', kw):
             if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
                 flags.append('-g3')

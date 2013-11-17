@@ -73,6 +73,7 @@ class Compiler:
         ('precompiled_headers', []),
         ('force_includes', []),
         ('disabled_warnings', ['unused-typedefs',]),
+        ('forbidden_warnings', [])
     ]
 
     def __init__(self, project, build, **kw):
@@ -97,7 +98,10 @@ class Compiler:
 
         for warning in self.disabled_warnings:
             if warning not in self.supported_warnings:
-                tools.warning("Unknown warning name:", warning)
+                tools.warning("Unknown disabled warning '%s'" % warning)
+        for warning in self.forbidden_warnings:
+            if warning not in self.supported_warnings:
+                tools.warning("Unknown forbidden warning '%s'" % warning)
 
 
     @classmethod
