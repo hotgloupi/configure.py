@@ -170,7 +170,8 @@ class Build:
     def generate_commands(self,
                           commands,
                           force_working_directory = None,
-                          from_target = False):
+                          from_target = False,
+                          os_env = ('PATH',)):
         cmd_path = commands[0].path
         assert all(cmd.path == cmd_path for cmd in commands)
 
@@ -179,7 +180,7 @@ class Build:
         script += '\nimport subprocess, sys, os'
 
         script += '\nos_env = {'
-        for k, v in sorted(os.environ.items()):
+        for k, v in sorted((k, os.environ.get(k)) for k in os_env):
             script += '\n\t%s: %s,' % (repr(k), repr(v))
         script += '\n}'
 
@@ -221,10 +222,16 @@ class Build:
                 if f.read().decode('utf8') == script:
                     return
             is_new = False
-            tools.status("Overriding command", cmd_path)
+            tools.status(
+                "Update command",
+                path.relative(cmd_path, start = self.project.directory)
+            )
         else:
             is_new = True
-            tools.status("Creating command", cmd_path)
+            tools.status(
+                "Create command",
+                path.relative(cmd_path, start = self.project.directory)
+            )
         with open(cmd_path, 'wb') as f:
             f.write(script.encode('utf8'))
         if is_new:
