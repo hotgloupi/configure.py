@@ -115,6 +115,7 @@ class FreetypeDependency(Dependency):
                     defines = ['FT2_BUILD_LIBRARY'],
                     build = self.build,
                     sources = self.__sources,
+                    position_independent_code = True,
                     include_directories = [
                         self.source_path('include'),
                     ]
