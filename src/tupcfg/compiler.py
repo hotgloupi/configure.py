@@ -64,7 +64,7 @@ class Compiler:
         ('use_build_type_flags', True),
         ('hidden_visibility', True),
         ('additional_link_flags', {}),
-        ('recursive_linking', not platform.IS_MACOSX),
+        ('recursive_linking', platform.IS_WINDOWS),
         ('stdlib', True),
         ('static_libstd', False),
         ('libraries', []),
