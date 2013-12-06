@@ -157,13 +157,13 @@ class SDLImageDependency(_Dependency):
                 '--disable-webp',
                 '--enable-fast-install',
                 '--disable-dependency-tracking',
-                '--enable-silent-rules',
+                '--disable-silent-rules',
                 '--with-pic',
             ],
             working_directory = self.build_path('build'),
             env = {
-                #'CC': 'gcc',# self.compiler_binary,
-                #'MAKE': 'make' #self.compiler.build.make_program,
+                'CC': self.compiler_binary,
+                'MAKE': self.compiler.build.make_program,
             },
             inputs = self.__sdl.targets,
         ).target

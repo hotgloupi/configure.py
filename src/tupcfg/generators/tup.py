@@ -48,8 +48,12 @@ class Tup(Generator):
         self.targets = {}
         self.directories = {}
         self.commands = {}
+        self.seen = set()
 
     def __call__(self, node):
+        if node in self.seen:
+            return False
+        self.seen.add(node)
         if isinstance(node, Target):
             if node.path not in self.targets:
                 self.targets[node.path] = node
@@ -86,7 +90,7 @@ class Tup(Generator):
         write(":")
         for input in command.target.dependencies:
             write('\t', input.relative_path(dir))
-        write("|> ^", command.action, target.basename, "^")
+        write("|> ^o", command.action, target.basename, "^")
         write("%s -B %s" % (sys.executable, command.basename))
         write("|>", ' '.join(
             output.relative_path(dir)

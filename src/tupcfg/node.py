@@ -61,8 +61,8 @@ class Node:
     #    return '.'.join(self.basename.split('.')[:-1])
 
     def visit(self, visitor):
-        tools.debug('visiting', self)
-        visitor(self)
+        if visitor(self) is False:
+            return
         tools.debug('visiting', self, 'dependencies', self.dependencies)
         for dep in self.dependencies:
             dep.visit(visitor)
