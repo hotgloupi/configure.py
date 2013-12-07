@@ -14,6 +14,7 @@ class Command(Source):
         '__action',
         '__command',
         '__working_directory',
+        '__os_env',
         '__env',
         '__outputs',
     )
@@ -25,6 +26,7 @@ class Command(Source):
                  inputs = tuple(),
                  additional_outputs = tuple(),
                  working_directory = None,
+                 os_env = [],
                  env = {}):
         self.__action = action
         self.__command = list(self.__make_flat(command))
@@ -34,6 +36,9 @@ class Command(Source):
         elif not PATH.is_absolute(working_directory):
             working_directory = PATH.absolute(target.build.directory, working_directory)
         self.__working_directory = PATH.absolute(working_directory)
+
+        assert isinstance(os_env, list)
+        self.__os_env = os_env
 
         assert isinstance(env, dict)
         self.__env = env
@@ -84,6 +89,10 @@ class Command(Source):
     @property
     def target(self):
         return self.__outputs[0]
+
+    @property
+    def os_env(self):
+        return self.__os_env
 
     @property
     def env(self):

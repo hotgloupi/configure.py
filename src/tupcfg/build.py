@@ -188,6 +188,12 @@ class Build:
         for cmd in commands:
             script += '\nenv = {}'
             script += '\nenv.update(os_env)'
+            script += '\ncmd_os_env = {'
+            for k, v in sorted((k, os.environ.get(k)) for k in cmd.os_env):
+                script += '\n\t%s: %s,' % (repr(k), repr(v))
+            script += '\n}'
+            script += '\nenv.update(cmd_os_env)'
+
             script += '\nenv.update({'
             for k, v in sorted(cmd.env.items()):
                 script += '\n\t%s: %s,' % (repr(k), repr(v))

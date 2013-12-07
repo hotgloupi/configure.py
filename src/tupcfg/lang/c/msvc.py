@@ -81,6 +81,7 @@ class Compiler(c_compiler.Compiler):
             ],
             target = target,
             inputs = [source],
+            os_env = ['INCLUDE', 'SYSTEMROOT', ],
         )
 
     def _link_flags(self, kw):
