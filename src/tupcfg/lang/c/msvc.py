@@ -61,7 +61,6 @@ class Compiler(c_compiler.Compiler):
                 dir_,
             ])
         for define in self.attr('defines', kw):
-            print("define", define)
             if isinstance(define, str):
                 flags.extend([self._flag('D'), define])
             else:
@@ -110,7 +109,6 @@ class Compiler(c_compiler.Compiler):
                 shell_formatter = lambda p: [self._flag('LIBPATH:') + p],
             ) for dir_ in dirs
         )
-        print(files)
         flags.extend(
             Node(
                 self.attr('build', kw),

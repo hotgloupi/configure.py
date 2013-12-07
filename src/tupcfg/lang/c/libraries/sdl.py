@@ -142,8 +142,6 @@ class SDLImageDependency(_Dependency):
         self.__libraries = None
 
     def _targets(self):
-        if platform.IS_WINDOWS and tools.which('make') is None:
-            raise Exception("SDL_image cannot install properly without a make program available :/")
         configure_script = self.absolute_source_path('configure')
         configure_target = Command(
             action = "Configure %s" % self.name,
