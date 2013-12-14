@@ -13,6 +13,41 @@ class Compiler(c_compiler.Compiler):
     link_binary_name = 'link.exe'
     object_extension = 'obj'
 
+    attributes = c_compiler.Compiler.attributes + [
+        ('multithread', True),
+    ]
+
+    os_env = [
+        'COMSPEC',
+        'DEVENVDIR',
+        'EXTENSIONSDKDIR',
+        'FRAMEWORK40VERSION',
+        'FRAMEWORKDIR32',
+        'FRAMEWORKDIR',
+        'FRAMEWORKVERSION32',
+        'FRAMEWORKVERSION',
+        'FSHARPINSTALLDIR',
+        'INCLUDE',
+        'LIB',
+        'LIBPATH',
+        'PSMODULEPATH',
+        'VCINSTALLDIR',
+        'VISUALSTUDIOVERSION',
+        'VS110COMNTOOLS',
+        'VS120COMNTOOLS',
+        'VSINSTALLDIR',
+        'PATH',
+        'SYSTEMDRIVE',
+        'SYSTEMROOT',
+        'TEMP',
+        'TMP',
+        'WINDIR',
+        'WINDOWSSDKDIR',
+        'WINDOWSSDK_EXECUTABLEPATH_X64',
+        'WINDOWSSDK_EXECUTABLEPATH_X86',
+    ]
+
+
     def __init__(self, project, build, **kw):
         kw.setdefault('lang', 'c')
         super(Compiler, self).__init__(project, build, **kw)

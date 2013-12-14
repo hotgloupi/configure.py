@@ -53,6 +53,9 @@ class Compiler:
     # Library class for this compiler / language
     Library = None
 
+    # Needed environment variables.
+    os_env = ['PATH']
+
     supported_warnings = [
         'unused-typedefs',
         'unknown-pragmas',
