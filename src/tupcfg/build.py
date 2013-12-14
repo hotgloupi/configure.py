@@ -73,6 +73,7 @@ class Build:
         cls = getattr(generators, generator_name)
         self.generator = cls(project = project, build = self)
         self.__make_program = None
+        self.__sh_program = None
         self.__target_commands = {}
 
     @property
@@ -166,6 +167,17 @@ class Build:
                 'MAKE'
             )
         return self.__make_program
+
+    @property
+    def sh_program(self):
+        if self.__sh_program is None:
+            self.__sh_program = tools.find_binary(
+                'sh',
+                self.project.env,
+                'SH'
+            )
+        return self.__sh_program
+
 
     def generate_commands(self,
                           commands,
