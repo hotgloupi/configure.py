@@ -218,6 +218,14 @@ class Compiler(c_compiler.Compiler):
                 '-o', target,
                 self._get_link_flags(kw)
             ]
+            if platform.IS_WINDOWS and self.attr('build_import_library', kw):
+                implib = Target(
+                    target.build,
+                    target.relative_path() + '.a',
+                    shell_formatter = lambda p: ['-Wl,--out-implib,%s' % p],
+                )
+                shell.append(implib)
+                additional_outputs.append(implib)
         else:
             shell = [
                 self.ar_binary,

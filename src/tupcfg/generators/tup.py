@@ -72,8 +72,9 @@ class Tup(Generator):
             with open(tupfile, 'w') as tupfile:
                 for target in targets:
                     self.write_rule(dir, tupfile, target)
-        for tupfile in tools.find_files(name = 'Tupfile',
-                                        working_directory = self.build.directory):
+        for tupfile in tools.find_files(
+            name = 'Tupfile',
+            working_directory = self.build.directory):
             tupfile = path.absolute(tupfile)
             if tupfile not in tupfiles:
                 tools.debug("Removing obsolete Tupfile", tupfile)
@@ -81,15 +82,20 @@ class Tup(Generator):
         self.generate_makefile()
 
     def write_rule(self, dir, tupfile, target):
-        tools.debug("Add Tup rule for %s" % target)
         def write(*args):
             args = args + ('\\',)
             print(*args, file = tupfile)
 
-        command = self.commands[target.path]
+        command = self.commands.get(target.path)
+        if command is None:
+            return
+
+        tools.debug("Add Tup rule for %s" % target)
         write(":")
         for input in command.target.dependencies:
-            write('\t', input.relative_path(dir))
+            if input.path.startswith(self.project.directory):
+                write('\t', input.relative_path(dir))
+
         write("|> ^o", command.action, target.basename, "^")
         write("%s -B %s" % (sys.executable, command.basename))
         write("|>", ' '.join(
@@ -97,7 +103,7 @@ class Tup(Generator):
             for output in command.outputs
         ))
         tupfile.write('\n')
-        self.build.generate_commands([command], from_target = True, force_working_directory = self.project.directory)
+        self.build.generate_commands([command])
 
 
     def generate_makefile(self):

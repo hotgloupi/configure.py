@@ -2,6 +2,8 @@
 
 from tupcfg import Source, Target, Node
 
+from . import library
+
 import tupcfg.compiler
 
 class CSource(Source):
@@ -11,9 +13,11 @@ class Compiler(tupcfg.compiler.Compiler):
     binary_env_varname = 'CC'
 
     Source = CSource
+    Library = library.Library
 
     attributes = [
         ('allow_unresolved_symbols', False),
+        ('build_import_library', False),
     ] + tupcfg.compiler.Compiler.attributes
 
     def __init__(self, project, build, **kw):
