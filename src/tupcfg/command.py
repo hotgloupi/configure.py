@@ -45,8 +45,8 @@ class Command(Source):
 
         assert isinstance(target, Target)
         self.__outputs = (target,) + tuple(additional_outputs)
-        target.dependencies.extend(inputs)
 
+        target.dependencies.extend(inputs)
         seen = set(el.path for el in target.dependencies)
         seen.update(el.path for el in self.__outputs)
         target.dependencies.extend(
@@ -138,4 +138,3 @@ class Command(Source):
                 yield el
             else:
                 raise Exception("Unknown command element: %s" % el)
-
