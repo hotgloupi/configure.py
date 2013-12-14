@@ -200,6 +200,7 @@ class Compiler(c_compiler.Compiler):
 
     def _link_library_cmd(self, target, objects, shared = None, **kw):
         assert isinstance(shared, bool)
+        additional_outputs = []
         if shared:
             name = target.basename
             if platform.IS_MACOSX:
@@ -238,6 +239,7 @@ class Compiler(c_compiler.Compiler):
             command = shell,
             target = target,
             inputs = objects,
+            additional_outputs = additional_outputs,
         )
 
     def __architecture_flag(self, kw):

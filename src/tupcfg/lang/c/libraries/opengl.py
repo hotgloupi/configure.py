@@ -22,7 +22,7 @@ class OpenGLLibrary(Library):
         super().__init__(
             name,
             compiler,
-            shared = kw.get('shared', True),
+            shared = kw.pop('shared', True),
             binary_file_names = binary_file_names,
             **kw
         )

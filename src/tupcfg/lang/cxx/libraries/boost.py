@@ -183,7 +183,7 @@ class BoostDependency(Dependency):
                  python: "Specify the python library" = None,
                  **kw: "specify component options with <COMPONENT>-<OPTION>"
                 ):
-        if cxx_compiler.lang != 'cxx':
+        if cxx_compiler.lang != 'c++':
             raise Exception("Boost need a C++ compiler (got %s)" % cxx_compiler)
         build_config = build_config + [
             cxx_compiler.name,

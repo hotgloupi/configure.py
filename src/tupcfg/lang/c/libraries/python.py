@@ -17,17 +17,17 @@ class PythonLibrary(Library):
                  **kw):
         include_dir = var('INCLUDEPY')
         assert include_dir is not None
-        prefix = var('prefix')
+        prefix = path.clean(var('prefix'))
         assert prefix is not None
 
         directories = []
         if var('LIBPL'):
-            directories.append(var('LIBPL'))
+            directories.append(path.clean(var('LIBPL')))
         if var('base'):
             directories.append(path.join(var('base'), 'libs'))
             directories.append(path.join(var('base'), 'DLLs'))
         self.version = (var('py_version')[0], var('py_version')[2])
-        name_suffixes = ['', var('py_version')[0]]
+        name_suffixes = [''.join(self.version), '']
         for k in ['LDVERSION', 'py_version_nodot', 'py_version_short']:
             if var(k):
                 name_suffixes.append(var(k))

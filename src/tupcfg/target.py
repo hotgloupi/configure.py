@@ -7,11 +7,17 @@ class Target(Node):
 
     #__slots__ = ()
 
-    def __init__(self, build, path):
+    def __init__(self, build, path, dependencies = None, shell_formatter = None):
         from .build import Build
         assert isinstance(build, Build)
         assert not PATH.is_absolute(path)
-        super().__init__(build, PATH.absolute(build.directory, path))
+        super().__init__(
+            build = build,
+            path = PATH.absolute(build.directory, path),
+            dependencies = dependencies,
+            is_directory = False,
+            shell_formatter = shell_formatter,
+        )
         build.add_target(self)
 
     @property

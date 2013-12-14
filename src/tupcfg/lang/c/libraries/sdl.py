@@ -24,6 +24,34 @@ class SDLLibrary(Library):
     def libraries(self):
         return [self] + self.components
 
+from tupcfg.dependency.cmake import CMakeDependency
+
+class SDLDependency(CMakeDependency):
+    def __init__(self,
+                 build,
+                 compiler,
+                 source_directory,
+                 shared = True,
+                 directx = False):
+        super().__init__(
+            build,
+            'SDL',
+            compiler,
+            source_directory,
+            libraries = [
+                {
+                    'name': 'SDL2',
+                    'prefix': compiler.name != 'msvc' and 'lib' or '',
+                    'shared': shared,
+                    'source_include_directories': ['include'],
+                }
+            ],
+            configure_variables = [
+                ('DIRECTX', directx),
+                ('SDL_SHARED', shared),
+                ('SDL_STATIC', not shared),
+            ]
+        )
 
 
 class _Dependency(Dependency):
@@ -68,64 +96,64 @@ class _Dependency(Dependency):
         if self.__targets is None:
             self.__targets = self._targets()
         return self.__targets
-
-class SDLDependency(_Dependency):
-    def __init__(self, build, compiler, source_directory, shared = True):
-        super().__init__(build, "SDL", source_directory)
-        self.shared = shared
-        self.compiler = compiler
-        ext = self.compiler.library_extension(shared)
-        if platform.IS_WINDOWS:
-            prefix = ''
-        else:
-            prefix = 'lib'
-        self.library_filename = '%sSDL2.%s' % (prefix, ext)
-        self.__libraries = None
-
-    def _targets(self):
-        configure_script = self.absolute_source_path('configure')
-        configure_target = Command(
-            action = "Configure %s" % self.name,
-            target = Target(self.build, self.build_path('build/Makefile')),
-            command = [
-                'sh',
-                configure_script,
-                '--prefix', self.absolute_build_path('install'),
-            ],
-            working_directory = self.build_path('build'),
-            env = {
-                'CC': self.compiler_binary,
-                'MAKE': self.build.make_program,
-            },
-        ).target
-        install_target = Command(
-            action = "Install %s" % self.name,
-            target = Target(self.build, self.library_path),
-            command = [self.build.make_program, 'install'],
-            working_directory = self.build_path('build'),
-            inputs = [configure_target]
-        ).target
-        return [install_target]
-
-    @property
-    def libraries(self):
-        if self.__libraries is not None:
-            return self.__libraries
-        self.__libraries =  [
-            Library(
-                self.name,
-                self.compiler,
-                shared = self.shared,
-                search_binary_files = False,
-                include_directories = [
-                    self.absolute_build_path('install/include/SDL2')
-                ],
-                directories = [self.absolute_library_directory],
-                files = [self.absolute_library_path],
-                save_env_vars = False,
-            )
-        ]
-        return self.__libraries
+#
+#class SDLDependency(_Dependency):
+#    def __init__(self, build, compiler, source_directory, shared = True):
+#        super().__init__(build, "SDL", source_directory)
+#        self.shared = shared
+#        self.compiler = compiler
+#        ext = self.compiler.library_extension(shared)
+#        if platform.IS_WINDOWS:
+#            prefix = ''
+#        else:
+#            prefix = 'lib'
+#        self.library_filename = '%sSDL2.%s' % (prefix, ext)
+#        self.__libraries = None
+#
+#    def _targets(self):
+#        configure_script = self.absolute_source_path('configure')
+#        configure_target = Command(
+#            action = "Configure %s" % self.name,
+#            target = Target(self.build, self.build_path('build/Makefile')),
+#            command = [
+#                'sh',
+#                configure_script,
+#                '--prefix', self.absolute_build_path('install'),
+#            ],
+#            working_directory = self.build_path('build'),
+#            env = {
+#                'CC': self.compiler_binary,
+#                'MAKE': self.build.make_program,
+#            },
+#        ).target
+#        install_target = Command(
+#            action = "Install %s" % self.name,
+#            target = Target(self.build, self.library_path),
+#            command = [self.build.make_program, 'install'],
+#            working_directory = self.build_path('build'),
+#            inputs = [configure_target]
+#        ).target
+#        return [install_target]
+#
+#    @property
+#    def libraries(self):
+#        if self.__libraries is not None:
+#            return self.__libraries
+#        self.__libraries =  [
+#            Library(
+#                self.name,
+#                self.compiler,
+#                shared = self.shared,
+#                search_binary_files = False,
+#                include_directories = [
+#                    self.absolute_build_path('install/include/SDL2')
+#                ],
+#                directories = [self.absolute_library_directory],
+#                files = [self.absolute_library_path],
+#                save_env_vars = False,
+#            )
+#        ]
+#        return self.__libraries
 
 class SDLImageDependency(_Dependency):
     def __init__(self, build, compiler, source_directory, sdl, shared = True):
@@ -141,7 +169,46 @@ class SDLImageDependency(_Dependency):
         self.__sdl = sdl
         self.__libraries = None
 
+
+    def _msvc_targets(self):
+        vcproj = self.absolute_source_path('VisualC/SDL_image_VS2013.vcxproj')
+        vcproj_dir = path.dirname(vcproj)
+        def from_vcproj(d):
+            return path.relative(d, start = vcproj_dir)
+
+        out_dir = from_vcproj(self.absolute_library_directory)
+        build_dir = from_vcproj(self.absolute_build_path())
+        sdl_dir = from_vcproj(self.__sdl.libraries[0].directories[0])
+
+        if not path.exists(self.absolute_build_path('build')):
+            import os
+            os.makedirs(self.absolute_build_path('build'))
+        cmd = [
+            'MSBuild.exe',
+            '-v:normal',
+            '-t:clean;build',
+            '-p:%s' % ';'.join([
+                'OutDir=%s/' % out_dir,
+                'BaseIntermediateOutputPath=%s/', # XXX not working !
+                'IntermediateOutputPath=build/',
+                'Configuration=%s' % 'Release',
+                'SDLLibDir=%s' % sdl_dir,
+            ]),
+            vcproj
+        ]
+        install_target = Command(
+            action = "Install %s" % self.name,
+            target = Target(self.build, self.library_path),
+            command = cmd,
+            working_directory = self.build_path('build'),
+            inputs = self.__sdl.targets,
+            os_env = self.compiler.os_env,
+        ).target
+        return [install_target]
+
     def _targets(self):
+        if self.compiler.name == 'msvc':
+            return self._msvc_targets()
         configure_script = self.absolute_source_path('configure')
         configure_target = Command(
             action = "Configure %s" % self.name,
@@ -150,7 +217,7 @@ class SDLImageDependency(_Dependency):
                 'sh',
                 configure_script,
                 '--prefix', self.absolute_build_path('install'),
-                '--with-sdl-prefix=%s' % self.__sdl.absolute_install_directory,
+                '--with-sdl-prefix=%s' % self.__sdl.install_directory,
                 '--disable-sdltest',
                 '--disable-webp',
                 '--enable-fast-install',
@@ -185,7 +252,7 @@ class SDLImageDependency(_Dependency):
                 shared = self.shared,
                 search_binary_files = False,
                 include_directories = [
-                    self.absolute_build_path('install/include/SDL2')
+                    self.absolute_source_path()
                 ],
                 directories = [self.absolute_library_directory],
                 files = [self.absolute_library_path],

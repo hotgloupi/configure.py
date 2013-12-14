@@ -13,7 +13,7 @@ class Compiler(cxx_compiler.Compiler, gcc.Compiler):
     }
 
     def __init__(self, project, build, **kw):
-        kw.setdefault('lang', 'cxx')
+        kw.setdefault('lang', 'c++')
         super().__init__(project, build, **kw)
 
     def _get_build_flags(self, kw):
