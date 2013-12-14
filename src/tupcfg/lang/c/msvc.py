@@ -73,20 +73,33 @@ class Compiler(c_compiler.Compiler):
         return self._flag('Tc')
 
     def _get_build_flags(self, kw):
+        tgt = kw.get('target')
         flags = [
             self._flag('nologo'),   # no print while invoking cl.exe
             self._flag('c'),        # compiles without linking
             self._flag('GL'),
-            #self._flag('MD'),
-            self._flag('MT'),
             #self._flag('Gz'),       #__stdcall convention
             self._flag('Gd'), #__cdecl convention
             #self._flag('Gr'), #__fastcall convention
         ]
+
+        # XXX debug builds not supported
+        if isinstance(tgt, self.LibraryTarget):
+            if tgt.shared:
+                flags.append(self._flag('LD'))
+            flags.append(self._flag('MD'))
+        else:
+            static_std = self.attr('static_libstd', kw)
+            if static_std is not None:
+                if static_std:
+                    flags.append(self._flag('MT'))
+                else:
+                    flags.append(self._flag('MD'))
+
         if self.attr('enable_warnings', kw):
             flags += [
                 self._flag('W3'),   # warning level (0 -> 4)
-                self._flag('WL'),   # Enables one-line diagnostics for error
+                #self._flag('WL'),   # Enables one-line diagnostics for error
                                     # and warning messages when compiling C++
                                     # source code from the command line.
             ]
@@ -95,7 +108,7 @@ class Compiler(c_compiler.Compiler):
                 self._flag('I'),
                 dir_,
             ])
-        for define in self.attr('defines', kw):
+        for define in self.list_attr('defines', kw):
             if isinstance(define, str):
                 flags.extend([self._flag('D'), define])
             else:
@@ -104,37 +117,57 @@ class Compiler(c_compiler.Compiler):
                 flags.append("%s%s=%s" % (self._flag('D'), key, val))
         return flags
 
-    def _build_object_cmd(self, target, source, **kw):
+    def _build_object_cmd(self, object, source, **kw):
+        command = [
+            self.binary,
+            self._get_build_flags(kw),
+            self._lang_flag, source,
+            self._flag('Fo') + object.path,
+        ]
+        build = self.attr('build', kw)
+        if self.attr('generate_debug', kw):
+            command.append(self._flag('Zi'))
+            debug_db = Target(
+                build,
+                object.relative_path(build.directory) + ".pdb",
+                shell_formatter = \
+                    lambda p: [self._flag('Fd') + object.path + ".pdb"]
+            )
+            command.append(debug_db)
         return Command(
             action = kw.get('action', "Build object"),
-            command = [
-                self.binary,
-                self._get_build_flags(kw),
-                self._lang_flag, source,
-                self._flag('Fo') + target.path,
-            ],
-            target = target,
+            target = object,
             inputs = [source],
-            os_env = ['INCLUDE', 'SYSTEMROOT', ],
+            command = command,
+            os_env = self.os_env,
+            additional_outputs = [debug_db]
         )
 
     def _link_flags(self, kw):
         flags = [
             #self._flag('WX'), # Linker warnings are errors
+            self._flag('LTCG'),
         ]
         dirs = []
         files = []
         system_files = []
         for library in self.list_attr('libraries', kw):
             if isinstance(library, Target):
+                f = library.path
+                if f.lower().endswith('.dll'):
+                    f = f[:-4] + '.lib' # XXX quick fix using import lib
+                files.append(f)
+                dirs.append(library.dirname)
                 continue
             dirs.extend(library.directories)
             if library.system:
                 system_files.extend(library.files)
             else:
-                files.extend(
-                    f for f in library.files if not f.endswith('.dll')
-                )
+                for f in library.files:
+                    if f.endswith('.dll'):
+                        f = f[:-4] + '.lib' # XXX quick fix using import lib
+                    files.append(f)
+
         dirs = tools.unique(dirs)
         flags.extend(
             Node(
@@ -160,13 +193,10 @@ class Compiler(c_compiler.Compiler):
         assert isinstance(shared, bool)
         if shared:
             cmd = [
-                self.binary,
+                self.link_binary,
                 self._flag('nologo'),   # no print while invoking cl.exe
-                self._flag('LD'), # dynamic library
+                self._flag('DLL'), # dynamic library
                 objects,
-                self._flag('Fo') + target.path,
-                self._flag('link'),
-                self._link_flags(kw),
             ]
             build = self.attr('build', kw)
             build_dir = build.directory
@@ -195,39 +225,55 @@ class Compiler(c_compiler.Compiler):
         else:
             cmd = [
                 self.lib_binary,
+                self._flag('nologo'),   # no print while invoking cl.exe
                 objects,
-                self._flag('out:') + target.path,
+                self._flag('out:') + target.relative_path(),
                 self._link_flags(kw)
             ]
+            ao = []
         return Command(
             action = "Link %s library" % (shared and "shared" or "static"),
             command = cmd,
             target = target,
             inputs = objects,
+            os_env = self.os_env,
+            additional_outputs= ao
         )
 
     def _link_executable_cmd(self, target, objects, **kw):
+        build = self.attr('build', kw)
+        ao = []
+        cmd = [
+            self.link_binary,
+            self._flag('nologo'),   # no print while invoking cl.exe
+            objects,
+            Node(
+                build,
+                target.path,
+                shell_formatter = lambda p: [self._flag('out:') + p]
+            ),
+            self._flag('subsystem:') + 'console',
+            self._link_flags(kw),
+        ]
+        if self.attr('generate_debug', kw):
+            debug_db = Target(
+                build,
+                target.relative_path(build.directory)[:-3] + 'pdb',
+                shell_formatter = lambda p: [
+                    self._flag('PDB:') + p
+                ]
+            )
+            cmd.extend([
+                self._flag('DEBUG'),
+                debug_db
+            ])
+            ao.append(debug_db)
         return Command(
             action = "Link executable",
-            command = [
-                self.link_binary,
-                self._flag('nologo'),   # no print while invoking cl.exe
-                objects,
-                Node(
-                    self.attr('build', kw),
-                    target.path,
-                    shell_formatter = lambda p: [self._flag('out:') + p]
-                ),
-                #self._flag('link'), # only while using cl.exe
-                self._flag('LTCG'),
-                self._flag('subsystem:') + 'console',
-                self._flag('NODEFAULTLIB:') + 'MSVCRT',
-                #self._flag('NODEFAULTLIB:') + 'LIBCMT',
-                self._link_flags(kw),
-            ],
+            command = cmd,
             target = target,
-            additional_outputs = [
-            ],
+            additional_outputs = ao,
+            os_env = self.os_env,
         )
 
     def __architecture_flag(self, kw):
