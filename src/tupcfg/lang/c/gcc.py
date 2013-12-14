@@ -133,8 +133,8 @@ class Compiler(c_compiler.Compiler):
         link_flags = ['-no-canonical-prefixes']
         if self.attr('allow_unresolved_symbols', kw):
             link_flags.append('-Wl,--allow-shlib-undefined')
-            #link_flags.append('-Wl,--unresolved-symbols=ignore-all')
-            #link_flags.append('-undefined=dynamic_lookup')
+            link_flags.append('-Wl,--unresolved-symbols=ignore-all')
+            link_flags.append('-undefined=dynamic_lookup')
         library_directories = self.library_directories[:]
         pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
