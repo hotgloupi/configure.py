@@ -63,6 +63,13 @@ class Compiler:
         'return-type',
     ]
 
+    # Optimization flags
+    optimize_size = -1
+    dont_optimize = 0
+    optimize = 1
+    optimize_harder = 2
+    optimize_fastest = 3
+
     # Compiler attributes and their default value. All of those attributes can
     # be used in the compiler constructor, through all build commands or
     # accessed later as normal instance attributes. Note that subclasses might
@@ -75,7 +82,8 @@ class Compiler:
         ('target_architecture', platform.ARCHITECTURE),
         ('force_architecture', True),
         ('enable_warnings', True),
-        ('use_build_type_flags', True),
+        ('generate_debug', True),
+        ('optimization', None), # See optimization flags.
         ('hidden_visibility', True),
         ('additional_link_flags', {}),
         ('recursive_linking', platform.IS_WINDOWS),

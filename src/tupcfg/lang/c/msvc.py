@@ -168,6 +168,30 @@ class Compiler(c_compiler.Compiler):
                 self._flag('link'),
                 self._link_flags(kw),
             ]
+            build = self.attr('build', kw)
+            build_dir = build.directory
+            no_ext_filename = target.relative_path(build_dir)[:-3]
+            ao = [
+                Target(build, no_ext_filename + "exp"),
+                Target(build, no_ext_filename + "lib"),
+            ]
+            if self.attr('generate_debug', kw):
+                debug_db = Target(
+                    build,
+                    no_ext_filename + 'pdb',
+                    shell_formatter = lambda p: [
+                        self._flag('PDB:') + p
+                    ]
+                )
+                cmd.extend([
+                    self._flag('DEBUG'),
+                    debug_db
+                ])
+                ao.append(debug_db)
+            cmd.extend([
+                self._flag('out:') + target.relative_path(),
+                self._link_flags(kw),
+            ])
         else:
             cmd = [
                 self.lib_binary,

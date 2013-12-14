@@ -54,11 +54,20 @@ class Compiler(c_compiler.Compiler):
         for warning in self.forbidden_warnings:
             flags.append('-Werror=' + self.__warnings_map[warning])
 
-        if self.attr('use_build_type_flags', kw):
-            if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
-                flags.append('-g3')
-            else:
-                flags.append('-O2')
+        optimization = self.attr('optimization', kw)
+        if optimization is not None:
+            self.flags.append(
+                {
+                    self.optimize_size: '-Os',
+                    self.dont_optimize: '-O0',
+                    self.optimize: '-O1',
+                    self.optimize_harder: '-O2',
+                    self.optimize_fastest: '-O3',
+
+                }[optimization]
+            )
+        if self.attr('generate_debug', kw):
+            flags.append('-g3')
 
         std = self.attr('standard', kw)
         if std:
@@ -138,11 +147,6 @@ class Compiler(c_compiler.Compiler):
             link_flags.append('-headerpad_max_install_names')
         if platform.IS_WINDOWS:
             link_flags.append('--enable-stdcall-fixup')
-        if self.attr('use_build_type_flags', kw):
-            if self.project.env['BUILD_TYPE'].upper() == 'DEBUG':
-                link_flags.append('-g3')
-            else:
-                link_flags.append('-O2')
 
         if self.attr('recursive_linking', kw):
             link_flags.append('-Wl,-(')
