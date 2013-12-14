@@ -146,9 +146,16 @@ class Makefile(Generator):
         #######################################################################
         # Dump commands
         for p, commands in self.commands.items():
-            makefile += '\n\n%s:' % p
-            commands = tools.unique(commands)
+            outputs = tools.unique(
+                map(
+                    lambda n: n.relative_path(),
+                    sum((cmd.outputs for cmd in commands), ())
+                )
+            )
+            assert len(outputs)
+            makefile += '\n\n%s:' % outputs[0]
             prev = len(p) + 1
+            commands = tools.unique(commands)
             for cmd in commands:
                 #makefile += (79 - prev) * ' ' + '\\\n  %s' % cmd.relative_path
                 #prev = len(cmd.relative_path) + 2
@@ -158,6 +165,10 @@ class Makefile(Generator):
                     prev = len(p) + 2
             makefile += '\n\t@$(PYTHON) %s' % cmd_str(commands[0].relative_path(self.build.directory))
             self.build.generate_commands(commands)
+
+            if len(outputs) > 1:
+                for o in outputs[1:]:
+                    makefile += "\n\n%s: %s" % (o, outputs[0])
 
 
         makefile += '\n\n'
