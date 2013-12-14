@@ -87,7 +87,7 @@ class Compiler(c_compiler.Compiler):
 
         return flags
 
-    def _build_object_cmd(self, target, source, **kw):
+    def _build_object_cmd(self, object, source, **kw):
         return Command(
             action = kw.get('action', "Build object"),
             command = [
@@ -95,9 +95,9 @@ class Compiler(c_compiler.Compiler):
                 self.__architecture_flag(kw),
                 self._get_build_flags(kw),
                 '-c', source,
-                '-o', target,
+                '-o', object,
             ],
-            target = target,
+            target = object,
             inputs = [source],
         )
 
