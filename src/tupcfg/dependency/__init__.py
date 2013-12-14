@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-from . import path as PATH
+from tupcfg import path as PATH
 
 class Dependency:
     """Represent a project or a build dependency.
@@ -23,7 +23,7 @@ class Dependency:
         dependencies: Dependencies
         build_config: strings that make this build specific
         """
-        from .build import Build
+        from tupcfg.build import Build
         assert isinstance(build, Build)
         self.build = build
 
