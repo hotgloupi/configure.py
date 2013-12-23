@@ -329,10 +329,10 @@ class Library:
                     "/Library/Frameworks",
                 ])
         elif platform.IS_LINUX:
-            libs.append(
+            libs.extend(
                 {
-                    '32bit': '/usr/lib/i386-linux-gnu',
-                    '64bit': '/usr/lib/x86_64-linux-gnu',
+                    '32bit': ['/lib/i386-linux-gnu', '/usr/lib/i386-linux-gnu'],
+                    '64bit': ['/lib/x86_64-linux-gnu', '/usr/lib/x86_64-linux-gnu'],
                 }[self.compiler.target_architecture]
             )
         libs.append('/usr/lib')
