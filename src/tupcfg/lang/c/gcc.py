@@ -14,6 +14,12 @@ class Compiler(c_compiler.Compiler):
     name = 'gcc'
     binary_name = 'gcc'
     ar_binary_name = 'ar'
+    as_binary_name = 'as'
+
+    # deduced from binary name
+    binary = None
+    ar_binary = None
+    as_binary = None
 
     __standards_map = {
         'c99': 'c99',
@@ -31,7 +37,10 @@ class Compiler(c_compiler.Compiler):
     def __init__(self, project, build, **kw):
         super().__init__(project, build, **kw)
         self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
-        project.env.project_set('AR', self.ar_binary)
+        project.env.build_set('AR', self.ar_binary)
+        self.as_binary = tools.find_binary(self.as_binary_name, project.env, 'AS')
+        project.env.build_set('AS', self.as_binary)
+
 
     def _get_build_flags(self, kw):
         flags = [
@@ -97,8 +106,13 @@ class Compiler(c_compiler.Compiler):
         return flags
 
     def _build_object_cmd(self, object, source, **kw):
-        return Command(
-            action = kw.get('action', "Build object"),
+        if source.path.endswith('.S'):
+            command = [
+                self.as_binary,
+                '-o', object,
+                source,
+            ],
+        else:
             command = [
                 self.binary,
                 self.__architecture_flag(kw),
@@ -106,6 +120,10 @@ class Compiler(c_compiler.Compiler):
                 '-c', source,
                 '-o', object,
             ],
+
+        return Command(
+            action = kw.get('action', "Build object"),
+            command = command,
             target = object,
             inputs = [source],
         )
