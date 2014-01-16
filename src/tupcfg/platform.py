@@ -16,4 +16,6 @@ import platform as _platform
 
 ARCHITECTURE = _platform.architecture()[0]
 BINARY_FORMAT = _platform.architecture()[1]
-PROCESSOR = _platform.uname()[-1]
+if IS_MACOSX and not BINARY_FORMAT:
+    BINARY_FORMAT = 'macho'
+PROCESSOR = _platform.uname().machine

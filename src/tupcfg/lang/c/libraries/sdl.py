@@ -33,6 +33,11 @@ class SDLDependency(CMakeDependency):
                  source_directory,
                  shared = True,
                  directx = False):
+        if platform.IS_MACOSX and shared:
+            name = 'SDL2-2.0'
+        else:
+            name = 'SDL2'
+
         super().__init__(
             build,
             'SDL',
@@ -40,7 +45,7 @@ class SDLDependency(CMakeDependency):
             source_directory,
             libraries = [
                 {
-                    'name': 'SDL2',
+                    'name': name,
                     'prefix': compiler.name != 'msvc' and 'lib' or '',
                     'shared': shared,
                     'source_include_directories': ['include'],
@@ -50,6 +55,7 @@ class SDLDependency(CMakeDependency):
                 ('DIRECTX', directx),
                 ('SDL_SHARED', shared),
                 ('SDL_STATIC', not shared),
+                ('RPATH', True),
             ]
         )
 
@@ -85,6 +91,7 @@ class SDLImageDependency(Dependency):
             'LOAD_XPM',
             'LOAD_XV',
             'LOAD_XXX',
+            'SDL_IMAGE_USE_COMMON_BACKEND', # XXX should use IMG_ImageIO.m on OS X.
         ]
         include_directories = [self.absolute_source_path()]
         libraries = sdl.libraries
