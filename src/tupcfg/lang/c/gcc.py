@@ -57,11 +57,15 @@ class Compiler(c_compiler.Compiler):
 
         disabled_warnings = self.list_attr('disabled_warnings', kw)
         for warning in self.disabled_warnings:
-            flags.append('-Wno-' + self.__warnings_map[warning])
+            warning_flag = self.__warnings_map.get(warning)
+            if warning_flag:
+                flags.append('-Wno-' + warning_flag)
 
         forbidden_warnings = self.list_attr('forbidden_warnings', kw)
         for warning in self.forbidden_warnings:
-            flags.append('-Werror=' + self.__warnings_map[warning])
+            warning_flag = self.__warnings_map.get(warning)
+            if warning_flag:
+                flags.append('-Werror=' + warning_flag)
 
         optimization = self.attr('optimization', kw)
         if optimization is not None:
