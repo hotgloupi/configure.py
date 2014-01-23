@@ -15,3 +15,7 @@ assert(int(IS_WINDOWS) + int(IS_MACOSX) + int(IS_LINUX) == 1)
 import platform as _platform
 
 ARCHITECTURE = _platform.architecture()[0]
+BINARY_FORMAT = _platform.architecture()[1]
+if IS_MACOSX and not BINARY_FORMAT:
+    BINARY_FORMAT = 'macho'
+PROCESSOR = _platform.uname().machine

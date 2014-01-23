@@ -159,6 +159,11 @@ class CMakeDependency(Dependency):
             command.append(
                 '-DCMAKE_CXX_COMPILER=%s' % self.compiler.binary
             )
+            if self.compiler.stdlib and isinstance(self.compiler.stdlib, str):
+                if self.compiler.name != 'msvc':
+                    command.append(
+                        '-DCMAKE_CXX_FLAGS="-stdlib=%s"' % self.compiler.stdlib
+                    )
         else:
             raise Exception("Unknown compiler language")
         if self.verbose:

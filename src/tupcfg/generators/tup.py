@@ -103,7 +103,7 @@ class Tup(Generator):
             for output in command.outputs
         ))
         tupfile.write('\n')
-        self.build.generate_commands([command])
+        self.build.generate_commands([command], from_target = True)
 
 
     def generate_makefile(self):

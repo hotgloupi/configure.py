@@ -261,6 +261,60 @@ class BoostDependency(Dependency):
                     'win32/tss_dll.cpp',
                     'win32/tss_pe.cpp',
                 ])
+
+        elif component == 'coroutine':
+            srcs = [
+                'exceptions.cpp',
+                'detail/coroutine_context.cpp',
+                #'detail/segmented_stack_allocator.cpp',
+                (
+                    platform.IS_WINDOWS and
+                    'detail/standard_stack_allocator_windows.cpp' or
+                    'detail/standard_stack_allocator_posix.cpp'
+                ),
+            ]
+        elif component == 'context':
+            all_srcs = [
+                'asm/jump_arm_aapcs_elf_gas.S',
+                'asm/jump_arm_aapcs_macho_gas.S',
+                'asm/jump_arm_aapcs_pe_armasm.asm',
+                'asm/jump_i386_ms_pe_masm.asm',
+                'asm/jump_i386_sysv_elf_gas.S',
+                'asm/jump_i386_sysv_macho_gas.S',
+                'asm/jump_mips32_o32_elf_gas.S',
+                'asm/jump_ppc32_sysv_elf_gas.S',
+                'asm/jump_ppc64_sysv_elf_gas.S',
+                'asm/jump_sparc64_sysv_elf_gas.S',
+                'asm/jump_sparc_sysv_elf_gas.S',
+                'asm/jump_x86_64_ms_pe_masm.asm',
+                'asm/jump_x86_64_sysv_elf_gas.S',
+                'asm/jump_x86_64_sysv_macho_gas.S',
+                'asm/make_arm_aapcs_elf_gas.S',
+                'asm/make_arm_aapcs_macho_gas.S',
+                'asm/make_arm_aapcs_pe_armasm.asm',
+                'asm/make_i386_ms_pe_masm.asm',
+                'asm/make_i386_sysv_elf_gas.S',
+                'asm/make_i386_sysv_macho_gas.S',
+                'asm/make_mips32_o32_elf_gas.S',
+                'asm/make_ppc32_sysv_elf_gas.S',
+                'asm/make_ppc64_sysv_elf_gas.S',
+                'asm/make_sparc64_sysv_elf_gas.S',
+                'asm/make_sparc_sysv_elf_gas.S',
+                'asm/make_x86_64_ms_pe_masm.asm',
+                'asm/make_x86_64_sysv_elf_gas.S',
+                'asm/make_x86_64_sysv_macho_gas.S',
+            ]
+            if platform.IS_WINDOWS:
+                abi = 'ms'
+            else:
+                abi = 'sysv'
+            processor = platform.PROCESSOR
+            if processor == 'i686':
+                processor = 'i386'
+            binary_format = platform.BINARY_FORMAT.lower()
+            pattern = '_%s_%s_%s' % (processor, abi, binary_format)
+            srcs = [s for s in all_srcs if pattern in s]
+
         if srcs is not None:
             srcs = list(
                 path.relative(

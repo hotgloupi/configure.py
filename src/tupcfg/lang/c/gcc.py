@@ -15,6 +15,12 @@ class Compiler(c_compiler.Compiler):
     binary_name = 'gcc'
     linker_binary_name = 'gcc'
     ar_binary_name = 'ar'
+    as_binary_name = 'as'
+
+    # deduced from binary name
+    binary = None
+    ar_binary = None
+    as_binary = None
 
     __standards_map = {
         'c99': 'c99',
@@ -32,7 +38,10 @@ class Compiler(c_compiler.Compiler):
     def __init__(self, project, build, **kw):
         super().__init__(project, build, **kw)
         self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
-        project.env.project_set('AR', self.ar_binary)
+        project.env.build_set('AR', self.ar_binary)
+        self.as_binary = tools.find_binary(self.as_binary_name, project.env, 'AS')
+        project.env.build_set('AS', self.as_binary)
+
 
     def _get_build_flags(self, kw):
         flags = [
@@ -49,11 +58,15 @@ class Compiler(c_compiler.Compiler):
 
         disabled_warnings = self.list_attr('disabled_warnings', kw)
         for warning in self.disabled_warnings:
-            flags.append('-Wno-' + self.__warnings_map[warning])
+            warning_flag = self.__warnings_map.get(warning)
+            if warning_flag:
+                flags.append('-Wno-' + warning_flag)
 
         forbidden_warnings = self.list_attr('forbidden_warnings', kw)
         for warning in self.forbidden_warnings:
-            flags.append('-Werror=' + self.__warnings_map[warning])
+            warning_flag = self.__warnings_map.get(warning)
+            if warning_flag:
+                flags.append('-Werror=' + warning_flag)
 
         optimization = self.attr('optimization', kw)
         if optimization is not None:
@@ -98,8 +111,13 @@ class Compiler(c_compiler.Compiler):
         return flags
 
     def _build_object_cmd(self, object, source, **kw):
-        return Command(
-            action = kw.get('action', "Build object"),
+        if source.path.endswith('.S'):
+            command = [
+                self.as_binary,
+                '-o', object,
+                source,
+            ],
+        else:
             command = [
                 self.binary,
                 self.__architecture_flag(kw),
@@ -107,6 +125,10 @@ class Compiler(c_compiler.Compiler):
                 '-c', source,
                 '-o', object,
             ],
+
+        return Command(
+            action = kw.get('action', "Build object"),
+            command = command,
             target = object,
             inputs = [source],
         )
@@ -133,9 +155,9 @@ class Compiler(c_compiler.Compiler):
     def _get_link_flags(self, kw):
         link_flags = ['-no-canonical-prefixes']
         if self.attr('allow_unresolved_symbols', kw):
-            link_flags.append('-Wl,--allow-shlib-undefined')
-            link_flags.append('-Wl,--unresolved-symbols=ignore-all')
-            link_flags.append('-undefined=dynamic_lookup')
+            #link_flags.append('-Wl,--allow-shlib-undefined')
+            #link_flags.append('-Wl,--unresolved-symbols=ignore-all')
+            link_flags.extend(['-undefined', 'dynamic_lookup'])
         library_directories = self.library_directories[:]
         pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
