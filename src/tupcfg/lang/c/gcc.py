@@ -13,6 +13,7 @@ class Compiler(c_compiler.Compiler):
 
     name = 'gcc'
     binary_name = 'gcc'
+    linker_binary_name = 'gcc'
     ar_binary_name = 'ar'
 
     __standards_map = {
