@@ -308,12 +308,18 @@ class BoostDependency(Dependency):
                 abi = 'ms'
             else:
                 abi = 'sysv'
-            processor = platform.PROCESSOR
-            if processor == 'i686':
-                processor = 'i386'
+            processor = {
+                'i386': 'i386',
+                'i686': 'i386',
+                'AMD64': 'i386',
+
+            }[platform.PROCESSOR]
             binary_format = platform.BINARY_FORMAT.lower()
             pattern = '_%s_%s_%s' % (processor, abi, binary_format)
+            print(pattern)
             srcs = [s for s in all_srcs if pattern in s]
+            print(srcs)
+            print(self.compiler.target_architecture)
 
         if srcs is not None:
             srcs = list(

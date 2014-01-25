@@ -12,6 +12,7 @@ class Compiler(c_compiler.Compiler):
     lib_binary_name = 'lib.exe'
     link_binary_name = 'link.exe'
     object_extension = 'obj'
+    as_binary_name = 'ml'
 
     attributes = c_compiler.Compiler.attributes + [
         ('multithread', True),
@@ -56,6 +57,8 @@ class Compiler(c_compiler.Compiler):
 
         self.link_binary = tools.find_binary(self.link_binary_name, project.env, 'LINKEXE')
         project.env.project_set('LINKEXE', self.link_binary)
+        self.as_binary = tools.find_binary(self.as_binary_name, project.env, 'AS')
+        project.env.build_set('AS', self.as_binary)
 
     # Prefix a flag (with '-' or '/')
     def _flag(self, flag):
@@ -77,17 +80,58 @@ class Compiler(c_compiler.Compiler):
         flags = [
             self._flag('nologo'),   # no print while invoking cl.exe
             self._flag('c'),        # compiles without linking
-            self._flag('GL'),
+            #self._flag('GL'), # Whole program optimization (disable crt init ...)
             #self._flag('Gz'),       #__stdcall convention
             self._flag('Gd'), #__cdecl convention
             #self._flag('Gr'), #__fastcall convention
+            '-GS',
+            '-W3',
         ]
+
+        defines = self.list_attr('defines', kw)[:]
+        defined = lambda key: any((
+            (isinstance(e, str) and e == key) or
+            (isinstance(e, tuple) and e[0] == key)
+        ) for e in defines)
+        def define_value(key):
+            for e in defines:
+                if isinstance(e, tuple):
+                    if e[0] == key:
+                        return e[1]
+            return None
+        def set_default(key, value):
+            for e in defines:
+                if isinstance(e, tuple):
+                    if e[0] == key:
+                        return e[1]
+            defines.append((key, value))
+            return value
+
+        if not defined('CRTAPI1'):
+            defines.append(('CRTAPI1', '_cdecl'))
+        if not defined('CRTAPI2'):
+            defines.append(('CRTAPI2', '_cdecl'))
+
+        if True: # XXX arch
+            defines.extend([
+                ('_X86', '1'),
+                'WIN32',
+                '_WIN32',
+            ])
+
+        defines.append('_WINNT') # XXX support for WIN95 ?
+
+        winver = set_default('WINVER', '0x0601')
+        set_default('NTDDI_VERSION', '%s0000' % winver)
+        set_default('_WIN32_WINNT', winver)
+
+        defines.append('_MT') # XXX Only multithreaded app
 
         # XXX debug builds not supported
         if isinstance(tgt, self.LibraryTarget):
             if tgt.shared:
-                flags.append(self._flag('LD'))
-            flags.append(self._flag('MD'))
+                defines.append('_DLL')
+            flags.extend(['-MD'])
         else:
             static_std = self.attr('static_libstd', kw)
             if static_std is not None:
@@ -108,7 +152,7 @@ class Compiler(c_compiler.Compiler):
                 self._flag('I'),
                 dir_,
             ])
-        for define in self.list_attr('defines', kw):
+        for define in defines:
             if isinstance(define, str):
                 flags.extend([self._flag('D'), define])
             else:
@@ -118,35 +162,45 @@ class Compiler(c_compiler.Compiler):
         return flags
 
     def _build_object_cmd(self, object, source, **kw):
-        command = [
-            self.binary,
-            self._get_build_flags(kw),
-            self._lang_flag, source,
-            self._flag('Fo') + object.path,
-        ]
-        build = self.attr('build', kw)
-        if self.attr('generate_debug', kw):
-            command.append(self._flag('Zi'))
-            debug_db = Target(
-                build,
-                object.relative_path(build.directory) + ".pdb",
-                shell_formatter = \
-                    lambda p: [self._flag('Fd') + object.path + ".pdb"]
-            )
-            command.append(debug_db)
+        additional_outputs = []
+        if source.path.endswith('.asm'):
+            command = [
+                self.as_binary,
+                '-c',
+                '-Fo' + object.path,
+                source,
+            ]
+        else:
+            command = [
+                self.binary,
+                self._get_build_flags(kw),
+                self._lang_flag, source,
+                self._flag('Fo') + object.path,
+            ]
+            build = self.attr('build', kw)
+            if self.attr('generate_debug', kw):
+                command.append(self._flag('Zi'))
+                debug_db = Target(
+                    build,
+                    object.relative_path(build.directory) + ".pdb",
+                    shell_formatter = \
+                        lambda p: [self._flag('Fd') + object.path + ".pdb"]
+                )
+                command.append(debug_db)
+                additional_outputs.append(debug_db)
         return Command(
             action = kw.get('action', "Build object"),
             target = object,
             inputs = [source],
             command = command,
             os_env = self.os_env,
-            additional_outputs = [debug_db]
+            additional_outputs = additional_outputs,
         )
 
     def _link_flags(self, kw):
         flags = [
             #self._flag('WX'), # Linker warnings are errors
-            self._flag('LTCG'),
+            #self._flag('LTCG'),
         ]
         dirs = []
         files = []
@@ -195,6 +249,7 @@ class Compiler(c_compiler.Compiler):
             cmd = [
                 self.link_binary,
                 self._flag('nologo'),   # no print while invoking cl.exe
+                '-entry:_DllMainCRTStartup@12',
                 self._flag('DLL'), # dynamic library
                 objects,
             ]

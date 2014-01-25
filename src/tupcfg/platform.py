@@ -18,4 +18,19 @@ ARCHITECTURE = _platform.architecture()[0]
 BINARY_FORMAT = _platform.architecture()[1]
 if IS_MACOSX and not BINARY_FORMAT:
     BINARY_FORMAT = 'macho'
+try:
+    BINARY_FORMAT = {
+        'elf': 'elf',
+        'macho': 'macho',
+        'WindowsPE': 'pe',
+    }[BINARY_FORMAT]
+except KeyError:
+    raise Exception("'%s' binary format not handled, add it to this file (%s)" % (BINARY_FORMAT, __file__))
 PROCESSOR = _platform.uname().machine
+
+
+print("PROCESSOR:", PROCESSOR)
+print("BINARY_FORMAT:", BINARY_FORMAT)
+print("ARCHITECTURE:", ARCHITECTURE)
+print("platform.ARCHITECTURE:", _platform.architecture())
+print("UNAME:", _platform.uname())
