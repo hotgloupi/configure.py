@@ -29,8 +29,8 @@ except KeyError:
 PROCESSOR = _platform.uname().machine
 
 
-print("PROCESSOR:", PROCESSOR)
-print("BINARY_FORMAT:", BINARY_FORMAT)
-print("ARCHITECTURE:", ARCHITECTURE)
-print("platform.ARCHITECTURE:", _platform.architecture())
-print("UNAME:", _platform.uname())
+#print("PROCESSOR:", PROCESSOR)
+#print("BINARY_FORMAT:", BINARY_FORMAT)
+#print("ARCHITECTURE:", ARCHITECTURE)
+#print("platform.ARCHITECTURE:", _platform.architecture())
+#print("UNAME:", _platform.uname())
