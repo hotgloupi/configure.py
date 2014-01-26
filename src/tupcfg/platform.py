@@ -20,7 +20,7 @@ if IS_MACOSX and not BINARY_FORMAT:
     BINARY_FORMAT = 'macho'
 try:
     BINARY_FORMAT = {
-        'elf': 'elf',
+        'ELF': 'elf',
         'macho': 'macho',
         'WindowsPE': 'pe',
     }[BINARY_FORMAT]
