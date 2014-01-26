@@ -312,7 +312,7 @@ class BoostDependency(Dependency):
                 'i386': 'i386',
                 'i686': 'i386',
                 'AMD64': 'i386',
-
+                'x86_64': 'x86_64',
             }[platform.PROCESSOR]
             binary_format = platform.BINARY_FORMAT.lower()
             pattern = '_%s_%s_%s' % (processor, abi, binary_format)
