@@ -354,7 +354,7 @@ def main():
     try:
         import tupcfg
         have_tupcfg = True
-    except: pass
+    except ImportError: pass
 
     if args.self_install or (args.install and not have_tupcfg):
         self_install(args)

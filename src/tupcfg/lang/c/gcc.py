@@ -157,14 +157,18 @@ class Compiler(c_compiler.Compiler):
         if self.attr('allow_unresolved_symbols', kw):
             #link_flags.append('-Wl,--allow-shlib-undefined')
             #link_flags.append('-Wl,--unresolved-symbols=ignore-all')
-            link_flags.extend(['-undefined', 'dynamic_lookup'])
+            if self.binary_name == 'clang':
+                link_flags.extend(['-undefined', 'dynamic_lookup'])
+            else:
+                link_flags.extend(['-undefined=dynamic_lookup'])
         library_directories = self.library_directories[:]
         pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
             link_flags.append('-fPIC')
         if self.attr('hidden_visibility', kw):
             link_flags.append('-fvisibility=hidden')
-            link_flags.append('-fvisibility-inlines-hidden')
+            if self.lang == 'c++':
+                link_flags.append('-fvisibility-inlines-hidden')
 
         if platform.IS_MACOSX:
             link_flags.append('-headerpad_max_install_names')
