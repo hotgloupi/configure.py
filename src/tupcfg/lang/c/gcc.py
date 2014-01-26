@@ -157,7 +157,7 @@ class Compiler(c_compiler.Compiler):
         if self.attr('allow_unresolved_symbols', kw):
             #link_flags.append('-Wl,--allow-shlib-undefined')
             #link_flags.append('-Wl,--unresolved-symbols=ignore-all')
-            if self.binary_name == 'clang':
+            if self.binary_name in ['clang', 'clang++']: #XXX does not recognize =
                 link_flags.extend(['-undefined', 'dynamic_lookup'])
             else:
                 link_flags.extend(['-undefined=dynamic_lookup'])
