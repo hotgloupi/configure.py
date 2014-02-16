@@ -125,14 +125,17 @@ class Compiler:
             if warning not in self.supported_warnings:
                 tools.warning("Unknown forbidden warning '%s'" % warning)
 
+    @classmethod
+    def binary_match(cls, bin):
+        return cls.binary_name in bin.lower()
 
     @classmethod
     def from_bin(cls, bin, *args, **kw):
         for c in cls.compilers:
-            if c.binary_name in bin.lower():
+            if c.binary_match(bin):
                 return c(*args, **kw)
         raise Exception(
-            "Cannot detect %s compiler from binary %s" % (cls.lang, bin)
+            "Cannot detect compiler from binary %s" % bin
         )
 
     @classmethod
