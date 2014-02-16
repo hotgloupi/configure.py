@@ -1,9 +1,10 @@
 
 from . import gcc
+from tupcfg.lang.c import clang as c_clang
 
 from tupcfg import platform, path
 
-class Compiler(gcc.Compiler):
+class Compiler(gcc.Compiler, c_clang.Compiler):
     name = 'clang'
     binary_name = 'clang++'
 
