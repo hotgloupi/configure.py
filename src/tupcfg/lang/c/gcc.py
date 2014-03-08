@@ -208,6 +208,9 @@ class Compiler(c_compiler.Compiler):
         elif not platform.IS_WINDOWS:
             link_flags.append('-Wl,-rpath,' + ':'.join(rpath_dirs))
         link_flags.extend(self.additional_link_flags.get(self.name, []))
+        if self.attr('static_libstd', kw):
+            link_flags.append('-L%s' % self.static_stdlib_directory)
+            link_flags.append('-static-libgcc')
         return link_flags
 
     def _link_executable_cmd(self, target, objects, **kw):
