@@ -153,7 +153,7 @@ class CMakeDependency(Dependency):
         ]
         if self.compiler.lang == 'c':
             command.append(
-                '-DCMAKE_C_COMPILER=%s' % self.compiler.binary_name
+                '-DCMAKE_C_COMPILER=%s' % self.compiler.binary
             )
         elif self.compiler.lang == 'c++':
             command.append(
