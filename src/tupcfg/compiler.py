@@ -158,7 +158,7 @@ class Compiler:
     def __str__(self):
         return '%s compiler \'%s\' (%s)' % (self.lang, self.name, self.binary)
 
-    def build_object(self, src, **kw):
+    def build_object(self, src, directory = None, **kw):
         """Create a `Target` to build an object from source using @a
         BuildObject command.
 
@@ -166,7 +166,11 @@ class Compiler:
         """
         build = self.attr('build', kw)
         assert isinstance(src, Node)
-        target = Target(build, src.relative_path() + '.' + self.object_extension)
+        if directory is not None:
+            target_path = path.join(str(directory), src.relative_path())
+        else:
+            target_path = src.relative_path()
+        target = Target(build, target_path + '.' + self.object_extension)
         command = self._build_object_cmd(target, src, **kw)
         return target
 
@@ -178,7 +182,7 @@ class Compiler:
         """Implementation specific code that returns a command instance."""
         return NotImplemented
 
-    def link_executable(self, name, sources, directory='', ext=None, **kw):
+    def link_executable(self, name, sources, directory='', object_directory = None, ext=None, **kw):
         """Build a list of sources into a library.
 
         Calls build_objects for intermediate objects, and returns the targetted
@@ -188,7 +192,12 @@ class Compiler:
         name = path.join(str(directory), self.__get_executable_name(name, ext))
         target = ExecutableTarget(build, name)
         objects = list(
-            self.build_object(self.Source(build, src), target = target, **kw)
+            self.build_object(
+                self.Source(build, src),
+                directory = object_directory,
+                target = target,
+                **kw
+            )
             for src in sources
         )
         command = self._link_executable_cmd(target, objects, **kw)
@@ -204,6 +213,7 @@ class Compiler:
                      name,
                      sources,
                      directory = '',
+                     object_directory = None,
                      shared = True,
                      ext = None,
                      **kw):
@@ -217,7 +227,13 @@ class Compiler:
         sources_ = (self.Source(build, src) for src in sources)
         target = LibraryTarget(build, name, shared)
         objects = list(
-            self.build_object(src, target = target, **kw) for src in sources_
+            self.build_object(
+                src,
+                directory = object_directory,
+                target = target,
+                **kw
+            )
+            for src in sources_
         )
         command = self._link_library_cmd(target, objects, shared = shared, **kw)
         assert isinstance(command, Command)
