@@ -3,16 +3,17 @@
 
 **Configure your project's builds in Python.**
 
-Generate files used to build a project and its dependencies depending on the choosen 
-generator. The list of implemented generators (Makefiles and Tupfiles) and supported
-platforms (Windows, OS X and Linux) is intented to grow, especially for mobiles platform.
+Generate files used to build a project and its dependencies. The list of 
+implemented generators (Makefiles and Tupfiles) and supported
+platforms (Windows, OS X and Linux) is intented to grow, especially towards mobile 
+and embedded platforms.
 
 Motivations
 -----------
 
   * Makefiles are slow and a pain to maintain.
   * AutoTools and CMake languages are huge pain.
-  * MSVC and XCode are not usable beside their native platform.
+  * MSVC and XCode are not usable beside their native platforms.
   * CMake lacks a [Tup](http://gittup.org/tup/ "Tup home page") generator.
   
 Tup is by design one of the fastest build system, but as it is langage
