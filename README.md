@@ -1,14 +1,20 @@
-tupcfg
-======
+*configure.py*
+===========
 
-**Configure your project for the [tup build system](http://gittup.org/tup/ "Tup home page").**
+**Configure your project's builds in Python.**
+
+Generate files used to build a project and its dependencies depending on the choosen 
+generator. The list of implemented generators (Makefiles and Tupfiles) and supported
+platforms (Windows, OS X and Linux) is intented to grow, especially for mobiles platform.
 
 Motivations
 -----------
 
   * Makefiles are slow and a pain to maintain.
-  * AutoTools and CMake are huge pain.
-
+  * AutoTools and CMake languages are huge pain.
+  * MSVC and XCode are not usable beside their native platform.
+  * CMake lacks a [Tup](http://gittup.org/tup/ "Tup home page") generator.
+  
 Tup is by design one of the fastest build system, but as it is langage
 agnostic, it doesn't have a clue about library location, compiler version or
 any high level system configuration. I initially solved this problem with dirty
@@ -18,21 +24,18 @@ those scripts, I made up this small project that saves me a lot of time.
 Features
 --------
 
-Tupcfg is written in pure Python3, and should work on any platform that support
-python3.  It has been successfully tested on Linux, MacOSX and Windows.
+*configure.py* is written in pure Python3, and should work on any platform that support
+python3. It has been successfully tested on Linux, MacOSX and Windows.
 
-It lets you configure your project builds in Python3 as well and generate for
-you Tup files.
+It lets you configure your projects in Python3 and generate for
+you files required to build your project (like Makefiles).
 
-**Yes, no more CMake or AutoTools crappy langages, just Python.**
+Support currently:
 
-It provides handy tools for C/C++ compiler and libraries, but aims to support
-more langages, compiler and libraries. It's up to you to submit/request more
-features or support :)
-
-Additionally, it has a pluggable generator system that allows you to build your
-project even when tup is not available, or for release builds from scratch
-(Makefile generator is implemented).
+   * Main C/C++ compilers (gcc, clang and msvc)
+   * Find and link with system libraries
+   * Build your project dependencies
+   * Simple filesystem operations and file generations
 
 Overview
 --------
@@ -43,7 +46,7 @@ After adding and launching the configure script in your project root directory
     my_project/
     ├── .config
     │   ├── project.py
-    ├── configure*
+    ├── configure.py*
     ├── include
     │   └── my_project.h
     └── src
@@ -59,14 +62,14 @@ Getting started
 ### Installation
 
 Just drop the
-[configure](https://github.com/hotgloupi/tupcfg/blob/master/src/main.py) script
+[configure.py](https://github.com/hotgloupi/tupcfg/blob/master/src/main.py) script
 in the root directory of your project.
 
 On unices, you could do:
 
     $ cd /path/to/your/project
-    $ wget 'https://github.com/hotgloupi/tupcfg/raw/master/src/main.py' -O configure
-    $ chmod +x configure
+    $ wget 'https://github.com/hotgloupi/tupcfg/raw/master/src/main.py' -O configure.py
+    $ chmod +x configure.py
 
 This script is written in python3, so you'll obviously need python3 on your
 computer. If the python executable does not use python3, you may want to change
@@ -74,15 +77,15 @@ the first line of the configure script. But I would recommend that you set
 python3 as the default python version :).
 
 The configure script will ensure that:
-  * You have tup executable somewhere
-  * the tupcfg python package is available
+  * You have *Tup* executable somewhere
+  * the *configure.py* python package is available
 
 You can install yourself these two dependencies, or let the configure script
 install them for you.
 
-    $ ./configure --self-install --tup-install
+    $ ./configure.py --self-install --tup-install
 
-Note that same flags could be used later to upgrade tupcfg and tup.
+Note that same flags could be used later to upgrade *cfg* and *Tup*.
 
 You are now asked to manually edit the file `.config/project.py`, which defines
 your project rules.
@@ -117,7 +120,7 @@ example:
 
 You can now configure your project in a build directory `build`
 
-    $ ./configure build
+    $ ./configure.py build
     Configuring build
     Just run `make -C build`
 
@@ -146,7 +149,7 @@ The configure script
 
 ### Synopsis
 
-    $ ./configure --help
+    $ ./configure.py --help
     usage: configure [-h] [-D DEFINE] [-E EXPORT] [-v] [-d] [--dump-vars]
                      [--dump-build] [--install] [--self-install] [--tup-install]
                      [build_dir]
@@ -169,10 +172,6 @@ The configure script
       --install           install when needed
       --self-install      install (or update) tupcfg
       --tup-install       install (or update) tup
-
-The script and its underlying library `tupcfg` were designed to give to the
-user a help messge each time something is wrong. This means that launching the
-script several times should suffice to get everything working.
 
 ### The build directories
 
@@ -202,7 +201,7 @@ configured). Which is different than:
 
     $ ./configure -E CXX=clang++
 
-Which is a global to project, and all build (future ones too) will inherit this
+Which is global to the project, and all build (future ones too) will inherit this
 variable, and possibly override it with a build specific one.
 
 #### Typed variables and command line operator syntax
@@ -213,8 +212,8 @@ strings.  Available types are bool, string, and list of strings.
     # v1, v2, v3 and v4 are all booleans and equal to True
     $ ./configure -D v1 -D v2=TRUE -D v3=true -D v4=1
 
-This implies that `TRUE`, `FALSE`, `0` and `1` are reserved value that mean the
-variable is a boolean (not case sensitive).
+This implies that `TRUE`, `FALSE`, `YES`, `NO`, `1` and `0` are reserved values with the meaning
+of a boolean (not case sensitive).
 
      # All other strings are simply strings.
      $ ./configure -D PROJECT_NAME=my_project
@@ -234,7 +233,7 @@ comma `,`.
      # If you want to append one element, you can use := operator
      $ ./configure -D PREFIXES:=/some/prefix
 
-That that all of those commands will create a variable of type list, even
+Note that all of those commands will create a variable of type list, even
 if it does not exist.
 
 #### Undefining variables
@@ -269,7 +268,7 @@ great help in some cases. Use `--dump-build` when you feel it :)
 ### Auto install everything
 
 As seen previously the `--tup-install` and `--self-install` flags force the
-installation or the update of tup and tupcfg. To install only when tup or
+installation or the update of *Tup* and *configure.py*. To install only when tup or
 tupcfg are not found, use the `--install` flag instead.
 
 Tupcfg core
