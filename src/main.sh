@@ -1,4 +1,5 @@
 #!/bin/sh
+# Python file written with a shell helper (mainly for windows).
 __SHELL_PROTECT=""" "
 SCRIPT="$0"
 PYTHON=`which python3`
@@ -14,7 +15,7 @@ then
 	exit 1
 fi
 
-export TUPCFG_ROOT_DIR="`dirname $SCRIPT`"
+export CONFIGURE_ROOT_DIR="`dirname $SCRIPT`"
 
 "$PYTHON" "$0" "$@"
 
@@ -103,7 +104,7 @@ def cmd(cmd, stdin = b'', cwd = None, env=None):
 DEBUG = True
 VERBOSE = True
 ROOT_DIR = None
-HOME_URL = "http://hotgloupi.fr/tupcfg.html"
+HOME_URL = "http://hotgloupi.fr/configure.py.html"
 TUP_HOME_URL = "http://gittup.org"
 PROJECT_CONFIG_DIR_NAME = ".config"
 PROJECT_CONFIG_DIR = None
@@ -111,45 +112,40 @@ PROJECT_CONFIG_FILENAME = "project.py"
 TUP_INSTALL_DIR = None
 TUP_GIT_URL = "git://github.com/gittup/tup.git"
 TUP_WINDOWS_URL = "http://gittup.org/tup/win32/tup-latest.zip"
-TUPCFG_INSTALL_DIR = None
-TUPCFG_GIT_URL = "git://github.com/hotgloupi/tupcfg.git"
-TUPCFG_GENERATORS = ['Tup', 'Makefile']
+CONFIGURE_PY_INSTALL_DIR = None
+CONFIGURE_PY_GIT_URL = "git://github.com/hotgloupi/configure.git"
+CONFIGURE_PY_GENERATORS = ['Tup', 'Makefile']
 
 
 def reset_root_dir(root):
-    global ROOT_DIR, PROJECT_CONFIG_DIR, TUP_INSTALL_DIR, TUPCFG_INSTALL_DIR
+    """Compute global variables according to the project root directory"""
+    global ROOT_DIR, PROJECT_CONFIG_DIR, TUP_INSTALL_DIR, CONFIGURE_PY_INSTALL_DIR
     ROOT_DIR = cleanpath(root)
     PROJECT_CONFIG_DIR = cleanjoin(ROOT_DIR, PROJECT_CONFIG_DIR_NAME)
     TUP_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tup')
-    TUPCFG_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tupcfg-install')
+    CONFIGURE_PY_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'configure.py')
 reset_root_dir(
-    os.environ.get("TUPCFG_ROOT_DIR", os.path.dirname(__file__))
+    os.environ.get("CONFIGURE_PY_ROOT_DIR", os.path.dirname(__file__))
 )
 
 
 def self_install(args):
-    status("Installing tupcfg in", TUPCFG_INSTALL_DIR)
-    if not os.path.exists(TUPCFG_INSTALL_DIR):
-        os.makedirs(TUPCFG_INSTALL_DIR)
-        status("Getting tup from", TUPCFG_GIT_URL)
-        cmd(['git', 'clone', TUPCFG_GIT_URL, TUPCFG_INSTALL_DIR])
+    status("Installing configure.py in", CONFIGURE_PY_INSTALL_DIR)
+    if not os.path.exists(CONFIGURE_PY_INSTALL_DIR):
+        os.makedirs(CONFIGURE_PY_INSTALL_DIR)
+        status("Getting tup from", CONFIGURE_PY_GIT_URL)
+        cmd(['git', 'clone', CONFIGURE_PY_GIT_URL, CONFIGURE_PY_INSTALL_DIR])
     else:
-        status("Updating tupcfg")
-        cmd(['git', 'pull'], cwd=TUPCFG_INSTALL_DIR)
-    shutil.rmtree(os.path.join(PROJECT_CONFIG_DIR, 'tupcfg'), ignore_errors=True)
-    shutil.copytree(
-        os.path.join(TUPCFG_INSTALL_DIR, 'src/tupcfg'),
-        os.path.join(PROJECT_CONFIG_DIR, 'tupcfg')
-    )
-
+        status("Updating configure.py")
+        cmd(['git', 'pull'], cwd=CONFIGURE_PY_INSTALL_DIR)
 
 def tup_install(args):
-    from tupcfg import platform
+    from configure import platform
     if platform.IS_WINDOWS:
         tup_install_windows(args)
     else:
         tup_install_git(args)
-    from tupcfg import tools
+    from configure import tools
     print("Tup installed in", tools.which('tup'))
 
 
@@ -171,7 +167,7 @@ def tup_install_windows(args):
 
 
 def tup_install_git(args):
-    from tupcfg import path
+    from configure import path
     status("Installing tup in", TUP_INSTALL_DIR)
     if not path.exists(TUP_INSTALL_DIR):
         os.makedirs(TUP_INSTALL_DIR)
@@ -201,12 +197,12 @@ def tup_install_git(args):
 
 
 def prepare_build(args, defines, exports):
-    import tupcfg # Should work at this point
-    from tupcfg.path import exists, join, absolute
+    import configure # Should work at this point
+    from configure.path import exists, join, absolute
 
     build_dir = args.build_dir
     try:
-        project = tupcfg.Project(
+        project = configure.Project(
             ROOT_DIR,
             PROJECT_CONFIG_DIR,
             config_filename = PROJECT_CONFIG_FILENAME,
@@ -215,13 +211,13 @@ def prepare_build(args, defines, exports):
 
         env_build_dirs = list(
             d for d in project.env.get('BUILD_DIRECTORIES', [])
-            if exists(d, '.tupcfg_build')
+            if exists(d, '.configure.py_build')
         )
-        tupcfg.tools.verbose("Found build directories:", ' '.join(env_build_dirs))
+        configure.tools.verbose("Found build directories:", ' '.join(env_build_dirs))
         build_dirs = []
         if build_dir is not None:
             build_dirs = [build_dir]
-            tup_build_marker = join(build_dir, '.tupcfg_build')
+            tup_build_marker = join(build_dir, '.configure.py_build')
             if not exists(build_dir):
                 os.makedirs(build_dir)
                 with open(tup_build_marker, 'w') as f:
@@ -264,7 +260,7 @@ def prepare_build(args, defines, exports):
                     else:
                         build.generate()
 
-    except tupcfg.Project.NeedUserEdit:
+    except configure.Project.NeedUserEdit:
         print(
             "Please edit %s and re-run the configure script" % join(
                 PROJECT_CONFIG_DIR,
@@ -294,11 +290,11 @@ def parse_args():
     parser.add_argument('--dump-vars', action='store_true', help="dump variables")
     parser.add_argument('--dump-build', action='store_true', help="dump commands that would be executed")
     parser.add_argument('--install', action='store_true', help="install when needed")
-    parser.add_argument('--self-install', action='store_true', help="install (or update) tupcfg")
+    parser.add_argument('--self-install', action='store_true', help="install (or update) configure.py")
     parser.add_argument('--tup-install', action='store_true', help="install (or update) tup")
     parser.add_argument('--generator', '-G', default = None,
                         help = "Generate build rules for another build system",
-                       choices = TUPCFG_GENERATORS)
+                       choices = CONFIGURE_PY_GENERATORS)
     parser.add_argument('--root-dir', help = "Root project directory",
                         action = 'store',
                         default = ROOT_DIR)
@@ -347,43 +343,43 @@ def main():
 
 
     from os.path import exists, join
-    sys.path.insert(0, join(PROJECT_CONFIG_DIR,'tupcfg/src'))
+    sys.path.insert(0, join(PROJECT_CONFIG_DIR,'configure.py/src'))
     sys.path.insert(0, PROJECT_CONFIG_DIR)
 
-    have_tupcfg = False
+    have_configure = False
     try:
-        import tupcfg
-        have_tupcfg = True
+        import configure
+        have_configure = True
     except ImportError: pass
 
-    if args.self_install or (args.install and not have_tupcfg):
+    if args.self_install or (args.install and not have_configure):
         self_install(args)
         try:
             import imp
-            file_, pathname, descr = imp.find_module("tupcfg", [PROJECT_CONFIG_DIR])
-            tupcfg = imp.load_module("tupcfg", file_, pathname, descr)
+            file_, pathname, descr = imp.find_module("configure", [PROJECT_CONFIG_DIR])
+            configure = imp.load_module("configure", file_, pathname, descr)
         except Exception as e:
-            fatal("Sorry, tupcfg installation failed for some reason:", e)
+            fatal("Sorry, configure installation failed for some reason:", e)
 
     try:
-        import tupcfg
+        import configure
 
-        # Tupcfg will use these functions to log
-        tupcfg.tools.status = status
-        tupcfg.tools.error = error
-        tupcfg.tools.fatal = fatal
+        # configure.py will use these functions to log
+        configure.tools.status = status
+        configure.tools.error = error
+        configure.tools.fatal = fatal
 
-        tupcfg.tools.DEBUG = DEBUG
-        tupcfg.tools.VERBOSE = VERBOSE or DEBUG
+        configure.tools.DEBUG = DEBUG
+        configure.tools.VERBOSE = VERBOSE or DEBUG
     except ImportError as e:
         if DEBUG is True:
             raise e
 
         fatal(
             '\n'.join([
-                "Cannot find tupcfg module, your options are:",
-                "\t* Just use the --self-install flag (installed in %(config_dir)s/tupcfg)",
-                "\t* Add it as a submodule: `git submodule add git@github.com:hotgloupi/tupcfg.git %(config_dir)s/tupcfg`",
+                "Cannot find configure.py module, your options are:",
+                "\t* Just use the --self-install flag (installed in %(config_dir)s/configure.py)",
+                "\t* Add it as a submodule: `git submodule add git@github.com:hotgloupi/configure.py.git %(config_dir)s/configure.py`",
                 "\t* Install it somewhere (see %(home_url)s)",
             ]) % {
                 'config_dir': cleanabspath(PROJECT_CONFIG_DIR, replace_home=True),
@@ -391,12 +387,12 @@ def main():
             }
         )
 
-    tupcfg.tools.PATH.insert(0, tupcfg.path.absolute(TUP_INSTALL_DIR))
+    configure.tools.PATH.insert(0, configure.path.absolute(TUP_INSTALL_DIR))
 
-    if args.tup_install or (args.install and not tupcfg.tools.which('tup')):
+    if args.tup_install or (args.install and not configure.tools.which('tup')):
         tup_install(args)
 
-    if 'Tup' == args.generator and not tupcfg.tools.which('tup'):
+    if 'Tup' == args.generator and not configure.tools.which('tup'):
         fatal(
             '\n'.join([
                 "Cannot find tup binary, your options are:",
@@ -414,7 +410,7 @@ def main():
 
         prepare_build(args, defines, exports)
 
-    except tupcfg.Env.VariableNotFound as e:
+    except configure.Env.VariableNotFound as e:
         fatal('\n'.join([
             "Couldn't find any variable '%s', do one of the following:" % e.name,
             "\t* Export it with: `%s=something ./configure`" % e.name,
