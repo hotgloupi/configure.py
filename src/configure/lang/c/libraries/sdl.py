@@ -32,7 +32,22 @@ class SDLDependency(CMakeDependency):
                  compiler,
                  source_directory,
                  shared = True,
-                 directx = False):
+                 directx = False,
+                 atomic = True,
+                 audio = True,
+                 cpuinfo = True,
+                 dlopen = True,
+                 events = True,
+                 file = True,
+                 filesystem = True,
+                 haptic = True,
+                 joystick = True,
+                 loadso = True,
+                 power = True,
+                 render = True,
+                 threads = True,
+                 timers = True,
+                 video = True):
         if platform.IS_MACOSX and shared:
             name = 'SDL2-2.0'
         else:
@@ -56,6 +71,21 @@ class SDLDependency(CMakeDependency):
                 ('SDL_SHARED', shared),
                 ('SDL_STATIC', not shared),
                 ('RPATH', True),
+                ('SDL_AUDIO', audio),
+                ('SDL_ATOMIC', atomic),
+                ('SDL_CPUINFO', cpuinfo),
+                ('SDL_DLOPEN', dlopen),
+                ('SDL_EVENTS', events),
+                ('SDL_FILE', file),
+                ('SDL_FILESYSTEM', filesystem),
+                ('SDL_HAPTIC', haptic),
+                ('SDL_JOYSTICK', joystick),
+                ('SDL_LOADSO', loadso),
+                ('SDL_POWER', power),
+                ('SDL_RENDER', render),
+                ('SDL_THREADS', threads),
+                ('SDL_TIMERS', timers),
+                ('SDL_VIDEO', video),
             ]
         )
 
