@@ -117,7 +117,7 @@ class Project:
             for k, v in globals_.items():
                 if env.Env.var_re.match(k):
                     self.env[k] = v
-                elif k == 'configure':
+                elif k == 'main':
                     self.__configure_function = v
         finally:
             sys.path = backup
