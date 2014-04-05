@@ -69,8 +69,8 @@ in the root directory of your project.
 On unices, you could do:
 
     $ cd /path/to/your/project
-    $ wget 'https://github.com/hotgloupi/tupcfg/raw/master/src/main.py' -O configure.py
-    $ chmod +x configure.py
+    $ wget 'https://github.com/hotgloupi/tupcfg/raw/master/src/main.sh' -O configure
+    $ chmod +x configure
 
 This script is written in python3, so you'll obviously need python3 on your
 computer. If the python executable does not use python3, you may want to change
@@ -84,7 +84,7 @@ The configure script will ensure that:
 You can install yourself these two dependencies, or let the configure script
 install them for you.
 
-    $ ./configure.py --self-install --tup-install
+    $ ./configure --self-install --tup-install
 
 Note that same flags could be used later to upgrade *cfg* and *Tup*.
 
@@ -121,7 +121,7 @@ example:
 
 You can now configure your project in a build directory `build`
 
-    $ ./configure.py build
+    $ ./configure build
     Configuring build
     Just run `make -C build`
 
@@ -150,7 +150,7 @@ The configure script
 
 ### Synopsis
 
-    $ ./configure.py --help
+    $ ./configure --help
     usage: configure [-h] [-D DEFINE] [-E EXPORT] [-v] [-d] [--dump-vars]
                      [--dump-build] [--install] [--self-install] [--tup-install]
                      [build_dir]
@@ -190,17 +190,17 @@ command line, or all project builds when none are specified.
 
 For example, we can do the following:
 
-    $ ./configure.py build-debug -D BUILD_TYPE=DEBUG
-    $ ./configure.py build-release -D BUILD_TYPE=RELEASE
+    $ ./configure build-debug -D BUILD_TYPE=DEBUG
+    $ ./configure build-release -D BUILD_TYPE=RELEASE
 
 the `BUILD_TYPE` variable is specific to each build directory. Now, if you do
 
-    $ ./configure.py -D CXX=clang++
+    $ ./configure -D CXX=clang++
 
 The `CXX` variable is applied on all existing build directory (previously
 configured). Which is different than:
 
-    $ ./configure.py -E CXX=clang++
+    $ ./configure -E CXX=clang++
 
 Which is global to the project, and all build (future ones too) will inherit this
 variable, and possibly override it with a build specific one.
@@ -211,28 +211,28 @@ Variables are strongly typed, but they all conveniently default to be of type
 strings.  Available types are bool, string, and list of strings.
 
     # v1, v2, v3 and v4 are all booleans and equal to True
-    $ ./configure.py -D v1 -D v2=TRUE -D v3=true -D v4=1
+    $ ./configure -D v1 -D v2=TRUE -D v3=true -D v4=1
 
 This implies that `TRUE`, `FALSE`, `YES`, `NO`, `1` and `0` are reserved values with the meaning
 of a boolean (not case sensitive).
 
      # All other strings are simply strings.
-     $ ./configure.py -D PROJECT_NAME=my_project
+     $ ./configure -D PROJECT_NAME=my_project
 
      # We can concatenate strings with '+=' operator
-     $ ./configure.py -D PROJECT_NAME+=-v0.1 # PROJECT_NAME == my_project-v0.1
+     $ ./configure -D PROJECT_NAME+=-v0.1 # PROJECT_NAME == my_project-v0.1
 
 Lists are differentiated by the character `[`, their values are separated by a
 comma `,`.
 
      # lists are recognized with '[', which need to be escaped
-     $ ./configure.py -D PREFIXES=\[/usr, /usr/local/]
+     $ ./configure -D PREFIXES=\[/usr, /usr/local/]
 
      # You can extend a list with +=
-     $ ./configure.py -D PREFIXES+=\[/opt/local]
+     $ ./configure -D PREFIXES+=\[/opt/local]
 
      # If you want to append one element, you can use := operator
-     $ ./configure.py -D PREFIXES:=/some/prefix
+     $ ./configure -D PREFIXES:=/some/prefix
 
 Note that all of those commands will create a variable of type list, even
 if it does not exist.
@@ -241,7 +241,7 @@ if it does not exist.
 
 To remove a variable you can just set it to nothing:
 
-     $ ./configure.py -D BUILD_VAR= -E PROJECT_VAR=
+     $ ./configure -D BUILD_VAR= -E PROJECT_VAR=
 
 This will remove `BUILD_VAR` from build variables (here, for all configured
 builds), and remove `PROJECT_VAR` from the project variables.
