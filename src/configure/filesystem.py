@@ -34,7 +34,7 @@ class GenerateCommand(Command):
     def action(self):
         return "Generating file"
     def command(self, target = None, build = None):
-        from tupcfg.tools import python_command
+        from configure.tools import python_command
         import json
         return python_command(
             file = path.absolute(__file__),
@@ -94,9 +94,9 @@ class Filesystem:
 
         The content generator must be callable with target and build arguments,
         and return the string. In non lazy mode the targetted file is built by
-        tupcfg at configure time, otherwise the file will be created at compile
-        time. Prefer the lazy mode when possible, letting the build system in
-        charge to check file's freshness.
+        configure.py at configure time, otherwise the file will be created at
+        compile time. Prefer the lazy mode when possible, letting the build
+        system in charge to check file's freshness.
         """
         return Generate(dst, content = content_gen, lazy = lazy)
 

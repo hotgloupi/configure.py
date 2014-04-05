@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import platform
-from tupcfg.build import command as build_command
+from configure import platform
+from configure.build import command as build_command
 
 from ..library import Library
 
@@ -39,8 +39,8 @@ class BoostLibrary(Library):
     def libraries(self):
         return self.components
 
-from tupcfg import path, tools, Dependency, Target
-from tupcfg.command import Command
+from configure import path, tools, Dependency, Target
+from configure.command import Command
 
 class BoostDependency(Dependency):
 

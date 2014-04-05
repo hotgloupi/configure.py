@@ -2,7 +2,7 @@
 
 from ..library import Library
 
-from tupcfg import platform
+from configure import platform
 
 class OpenGLLibrary(Library):
 

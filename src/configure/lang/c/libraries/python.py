@@ -3,12 +3,12 @@
 import os
 
 from ..library import Library
-from tupcfg import path
+from configure import path
 
 from sysconfig import get_config_var as var
 
-from tupcfg import path, platform, Dependency, Target
-from tupcfg.command import Command
+from configure import path, platform, Dependency, Target
+from configure.command import Command
 
 class PythonLibrary(Library):
     def __init__(self, compiler,

@@ -1,5 +1,12 @@
 # -*- encoding: utf8 -*-
 
+import sys
+try:
+    if sys.version_info[0] != 3:
+        raise Exception("Invalid python version")
+except:
+    raise Exception("Invalid python version (should be >= 3)")
+
 from . import tools, path, platform, lang
 
 from .build import Build

@@ -1,7 +1,7 @@
 from . import Dependency
-from tupcfg import Command
-from tupcfg import Target
-from tupcfg import platform, path
+from ..command import Command
+from ..target import Target
+from .. import platform, path
 
 class CMakeDependency(Dependency):
     def __init__(self,

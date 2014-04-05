@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import tools
-from tupcfg import path
-from tupcfg import platform
+from configure import tools
+from configure import path
+from configure import platform
 
 import os
 

@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import path, tools
-from tupcfg import Target, Command, Node
+from configure import path, tools
+from configure import Target, Command, Node
 
 from . import compiler as c_compiler
 

@@ -3,8 +3,8 @@
 import sys
 import pipes
 
-from tupcfg import Target, path, tools, platform
-from tupcfg.command import Command
+from configure import Target, path, tools, platform
+from configure.command import Command
 
 from . import compiler as c_compiler
 from . import library
@@ -285,7 +285,7 @@ class Compiler(c_compiler.Compiler):
             self.objects = objects
             self.op = op
         def shell_string(self, build = None, cwd = None):
-            from tupcfg.build import command
+            from configure.build import command
             res = tools.unique(
                 command(self.objects, build = build, cwd = cwd)
             )

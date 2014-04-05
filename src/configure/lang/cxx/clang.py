@@ -1,8 +1,8 @@
 
 from . import gcc
-from tupcfg.lang.c import clang as c_clang
+from configure.lang.c import clang as c_clang
 
-from tupcfg import platform, path
+from configure import platform, path
 
 class Compiler(gcc.Compiler, c_clang.Compiler):
     name = 'clang'

@@ -2,8 +2,8 @@
 
 from ..library import Library
 
-from tupcfg import path, platform, Dependency, Target
-from tupcfg.command import Command
+from configure import path, platform, Dependency, Target
+from configure.command import Command
 
 class FreetypeLibrary(Library):
 

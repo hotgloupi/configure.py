@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 
 from ..library import Library
-from tupcfg import platform, path, tools
-from tupcfg import Dependency, Target
-from tupcfg.command import Command
+from configure import platform, path, tools
+from configure import Dependency, Target
+from configure.command import Command
 
 class SDLLibrary(Library):
     def __init__(self, compiler, components=[], **kw):
@@ -24,7 +24,7 @@ class SDLLibrary(Library):
     def libraries(self):
         return [self] + self.components
 
-from tupcfg.dependency.cmake import CMakeDependency
+from configure.dependency.cmake import CMakeDependency
 
 class SDLDependency(CMakeDependency):
     def __init__(self,

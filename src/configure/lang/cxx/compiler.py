@@ -1,12 +1,12 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import Source
-import tupcfg.compiler
+from configure import Source
+import configure.compiler
 
 class CXXSource(Source):
     pass
 
-class Compiler(tupcfg.compiler.Compiler):
+class Compiler(configure.compiler.Compiler):
     binary_env_varname = 'CXX'
 
     Source = CXXSource

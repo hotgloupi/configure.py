@@ -1,15 +1,15 @@
 # -*- encoding: utf-8 -*-
 
-from tupcfg import Source, Target, Node
+from configure import Source, Target, Node
 
 from . import library
 
-import tupcfg.compiler
+import configure.compiler
 
 class CSource(Source):
     pass
 
-class Compiler(tupcfg.compiler.Compiler):
+class Compiler(configure.compiler.Compiler):
     binary_env_varname = 'CC'
 
     Source = CSource
@@ -18,7 +18,7 @@ class Compiler(tupcfg.compiler.Compiler):
     attributes = [
         ('allow_unresolved_symbols', False),
         ('build_import_library', False),
-    ] + tupcfg.compiler.Compiler.attributes
+    ] + configure.compiler.Compiler.attributes
 
     def __init__(self, project, build, **kw):
         kw.setdefault('lang', 'c')

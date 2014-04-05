@@ -2,7 +2,7 @@
 
 from . import compiler as cxx_compiler
 from ..c import gcc
-from tupcfg import path
+from configure import path
 
 class Compiler(cxx_compiler.Compiler, gcc.Compiler):
 

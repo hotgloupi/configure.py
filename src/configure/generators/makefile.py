@@ -54,9 +54,9 @@ class Makefile(Generator):
 
         #######################################################################
         # Find C/C++ header dependencies
-        from tupcfg.lang.c.compiler import CSource
-        from tupcfg.lang.cxx.compiler import CXXSource
-        from tupcfg.compiler import IncludeDirectory
+        from configure.lang.c.compiler import CSource
+        from configure.lang.cxx.compiler import CXXSource
+        from configure.compiler import IncludeDirectory
 
         found_c_sources = {}
         target_sources = {}

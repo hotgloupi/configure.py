@@ -41,24 +41,24 @@ of using environment:
 
 NAME = 'my_project_name'
 
-import tupcfg
+import configure
 
-def configure(project, build):
-    """ This is a sample """
+def main(project, build):
+    """ This is a configure function """
 
     ## Retreive BUILD_TYPE (defaults to DEBUG)
     build_type = project.env.get('BUILD_TYPE', 'DEBUG')
 
     ## Print a status message (Could have been verbose or debug)
-    tupcfg.tools.status("Configuring", project.env.NAME,
+    configure.tools.status("Configuring", project.env.NAME,
                       'in', build.directory, '(%s)' % build_type)
 
 
     ## Choose C++ compiler
     if platform.IS_WINDOWS:
-        CXXCompiler = tupcfg.lang.cxx.msvc.Compiler
+        CXXCompiler = configure.lang.cxx.msvc.Compiler
     else:
-        CXXCompiler = tupcfg.lang.cxx.gcc.Compiler
+        CXXCompiler = configure.lang.cxx.gcc.Compiler
 
     ## Create a new compiler
     # compiler = CXXCompiler(
@@ -68,7 +68,7 @@ def configure(project, build):
     #     standard = 'c++11',
     # )
 
-    #tupcfg.tools.status("CXX compiler is", compiler.binary)
+    #configure.tools.status("CXX compiler is", compiler.binary)
 
     ## to link an executable, simply use the link_executable method.
     # my_program_exe = compiler.link_executable(
