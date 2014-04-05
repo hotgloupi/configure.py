@@ -356,7 +356,7 @@ def main():
         self_install(args)
         try:
             import imp
-            file_, pathname, descr = imp.find_module("configure", [PROJECT_CONFIG_DIR])
+            file_, pathname, descr = imp.find_module("configure", [join(PROJECT_CONFIG_DIR,'configure.py/src')])
             configure = imp.load_module("configure", file_, pathname, descr)
         except Exception as e:
             fatal("Sorry, configure installation failed for some reason:", e)
