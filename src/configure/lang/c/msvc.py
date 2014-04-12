@@ -217,9 +217,8 @@ class Compiler(c_compiler.Compiler):
             if library.system:
                 system_files.extend(library.files)
             else:
-                for f in library.files:
-                    if f.endswith('.dll'):
-                        f = f[:-4] + '.lib' # XXX quick fix using import lib
+                for f in library.link_files:
+                    assert not f.endswith('.dll')
                     files.append(f)
 
         dirs = tools.unique(dirs)

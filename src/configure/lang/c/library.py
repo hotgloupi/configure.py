@@ -70,11 +70,21 @@ class Library:
         if search_binary_files:
             self._set_directories_and_files(directories)
         elif self.compiler.name == 'msvc' and self.system:
-            self.files = [self.name + '.' + self.compiler.library_extension(self.shared)]
+            self.files = [self.name + '.lib'] # + self.compiler.library_extension(self.shared)]
             self.directories = []
         else:
             self.files = self._env_files() + files
             self.directories = self._env_directories() + directories
+
+        if link_files is None:
+            if self.compiler.name == 'msvc':
+                self.link_files = [
+                    (path.splitext(f)[0] + '.lib') for f in self.files
+                ]
+            else:
+                self.link_files = files[:]
+        else:
+            self.link_files = link_files[:]
         tools.debug(self.name, "library directories:", self.directories)
         tools.verbose(self.name, "library files:", ', '.join(("'%s'" % f) for f in self.files))
         if save_env_vars:

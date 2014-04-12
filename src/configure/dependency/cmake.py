@@ -46,7 +46,14 @@ class CMakeDependency(Dependency):
                         Whether or not the library is shared.
                     * directory: (defaults to '.')
                         Where the library will be built relatively to the cmake
-                        build directory (if install is False).
+                        build directory (if install is False) or to the install
+                        directory
+                    * imp_directory: (defaults to directory)
+                        Where the "imp" library is generated (on windows),
+                        relative to the install directory (if install is True)
+                        or to the build directory otherwise.
+                    * imp_filename: (defaults to {prefix}{name}.lib)
+                        On Windows, choose the name of the imp filename.
                     * class: (defaults to compiler.Library)
                         Type of the library.
                     * source_include_directories: (defaults to [])
@@ -92,13 +99,17 @@ class CMakeDependency(Dependency):
         for lib in libraries:
             name = lib['name']
             shared = lib.get('shared', True)
+            directory = lib.get('directory', install and 'lib' or '.')
+            imp_directory = lib.get('imp_directory', directory)
             if install:
-                directory = 'install/lib'
-            else:
-                directory = lib.get('directory', '.')
+                directory = 'install/%s' % directory
+                imp_directory = 'install/%s' % imp_directory
+
+
             cls = lib.get('class', self.compiler.Library)
             include_directories = [
-                self.absolute_build_path(d) for d in lib.get('include_directories', self.install and ['install/include'] or [])
+                self.absolute_build_path(d)
+                for d in lib.get('include_directories', self.install and ['install/include'] or [])
             ]
             include_directories.extend([
                 self.absolute_source_path(d) for d in lib.get('source_include_directories', [])
@@ -113,6 +124,11 @@ class CMakeDependency(Dependency):
             prefix = lib.get('prefix', prefix)
             filename = '%s%s.%s' % (prefix, name, ext)
             path = self.build_path(directory, filename)
+            if platform.IS_WINDOWS:
+                imp_filename = lib.get('imp_filename', '%s%s.%s' % (prefix, name, 'lib'))
+                link_files = [self.absolute_build_path(imp_directory, imp_filename)]
+            else:
+                link_files = None
             self.__libraries.append(
                 cls(
                     self.name,
@@ -120,8 +136,9 @@ class CMakeDependency(Dependency):
                     shared = shared,
                     search_binary_files = False,
                     include_directories = include_directories,
-                    directories = [self.absolute_build_path(directory)],
+                    directories = [self.absolute_build_path(imp_directory)],
                     files = [self.absolute_build_path(directory, filename)],
+                    link_files = link_files,
                     save_env_vars = False,
                 )
             )
