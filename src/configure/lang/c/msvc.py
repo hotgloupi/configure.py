@@ -250,6 +250,7 @@ class Compiler(c_compiler.Compiler):
                 self._flag('nologo'),   # no print while invoking cl.exe
                 '-entry:_DllMainCRTStartup@12',
                 self._flag('DLL'), # dynamic library
+                self._flag('incremental:no'),
                 objects,
             ]
             build = self.attr('build', kw)
