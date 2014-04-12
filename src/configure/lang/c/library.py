@@ -15,6 +15,7 @@ class Library:
                  include_directories = [],
                  include_directory_names = [''],
                  files = [],
+                 link_files = None,
                  directories = [],
                  binary_file_names = None,
                  name_prefixes = ['lib', ''],

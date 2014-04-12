@@ -64,6 +64,8 @@ class SDLDependency(CMakeDependency):
                     'prefix': compiler.name != 'msvc' and 'lib' or '',
                     'shared': shared,
                     'source_include_directories': ['include'],
+                    'directory': compiler.name == 'msvc' and 'bin' or 'lib',
+                    'imp_directory': 'lib',
                 }
             ],
             configure_variables = [
