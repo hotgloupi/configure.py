@@ -1,5 +1,7 @@
 # -*- encoding: utf-8 -*-
 
+import os
+
 if __name__ == '__main__':
     import os
     def generate_file(path, content):
@@ -119,3 +121,16 @@ class Filesystem:
             target = target,
             inputs = [src]
         ).target
+
+    def copy_tree(self, src, dest = None, dest_dir = None):
+        if dest is None:
+            if dest_dir is not None:
+                dest = path.join(dest_dir, path.basename(src))
+            else:
+                dest = src
+        commands = []
+        for root, dirs, files in os.walk(src):
+            dest_dir = path.join(dest, path.relative(root, start = src))
+            for file in files:
+                commands.append(self.copy(os.path.join(root, file), dest_dir = dest_dir))
+        return commands
