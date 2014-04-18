@@ -147,6 +147,21 @@ class Compiler(c_compiler.Compiler):
                                     # and warning messages when compiling C++
                                     # source code from the command line.
             ]
+
+        optimization = self.attr('optimization', kw)
+        if optimization is not None:
+            flags.append(
+                self._flag({
+
+                    self.optimize_size: 'O1s',
+                    self.dont_optimize: 'Od',
+                    self.optimize: 'Ot2',
+                    self.optimize_harder: 'Obgt2',
+                    self.optimize_fastest: 'Ox',
+
+                }[optimization])
+            )
+
         for dir_ in self._include_directories(kw):
             flags.extend([
                 self._flag('I'),
