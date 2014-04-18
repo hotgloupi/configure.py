@@ -70,7 +70,7 @@ class Compiler(c_compiler.Compiler):
 
         optimization = self.attr('optimization', kw)
         if optimization is not None:
-            self.flags.append(
+            flags.append(
                 {
                     self.optimize_size: '-Os',
                     self.dont_optimize: '-O0',
