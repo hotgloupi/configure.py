@@ -3,6 +3,8 @@
 import os.path
 import stat
 
+from . import platform
+
 def exists(p, *paths):
     return os.path.exists(os.path.join(p, *paths))
 
@@ -44,11 +46,13 @@ is_directory = os.path.isdir
 
 def is_executable(p, *path):
     path = os.path.join(p, *path)
-    return (
-        os.path.exists(path) and
-        not os.path.isdir(path) and
-        os.stat(path)[stat.ST_MODE] & stat.S_IXUSR
-    )
+    if not os.path.exists(path) or os.path.isdir(path):
+        return False
+    if platform.IS_WINDOWS:
+        return path.lower().endswith('.exe') or \
+               path.lower().endswith('.dll')
+    else:
+        return os.stat(path)[stat.ST_MODE] & stat.S_IXUSR
 
 def split(p, *path):
     dirname, basename = os.path.split(os.path.join(p, *path))
