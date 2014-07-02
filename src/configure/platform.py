@@ -26,8 +26,11 @@ try:
     }[BINARY_FORMAT]
 except KeyError:
     raise Exception("'%s' binary format not handled, add it to this file (%s)" % (BINARY_FORMAT, __file__))
-PROCESSOR = _platform.uname().machine
-
+try:
+    PROCESSOR = _platform.uname().machine
+except AttributeError:
+    # python3.2 has not yet named tuple.
+    PROCESSOR = _platform.uname()[4]
 
 #print("PROCESSOR:", PROCESSOR)
 #print("BINARY_FORMAT:", BINARY_FORMAT)
