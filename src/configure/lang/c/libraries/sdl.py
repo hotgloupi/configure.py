@@ -141,7 +141,7 @@ class SDLImageDependency(Dependency):
         self.shared = shared
         self.targets = [self.lib]
 
-        self.libraries =  [
+        self.libraries = [
             Library(
                 self.name,
                 compiler,

@@ -59,9 +59,7 @@ class PythonLibrary(Library):
 
         self.ext = var('SO')[1:]
 
-    @property
-    def libraries(self):
-        return [self] + self.components
+        self.libraries = [self] + self.components
 
 
 class PythonDependency(Dependency):
@@ -112,8 +110,24 @@ class PythonDependency(Dependency):
             'install/bin/python%s.%s%s' % (version + (self.suffix,)),
         )
         self.prefix_directory = self.absolute_build_path('install')
-        self.__libraries = None
         self.__targets = None
+
+        self.libraries =  [
+            Library(
+                self.name,
+                self.compiler,
+                shared = self.shared,
+                search_binary_files = False,
+                include_directories = [
+                    self.absolute_build_path(
+                        'install/include/python%s.%s%s' % (self.version + (self.suffix,)),
+                    )
+                ],
+                directories = [self.absolute_build_path('install/lib')],
+                files = [self.absolute_build_path('install/lib', self.library_filename)],
+                save_env_vars = False,
+            )
+        ]
 
     @property
     def ext(self):
@@ -168,25 +182,3 @@ class PythonDependency(Dependency):
 
         self.__targets = [install_target]
         return self.__targets
-
-    @property
-    def libraries(self):
-        if self.__libraries is not None:
-            return self.__libraries
-        self.__libraries =  [
-            Library(
-                self.name,
-                self.compiler,
-                shared = self.shared,
-                search_binary_files = False,
-                include_directories = [
-                    self.absolute_build_path(
-                        'install/include/python%s.%s%s' % (self.version + (self.suffix,)),
-                    )
-                ],
-                directories = [self.absolute_build_path('install/lib')],
-                files = [self.absolute_build_path('install/lib', self.library_filename)],
-                save_env_vars = False,
-            )
-        ]
-        return self.__libraries

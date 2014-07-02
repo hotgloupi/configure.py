@@ -215,10 +215,13 @@ class BoostDependency(Dependency):
                 if k.split('_')[0] == name:
                     self.component_options[name][k.split('_')[1:]] = v
         self.python = python
-        self.__libraries = None
         self.__targets = {}
         self.__header_targets = {}
         self.__component_sources = {}
+        names = (name for name in self.component_names if not self.is_header_only(name))
+        self.libraries = [
+            self.component_library(component) for component in names
+        ]
 
     def option(self, component, option, default = None):
         return self.component_options.get(component, {}).get(option, getattr(self, option, default))
@@ -438,15 +441,6 @@ class BoostDependency(Dependency):
             save_env_vars = False,
         )
 
-    @property
-    def libraries(self):
-        if self.__libraries is not None:
-            return self.__libraries
-        names = (name for name in self.component_names if not self.is_header_only(name))
-        self.__libraries = [
-            self.component_library(component) for component in names
-        ]
-        return self.__libraries
     #@property
     #def targets(self):
     #    if self.__targets is not None:

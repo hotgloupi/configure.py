@@ -103,6 +103,20 @@ class FreetypeDependency(Dependency):
             ) for s in sources
         ]
         self.__targets = None
+        self.libraries = [
+            Library(
+                'freetype2',
+                self.compiler,
+                shared = self.shared,
+                search_binary_files = False,
+                include_directories = [
+                    self.absolute_source_path('include')
+                ],
+                directories = [self.absolute_build_path('install/lib')],
+                files = [self.absolute_build_path('install/lib', self.library_filename)],
+                save_env_vars = False,
+            )
+        ]
 
     @property
     def targets(self):
@@ -186,19 +200,3 @@ class FreetypeDependency(Dependency):
         )
         return [install_target]
 
-    @property
-    def libraries(self):
-        return [
-            Library(
-                'freetype2',
-                self.compiler,
-                shared = self.shared,
-                search_binary_files = False,
-                include_directories = [
-                    self.absolute_source_path('include')
-                ],
-                directories = [self.absolute_build_path('install/lib')],
-                files = [self.absolute_build_path('install/lib', self.library_filename)],
-                save_env_vars = False,
-            )
-        ]
