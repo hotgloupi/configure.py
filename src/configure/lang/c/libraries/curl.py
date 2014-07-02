@@ -81,6 +81,7 @@ class CURLDependencyCMake(CMakeDependency):
                  source_directory,
                  zlib = None,
                  openssl = None,
+                 idn = None,
                  with_cookies = True,
                  with_crypto_auth = True,
                  with_dict = True,
@@ -132,8 +133,11 @@ class CURLDependencyCMake(CMakeDependency):
             configure_variables = configure_variables
         )
         if not shared and platform.IS_LINUX:
-            from configure.lang import c
-            self.libraries.append(c.libraries.simple('idn', compiler, system = True))
+            if idn is not None:
+                self.libraries.extend(idn.libraries)
+            else:
+                from configure.lang import c
+                self.libraries.append(c.libraries.simple('idn', compiler, system = True))
 
 
 if platform.IS_WINDOWS and False:
