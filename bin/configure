@@ -107,27 +107,13 @@ ROOT_DIR = None
 HOME_URL = "http://hotgloupi.fr/configure.py.html"
 TUP_HOME_URL = "http://gittup.org"
 PROJECT_CONFIG_DIR_NAME = ".config"
-PROJECT_CONFIG_DIR = None
 PROJECT_CONFIG_FILENAME = "project.py"
 TUP_INSTALL_DIR = None
 TUP_GIT_URL = "git://github.com/gittup/tup.git"
 TUP_WINDOWS_URL = "http://gittup.org/tup/win32/tup-latest.zip"
 CONFIGURE_PY_INSTALL_DIR = None
-CONFIGURE_PY_GIT_URL = "git://github.com/hotgloupi/configure.git"
+CONFIGURE_PY_GIT_URL = "git://github.com/hotgloupi/configure.py"
 CONFIGURE_PY_GENERATORS = ['Tup', 'Makefile']
-
-
-def reset_root_dir(root):
-    """Compute global variables according to the project root directory"""
-    global ROOT_DIR, PROJECT_CONFIG_DIR, TUP_INSTALL_DIR, CONFIGURE_PY_INSTALL_DIR
-    ROOT_DIR = cleanpath(root)
-    PROJECT_CONFIG_DIR = cleanjoin(ROOT_DIR, PROJECT_CONFIG_DIR_NAME)
-    TUP_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'tup')
-    CONFIGURE_PY_INSTALL_DIR = cleanjoin(PROJECT_CONFIG_DIR, 'configure.py')
-reset_root_dir(
-    os.environ.get("CONFIGURE_PY_ROOT_DIR", os.path.dirname(__file__))
-)
-
 
 def self_install(args):
     status("Installing configure.py in", CONFIGURE_PY_INSTALL_DIR)
@@ -196,15 +182,15 @@ def tup_install_git(args):
             os.rename(tup_dir + '.bak', tup_dir)
 
 
-def prepare_build(args, defines, exports):
+def prepare_build(args, defines, exports, root_dir, project_config_dir):
     import configure # Should work at this point
     from configure.path import exists, join, absolute
 
     build_dir = args.build_dir
     try:
         project = configure.Project(
-            ROOT_DIR,
-            PROJECT_CONFIG_DIR,
+            root_dir,
+            project_config_dir,
             config_filename = PROJECT_CONFIG_FILENAME,
             new_project_vars = exports,
         )
@@ -263,9 +249,9 @@ def prepare_build(args, defines, exports):
     except configure.Project.NeedUserEdit:
         print(
             "Please edit %s and re-run the configure script" % join(
-                PROJECT_CONFIG_DIR,
+                project_config_dir,
                 PROJECT_CONFIG_FILENAME,
-                replace_home=True,
+                replace_home = True,
             )
         )
         sys.exit(0)
@@ -277,28 +263,74 @@ def parse_args():
             raise argparse.ArgumentTypeError
         return s
     parser = argparse.ArgumentParser(
-        description="Configure your project for tup"
+        description = "Configure your project"
     )
-    parser.add_argument('build_dir', action="store",
-                        help="Where to build your project", nargs='?')
-    parser.add_argument('-D', '--define', action='append',
-                        help="Define build specific variables", default=[])
-    parser.add_argument('-E', '--export', action='append',
-                        help="Define project specific variables", default=[])
-    parser.add_argument('-v', '--verbose', action='store_true', help="verbose mode")
-    parser.add_argument('-d', '--debug', action='store_true', help="debug mode")
-    parser.add_argument('--dump-vars', action='store_true', help="dump variables")
-    parser.add_argument('--dump-build', action='store_true', help="dump commands that would be executed")
-    parser.add_argument('--install', action='store_true', help="install when needed")
-    parser.add_argument('--self-install', action='store_true', help="install (or update) configure.py")
-    parser.add_argument('--tup-install', action='store_true', help="install (or update) tup")
-    parser.add_argument('--generator', '-G', default = None,
-                        help = "Generate build rules for another build system",
-                       choices = CONFIGURE_PY_GENERATORS)
-    parser.add_argument('--root-dir', help = "Root project directory",
-                        action = 'store',
-                        default = ROOT_DIR)
-
+    parser.add_argument(
+        '-i', '--init',
+        action = 'store',
+        help = 'Initialize the given directory as a configure.py project (default to current directory)',
+        default = False,
+        nargs = '?',
+    )
+    parser.add_argument(
+        'build_dir',
+        action = "store",
+        help = "Where to build your project",
+        nargs = '?'
+    )
+    parser.add_argument(
+        '-D', '--define',
+        action = 'append',
+        help = "Define build specific variables",
+        default = [],
+    )
+    parser.add_argument(
+        '-E', '--export',
+        action = 'append',
+        help ="Define project specific variables",
+        default = []
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        action = 'store_true',
+        help = "verbose mode"
+    )
+    parser.add_argument(
+        '-d', '--debug',
+        action = 'store_true',
+        help = "debug mode"
+    )
+    parser.add_argument(
+        '--dump-vars',
+        action = 'store_true',
+        help = "dump variables"
+    )
+    parser.add_argument(
+        '--dump-build',
+        action = 'store_true',
+        help = "dump commands that would be executed"
+    )
+    parser.add_argument(
+        '--install',
+        action = 'store_true',
+        help = "install when needed"
+    )
+    parser.add_argument(
+        '--self-install',
+        action = 'store_true',
+        help = "install (or update) configure.py"
+    )
+    parser.add_argument(
+        '--tup-install',
+        action = 'store_true',
+        help = "install (or update) tup"
+    )
+    parser.add_argument(
+        '--generator', '-G',
+        default = None,
+        help = "Generate build rules for another build system",
+        choices = CONFIGURE_PY_GENERATORS
+    )
     return parser, parser.parse_args()
 
 def parse_cmdline_variables(args):
@@ -330,21 +362,59 @@ def parse_cmdline_variables(args):
         }
     return res
 
-def main():
-    parser, args = parse_args()
 
+def is_root_dir(dir):
+    """True when dir is a configure.py project root directory."""
+    return os.path.isfile(
+        os.path.join(dir, PROJECT_CONFIG_DIR_NAME, PROJECT_CONFIG_FILENAME)
+    )
+
+def find_root_dir(args):
+    """Retreive the project root directory.
+
+    if the `init` flag has been given, the we use the specified directory.
+    Otherwise we check first from the current directory to the upmost
+    directory. Finally, we check in the configure script location.
+    """
+    if args.init is not False:
+        if args.init is None:
+            return os.getcwd()
+        return args.init
+
+    dir = os.path.abspath(os.getcwd())
+    while True:
+        if is_root_dir(dir):
+            return dir
+        up = os.path.abspath(os.path.join(dir, '..'))
+        if up == dir:
+            break
+        dir = up
+
+    dir = os.path.abspath(os.path.dirname(__file__))
+    if is_root_dir(dir):
+        return dir
+
+def main():
+    from os.path import exists, join, abspath, dirname
+    parser, args = parse_args()
     DEBUG = args.debug
     VERBOSE = args.verbose
-    reset_root_dir(args.root_dir)
+    root_dir = find_root_dir(args)
+    project_config_dir = cleanjoin(root_dir, PROJECT_CONFIG_DIR_NAME)
 
     if DEBUG:
-        status("root directory set to", ROOT_DIR)
+        status("root directory set to", root_dir)
         cgitb.enable(format = 'text')
 
 
-    from os.path import exists, join
-    sys.path.insert(0, join(PROJECT_CONFIG_DIR,'configure.py/src'))
-    sys.path.insert(0, PROJECT_CONFIG_DIR)
+    # Add this one to use with configure with configure.py
+    sys.path.insert(0, join(abspath(dirname(__file__)), '..', 'src'))
+
+    # In case we were auto-installed
+    sys.path.insert(0, join(project_config_dir,'configure.py/src'))
+
+    # XXX This one should be removed (Allowing imports in project files ?)
+    sys.path.insert(0, project_config_dir)
 
     have_configure = False
     try:
@@ -356,7 +426,7 @@ def main():
         self_install(args)
         try:
             import imp
-            file_, pathname, descr = imp.find_module("configure", [join(PROJECT_CONFIG_DIR,'configure.py/src')])
+            file_, pathname, descr = imp.find_module("configure", [join(project_config_dir,'configure.py/src')])
             configure = imp.load_module("configure", file_, pathname, descr)
         except Exception as e:
             fatal("Sorry, configure installation failed for some reason:", e)
@@ -379,11 +449,12 @@ def main():
             '\n'.join([
                 "Cannot find configure.py module, your options are:",
                 "\t* Just use the --self-install flag (installed in %(config_dir)s/configure.py)",
-                "\t* Add it as a submodule: `git submodule add git@github.com:hotgloupi/configure.py.git %(config_dir)s/configure.py`",
+                "\t* Add it as a submodule: `git submodule add %(git_url)s %(config_dir)s/configure.py`",
                 "\t* Install it somewhere (see %(home_url)s)",
             ]) % {
-                'config_dir': cleanabspath(PROJECT_CONFIG_DIR, replace_home=True),
-                'home_url': HOME_URL
+                'config_dir': cleanabspath(project_config_dir, replace_home=True),
+                'home_url': HOME_URL,
+                'git_url': CONFIGURE_PY_GIT_URL,
             }
         )
 
@@ -399,7 +470,7 @@ def main():
                 "\t* Just use the --tup-install flag (installed in %(config_dir)s/tup)",
                 "\t* Install it somewhere (see %(home_url)s)",
             ]) % {
-                'config_dir': cleanabspath(PROJECT_CONFIG_DIR, replace_home=True),
+                'config_dir': cleanabspath(project_config_dir, replace_home=True),
                 'home_url': TUP_HOME_URL
             }
         )
@@ -408,14 +479,14 @@ def main():
         defines = parse_cmdline_variables(args.define)
         exports = parse_cmdline_variables(args.export)
 
-        prepare_build(args, defines, exports)
+        prepare_build(args, defines, exports, root_dir, project_config_dir)
 
     except configure.Env.VariableNotFound as e:
         fatal('\n'.join([
             "Couldn't find any variable '%s', do one of the following:" % e.name,
             "\t* Export it with: `%s=something ./configure`" % e.name,
             "\t* Define it with: `./configure -D%s=something`" % e.name,
-            "\t* Define it in your project config file (%s)" % cleanjoin(PROJECT_CONFIG_DIR, PROJECT_CONFIG_FILENAME),
+            "\t* Define it in your project config file (%s)" % cleanjoin(project_config_dir, project_config_filename),
         ]))
 
 
