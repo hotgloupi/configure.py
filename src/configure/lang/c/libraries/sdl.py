@@ -20,9 +20,7 @@ class SDLLibrary(Library):
         if platform.IS_MACOSX:
             self.components.append(Library('SDLmain', compiler, shared = False)) # Fixture from SDL is needed
 
-    @property
-    def libraries(self):
-        return [self] + self.components
+        self.libraries = [self] + self.components
 
 from configure.dependency.cmake import CMakeDependency
 

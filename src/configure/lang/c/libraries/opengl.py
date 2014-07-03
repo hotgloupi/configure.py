@@ -36,8 +36,6 @@ class OpenGLLibrary(Library):
             ) for component in components
         )
 
-    @property
-    def libraries(self):
-        return [self] + self.components
+        self.libraries = [self] + self.components
 
 

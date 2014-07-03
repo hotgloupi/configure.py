@@ -34,10 +34,7 @@ class BoostLibrary(Library):
                     name_suffixes = name_suffixes,
                 )
             )
-
-    @property
-    def libraries(self):
-        return self.components
+        self.libraries = self.components
 
 from configure import path, tools, Dependency, Target
 from configure.command import Command
