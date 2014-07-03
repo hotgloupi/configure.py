@@ -63,13 +63,13 @@ Getting started
 ### Installation
 
 Just drop the
-[configure.py](https://github.com/hotgloupi/tupcfg/blob/master/src/main.py) script
+[configure.py](https://github.com/hotgloupi/configure.py/blob/master/src/main.sh) script
 in the root directory of your project.
 
 On unices, you could do:
 
     $ cd /path/to/your/project
-    $ wget 'https://github.com/hotgloupi/tupcfg/raw/master/src/main.sh' -O configure
+    $ wget 'https://github.com/hotgloupi/configure.py/raw/master/src/main.sh' -O configure
     $ chmod +x configure
 
 This script is written in python3, so you'll obviously need python3 on your
@@ -171,7 +171,7 @@ The configure script
       --dump-vars         dump variables
       --dump-build        dump commands that would be executed
       --install           install when needed
-      --self-install      install (or update) tupcfg
+      --self-install      install (or update) configure.py
       --tup-install       install (or update) tup
 
 ### The build directories
@@ -269,13 +269,13 @@ great help in some cases. Use `--dump-build` when you feel it :)
 ### Auto install everything
 
 As seen previously the `--tup-install` and `--self-install` flags force the
-installation or the update of *Tup* and *configure.py*. To install only when tup or
-tupcfg are not found, use the `--install` flag instead.
+installation or the update of *Tup* and *configure.py*. To install only when
+tup or configure.py are not found, use the `--install` flag instead.
 
 configure.py core
 -----------
 
-Before getting into the facilities that tupcfg offers, you should know a little
+Before getting into the facilities that *configure.py* offers, you should know a little
 about the core objects used to define rules.
 
 ### Everything is a `Node`
@@ -306,9 +306,9 @@ commands.
 
 Let's do a simple command that copy a file:
 
-    import tupcfg
+    import configure
 
-    class CopyFile(tupcfg.Command):
+    class CopyFile(configure.Command):
         def __init__(self, dependencies):
             # We just ensure that we are copying only one file at a time
             assert len(dependencies) == 1
@@ -328,9 +328,9 @@ Let's do a simple command that copy a file:
 We can use this command class whenever we want to copy a file.
 
     def configure(project, build):
-        resource = tupcfg.Source("resources/images/file1.jpg")
+        resource = configure.Source("resources/images/file1.jpg")
         copy = CopyFile(resource)
-        target = tupcfg.Target("resources/images/file1.jpg", copy)
+        target = configure.Target("resources/images/file1.jpg", copy)
         build.add_target(target)
 
 Of course, you can generalise, factorise and improve the copy of files in many
