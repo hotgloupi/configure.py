@@ -59,6 +59,7 @@ class Library:
 
         self.prefixes = tools.unique(self._env_prefixes() + prefixes)
 
+        self.libraries = [self]
         if self.macosx_framework and not search_macosx_framework_files:
             self.include_directories = []
             self.directories = []
@@ -349,6 +350,3 @@ class Library:
         libs.append('/usr/lib')
         return libs
 
-    @property
-    def libraries(self):
-        return [self]
