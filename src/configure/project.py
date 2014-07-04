@@ -28,18 +28,28 @@ class Project:
         self.build_vars_filename = build_vars_filename
         self.project_vars_filename = project_vars_filename
 
-        self.__config_file_template = templates.project()
-        assert path.exists(self.__config_file_template)
-
         self.__configure_function = None
         self.__env = None
         if not path.exists(self.config_file):
-            self.__bootstrap()
-            raise self.NeedUserEdit()
+            raise Exception("This directory '%s' does not seem to contains a configuration")
         else:
             self.__read_conf()
         project_vars_file = path.join(self.config_directory, self.project_vars_filename)
         self.env.enable_project_vars(project_vars_file, new_vars=new_project_vars)
+
+    @classmethod
+    def initialize(self, config_directory, config_filename):
+        config_file = path.join(config_directory, config_filename)
+        if path.exists(config_file):
+            tools.fatal(
+                "This project seems to be already initialized, see '%s'" % path.clean(config_file, replace_home = True)
+            )
+        if not path.exists(config_directory):
+            os.makedirs(config_directory)
+        with open(templates.project()) as template:
+            data = template.read()
+        with open(config_file, 'w') as conf:
+            conf.write(data)
 
     def __enter__(self):
         return self
@@ -81,7 +91,7 @@ class Project:
     def configure(self, build_dir, new_build_vars, generator_names):
         if self.__configure_function is None:
             raise Exception(
-                "The project file %s did not define any `configure` function"
+                "The project file %s did not define any `main` function"
             )
         return self.BuildProxy(
             self,
@@ -91,15 +101,6 @@ class Project:
             generator_names,
         )
 
-    def __bootstrap(self):
-        assert self.__env is None
-        self.__env = self.__default_env()
-        if not path.exists(self.config_directory):
-            os.makedirs(self.config_directory)
-        with open(self.__config_file_template) as template:
-            data = template.read()
-        with open(self.config_file, 'w') as conf:
-            conf.write(data)
 
     def __default_env(self):
         return env.Env(self)
