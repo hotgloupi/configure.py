@@ -1,5 +1,6 @@
 #!/bin/sh
 # Python file written with a shell helper (mainly for windows).
+# vim: set syntax=python:
 __SHELL_PROTECT=""" "
 SCRIPT="$0"
 PYTHON=`which python3`
@@ -401,6 +402,7 @@ def main():
     VERBOSE = args.verbose
     root_dir = find_root_dir(args)
     project_config_dir = cleanjoin(root_dir, PROJECT_CONFIG_DIR_NAME)
+    tup_install_dir = cleanjoin(project_config_dir, 'tup')
 
     if DEBUG:
         status("root directory set to", root_dir)
@@ -458,7 +460,7 @@ def main():
             }
         )
 
-    configure.tools.PATH.insert(0, configure.path.absolute(TUP_INSTALL_DIR))
+    configure.tools.PATH.insert(0, configure.path.absolute(tup_install_dir))
 
     if args.tup_install or (args.install and not configure.tools.which('tup')):
         tup_install(args)
@@ -479,7 +481,22 @@ def main():
         defines = parse_cmdline_variables(args.define)
         exports = parse_cmdline_variables(args.export)
 
-        prepare_build(args, defines, exports, root_dir, project_config_dir)
+
+        if args.init is not False:
+            configure.Project.initialize(
+                config_directory = project_config_dir,
+                config_filename = PROJECT_CONFIG_FILENAME
+            )
+            status('Project successfully initialized')
+            status(
+                "Please edit %s and re-run the configure script" % configure.path.join(
+                    project_config_dir,
+                    PROJECT_CONFIG_FILENAME,
+                    replace_home = True,
+                )
+            )
+        else:
+            prepare_build(args, defines, exports, root_dir, project_config_dir)
 
     except configure.Env.VariableNotFound as e:
         fatal('\n'.join([
