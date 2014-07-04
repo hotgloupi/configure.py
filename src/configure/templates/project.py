@@ -49,37 +49,19 @@ def main(project, build):
     ## Retreive BUILD_TYPE (defaults to DEBUG)
     build_type = project.env.get('BUILD_TYPE', 'DEBUG')
 
-    ## Print a status message (Could have been verbose or debug)
-    configure.tools.status("Configuring", project.env.NAME,
-                      'in', build.directory, '(%s)' % build_type)
+    ## Print a status message
+    configure.tools.status(
+        "Configuring", project.env.NAME, 'in', build.directory,
+        '(%s)' % build_type
+    )
 
 
-    ## Choose C++ compiler
-    if platform.IS_WINDOWS:
-        CXXCompiler = configure.lang.cxx.msvc.Compiler
-    else:
-        CXXCompiler = configure.lang.cxx.gcc.Compiler
-
-    ## Create a new compiler
-    # compiler = CXXCompiler(
-    #     project,
-    #     build,
-    #     position_independent_code = True,
-    #     standard = 'c++11',
-    # )
-
-    #configure.tools.status("CXX compiler is", compiler.binary)
-
-    ## to link an executable, simply use the link_executable method.
-    # my_program_exe = compiler.link_executable(
-    #     "my_program",                 # The executable name
-    #     ["src/main.cpp", ],           # source files
-    #     directory = "release/bin",    # executable destination
-    #     libraries=[],                 # library dependencies
-    # )
+    ## Find a C compileer
+    compiler = configure.lang.c.find_compiler(project, build)
+    configure.tools.status("C compiler is", compiler.binary)
 
 
-    ## Or a library
+    ## You can create a library
     my_lib = compiler.link_library(
         'libmy_lib',
         glob("src/my_lib/*.cpp", recursive=True),
@@ -88,3 +70,11 @@ def main(project, build):
         defines = ['MY_LIB_BUILD_DLL'],
         shared = True #and not platform.IS_MACOSX #bug with tup on macosx
     )
+
+    ## to link an executable, simply use the link_executable method.
+    # my_program_exe = compiler.link_executable(
+    #     "my_program",                 # The executable name
+    #     ["src/main.cpp", ],           # source files
+    #     directory = "release/bin",    # executable destination
+    #     libraries=[],                 # library dependencies
+    # )
