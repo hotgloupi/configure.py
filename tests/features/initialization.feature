@@ -1,12 +1,13 @@
 
 Feature: Initialize project file
 
-	Scenario: Launch configure script
-		Given a temporary directory
-		When I launch configure
-		Then A .config directory is created
+    Scenario: Launch configure script
+        Given a temporary directory
+        When I launch configure --init
+        Then A .config directory is created
+        And a project config file is created
 
-	Scenario: Launch script in readonly directory
-		Given a directory
-		When I launch configure
-		Then I got errors
+    Scenario: Cannot initialize twice
+        Given an initialized directory
+        When I launch configure --init
+        Then configure failed
