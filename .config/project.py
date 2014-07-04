@@ -1,11 +1,11 @@
 # -*- encoding: utf-8 -*-
 
-NAME = "tupcfg"
+NAME = "configure.py"
 VERSION_NAME = "alpha"
 
-from tupcfg.tools import rglob
+from configure.tools import rglob
 
-def configure(project, build):
+def main(project, build):
     print("Configuring project", project.env.NAME, 'in', build.directory)
     for src in rglob('*.py', dir = 'src/'):
         build.fs.copy(src, src[4:])
