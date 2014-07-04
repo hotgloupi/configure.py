@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 from setuptools import setup, find_packages
+from setuptools_behave import behave_test
 
 setup(
     name = 'configure',
@@ -11,4 +12,9 @@ setup(
     packages = find_packages('src'),
     package_dir = {'': 'src'},
     scripts = ['bin/configure'],
+    test_suite = 'configure',
+    # tests_require = ['behave'],
+    cmdclass = {
+        'behave_test': behave_test
+    }
 )
