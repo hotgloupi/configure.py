@@ -18,3 +18,4 @@ def import_configure(ctx):
 @then('configure.py has been imported')
 def configure_has_been_imported(ctx):
     assert ctx.configure is not None
+

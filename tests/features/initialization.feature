@@ -1,4 +1,3 @@
-
 Feature: Initialize project file
 
     Scenario: Launch configure script
