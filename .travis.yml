@@ -4,7 +4,11 @@ python:
     - "3.2"
     - "3.3"
     - "3.4"
-install: make
-script: make check
+install:
+    - pip install behave
+    - python setup.py install
+script:
+    - python setup.py test
+    - behave tests/features -q -m
 git:
     submodules: false
