@@ -63,13 +63,13 @@ Getting started
 ### Installation
 
 Just drop the
-[configure.py](https://github.com/hotgloupi/configure.py/blob/master/src/main.sh) script
+[configure.py](https://github.com/hotgloupi/configure.py/blob/master/bin/configure) script
 in the root directory of your project.
 
 On unices, you could do:
 
     $ cd /path/to/your/project
-    $ wget 'https://github.com/hotgloupi/configure.py/raw/master/src/main.sh' -O configure
+    $ wget 'https://github.com/hotgloupi/configure.py/raw/master/bin/configure' -O configure
     $ chmod +x configure
 
 This script is written in python3, so you'll obviously need python3 on your
@@ -86,7 +86,7 @@ install them for you.
 
     $ ./configure --self-install --tup-install
 
-Note that same flags could be used later to upgrade *cfg* and *Tup*.
+Note that same flags could be used later to upgrade *configure.py* and *Tup*.
 
 You are now asked to manually edit the file `.config/project.py`, which defines
 your project rules.
