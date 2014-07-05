@@ -4,14 +4,12 @@ PIP = $(ENV_DIR)/bin/pip
 BEHAVE = $(ENV_DIR)/bin/behave
 VENV = python3 -mvenv
 SOURCES = $(shell find src -name '*.py')
-#INSTALL = $(patsubst src/%.py, $(VENV_DIR)/%.py, $(SOURCES))
 
 .PHONY:
 .PHONY: all clean re check check/fast
 
 all: $(PIP)
 	( . $(ACTIVATE); $(PIP) install -e . )
-
 
 check/fast:
 	( . $(ACTIVATE); python setup.py test; )
@@ -26,7 +24,8 @@ $(PIP): $(ENV_DIR)
 	test -f $(PIP) || ( . $(ACTIVATE); python third-parties/get-pip.py )
 
 $(ENV_DIR):
-	$(VENV) --without-pip $(ENV_DIR)
+	$(VENV) --without-pip $(ENV_DIR) \
+		|| ( rm -rf $(ENV_DIR) && $(VENV) $(ENV_DIR) )
 
 clean:
 	rm -rf $(ENV_DIR)
