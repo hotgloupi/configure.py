@@ -9,10 +9,8 @@ class Compiler(gcc.Compiler, c_clang.Compiler):
     binary_name = 'clang++'
 
     def __init__(self, project, build, **kw):
-        kw.setdefault(
-            'stdlib',
-            platform.IS_MACOSX and 'libc++' or True,
-        )
+        kw.setdefault('stdlib', 'libc++')
+        kw.setdefault('standard', 'c++11')
         super().__init__(project, build, **kw)
         if platform.IS_MACOSX and self.stdlib == 'libc++':
             prefix = path.join(path.dirname(self.binary), '..', absolute = True)
