@@ -6,3 +6,4 @@ python:
     - "3.4"
 install: make
 script: make check
+submodules: false
