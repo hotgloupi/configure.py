@@ -224,7 +224,6 @@ class Build:
             for el in cmd.relative_command(working_directory):
                 args.append(repr(el))
             script += '\nprint(%s, %s)' % (repr(cmd.action), repr(cmd.target.relative_path(working_directory)))
-            script += '\nif os.environ.get("CONFIGURE_PY_DEBUG") or True:print(%s)' % ', '.join(repr(e) for e in cmd.command)
             script += '\nsys.exit('
             script += '\n\tsubprocess.call('
             script += '\n\t\t[\n\t\t\t%s\n\t\t],' % ',\n\t\t\t'.join(args)
