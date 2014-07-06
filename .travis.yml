@@ -8,8 +8,9 @@ install:
     - pip install git+https://github.com/hotgloupi/behave
     - pip install python-coveralls
     - python setup.py install
-    - sudo apt-get install g++-4.7
-    - sudo apt-get install g++-4.8
+    - sudo apt-get install -qq g++-4.4
+    - sudo apt-get install -qq g++-4.5
+    - sudo apt-get install -qq g++-4.6
 script:
     - python setup.py test
     - behave tests/features -q -m
