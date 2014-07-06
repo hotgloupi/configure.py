@@ -48,6 +48,7 @@ def step_impl(context):
 
 
 @given('a source file {filename}')
+@when('a source file {filename}')
 def step_impl(context, filename):
     with open(filename, 'w') as f:
         f.write(context.text)
