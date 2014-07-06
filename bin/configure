@@ -470,7 +470,8 @@ def main():
 
         if args.init is not False:
             configure.Project.initialize(
-                config_directory = project_config_dir,
+                directory = root_dir,
+                config_directory = PROJECT_CONFIG_DIR_NAME,
                 config_filename = PROJECT_CONFIG_FILENAME
             )
             status('Project successfully initialized')
