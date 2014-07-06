@@ -17,8 +17,8 @@ Feature: C library
 		And a project configuration
 		"""
 		from configure.lang.c import find_compiler
-		def main(project, build):
-			cc = find_compiler(project, build)
+		def main(build):
+			cc = find_compiler(build)
 			my = cc.link_static_library(
 				'libmy',
 				['my.c']
@@ -48,8 +48,8 @@ Feature: C library
 		And a project configuration
 		"""
 		from configure.lang.c import find_compiler
-		def main(project, build):
-			cc = find_compiler(project, build)
+		def main(build):
+			cc = find_compiler(build)
 			my = cc.link_dynamic_library(
 				'libmy',
 				['my.c'],

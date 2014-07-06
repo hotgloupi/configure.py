@@ -5,8 +5,8 @@ Feature: C executable
 		Given a project configuration
 		"""
 		import configure.lang.c
-		def main(project, build):
-			cc = configure.lang.c.find_compiler(project, build)
+		def main(build):
+			cc = configure.lang.c.find_compiler(build)
 			cc.link_executable(
 				'hello-world.exe',
 				['hello-world.c']

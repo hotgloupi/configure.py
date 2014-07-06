@@ -1,12 +1,15 @@
 @cxx
 Feature: C++ executable
 
-	Scenario: Hello world
-		Given a project configuration
+	Scenario Outline: Hello world
+		Given a system executable <compiler>
+		And a project configuration
 		"""
-		import configure.lang.cxx
-		def main(project, build):
-			cxx = configure.lang.cxx.find_compiler(project, build)
+		from configure.lang.cxx import find_compiler
+		from configure.tools import status
+		def main(build):
+			cxx = find_compiler(build, name = "<compiler>")
+			status("Found CXX compiler", cxx.binary)
 			cxx.link_executable(
 				'hello-world',
 				['hello-world.cpp']
@@ -19,3 +22,11 @@ Feature: C++ executable
 		"""
 		When I configure and build
 		Then I can launch hello-world
+
+		Examples: C++ compilers
+			| compiler |
+			| g++     |
+			| g++-4.7 |
+			| g++-4.8 |
+			| clang++ |
+			| cl.exe |
