@@ -4,6 +4,10 @@ python:
     - "3.2"
     - "3.3"
     - "3.4"
+env:
+    global:
+        - COVERAGE_PROCESS_START=$PWD/.coveragerc
+        - COVERAGE_FILE=$PWD/.coverage-partial
 before_install:
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get update -qq
@@ -22,6 +26,7 @@ script:
     - coverage erase
     - coverage run -a --source=src/configure setup.py test
     - coverage run -a --source=src/configure `which behave` tests/features -q -m -k -T --no-summary --no-snippets
+    - coverage combine
     - coverage report
     - coveralls
 git:

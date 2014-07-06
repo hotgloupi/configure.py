@@ -6,6 +6,9 @@ COVERAGE = $(ENV_DIR)/bin/coverage
 VENV = python3 -mvenv
 SOURCES = $(shell find src -name '*.py')
 
+export COVERAGE_FILE=$(PWD)/.coverage-partial
+export COVERAGE_PROCESS_START=$(PWD)/.coveragerc
+
 .PHONY:
 .PHONY: all clean re \
         check check/unittests check/features \
@@ -27,10 +30,13 @@ coverage/tests: $(COVERAGE)
 	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure setup.py test )
 
 coverage/features: $(COVERAGE) $(BEHAVE) all
-	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure $(BEHAVE) tests/features -q -m -k -T --no-summary --no-snippets )
+	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure $(BEHAVE) tests/features -q -m -k -T --no-summary --no-snippets --no-capture )
 
-coverage: $(COVERAGE) coverage/clean coverage/tests coverage/features
+coverage/report: $(COVERAGE) $(BEHAVE) all
+	( . $(ACTIVATE); $(COVERAGE) combine )
 	( . $(ACTIVATE); $(COVERAGE) report )
+
+coverage: $(COVERAGE) coverage/clean coverage/tests coverage/features coverage/report
 
 check: check/unittests check/features
 
