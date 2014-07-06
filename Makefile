@@ -2,11 +2,14 @@ ENV_DIR = env
 ACTIVATE = $(ENV_DIR)/bin/activate
 PIP = $(ENV_DIR)/bin/pip
 BEHAVE = $(ENV_DIR)/bin/behave
+COVERAGE = $(ENV_DIR)/bin/coverage
 VENV = python3 -mvenv
 SOURCES = $(shell find src -name '*.py')
 
 .PHONY:
-.PHONY: all clean re check check/fast
+.PHONY: all clean re \
+        check check/unittests check/features \
+        coverage coverage/clean coverage/tests coverage/features
 
 all: $(PIP)
 	( . $(ACTIVATE); $(PIP) install -e . )
@@ -14,15 +17,28 @@ all: $(PIP)
 check/unittests:
 	( . $(ACTIVATE); python setup.py test; )
 
-check/features:
+check/features: $(BEHAVE) all
 	( . $(ACTIVATE); $(BEHAVE) tests/features -q -m -k )
 
-check/fast: check/unittests check/features
+coverage/clean: $(COVERAGE)
+	( . $(ACTIVATE); $(COVERAGE) erase )
 
-$(BEHAVE):
+coverage/tests: $(COVERAGE)
+	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure setup.py test )
+
+coverage/features: $(COVERAGE) $(BEHAVE) all
+	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure $(BEHAVE) tests/features -q -m -k -T --no-summary --no-snippets )
+
+coverage: $(COVERAGE) coverage/clean coverage/tests coverage/features
+	( . $(ACTIVATE); $(COVERAGE) report )
+
+check: check/unittests check/features
+
+$(COVERAGE): $(PIP)
+	test -f $(COVERAGE) || ( . $(ACTIVATE); $(PIP) install python-coveralls )
+
+$(BEHAVE): $(PIP)
 	test -f $(BEHAVE) || ( . $(ACTIVATE); $(PIP) install git+https://github.com/hotgloupi/behave )
-
-check: all $(BEHAVE) check/fast
 
 $(PIP): $(ENV_DIR)
 	test -f $(PIP) || ( . $(ACTIVATE); python third-parties/get-pip.py )

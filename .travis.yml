@@ -6,10 +6,16 @@ python:
     - "3.4"
 install:
     - pip install git+https://github.com/hotgloupi/behave
+    - pip install python-coveralls
     - python setup.py install
     - sudo apt-get install g++
 script:
     - python setup.py test
     - behave tests/features -q -m
+    - coverage erase
+    - coverage run -a --source=src/configure setup.py test
+    - coverage run -a --source=src/configure behave tests/features -q -m -k -T --no-summary --no-snippets
+    - coverage report
+    - coveralls
 git:
     submodules: false
