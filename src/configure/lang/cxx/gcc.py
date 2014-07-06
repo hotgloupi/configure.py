@@ -9,7 +9,10 @@ class Compiler(cxx_compiler.Compiler, gcc.Compiler):
     binary_name = 'g++'
 
     __standards_map = {
+        'c++98': 'c++98',
+        'c++03': 'c++03',
         'c++11': 'c++11',
+        'c++14': 'c++14',
     }
 
     def __init__(self, build, **kw):
