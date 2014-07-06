@@ -8,7 +8,7 @@ Feature: C++ executable
 		from configure.lang.cxx import find_compiler
 		from configure.tools import status
 		def main(build):
-			cxx = find_compiler(build, name = "<compiler>")
+			cxx = find_compiler(build, name = "<compiler>", standard = 'c++03')
 			status("Found CXX compiler", cxx.binary)
 			cxx.link_executable(
 				'hello-world',
