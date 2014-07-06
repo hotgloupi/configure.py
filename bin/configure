@@ -23,14 +23,21 @@ export CONFIGURE_ROOT_DIR="`dirname $SCRIPT`"
 exit $?
 
 __SHELL_PROTECT=" """
+import os, sys
 
-import sys
 try:
     if sys.version_info[0] != 3:
-        raise Exception("Invalid python version")
+        raise Exception()
 except:
-    print("Invalid python version")
+    sys.stderr.write("Invalid python version\n")
+    sys.stderr.flush()
     sys.exit(1)
+
+try:
+    import coverage
+    coverage.process_startup()
+except:
+    pass
 
 import argparse
 import os
