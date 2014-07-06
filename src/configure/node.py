@@ -37,7 +37,7 @@ class Node:
     @property
     def basename(self):
         if self.is_directory:
-            raise Exception("Directories have basename")
+            raise Exception("Directories have no basename")
         return PATH.basename(self.path)
 
     @property
@@ -56,10 +56,6 @@ class Node:
             return self.shell_formatter(self.path)
         return self.shell_formatter(self.relative_path(start))
 
-    #@property
-    #def name(self):
-    #    return '.'.join(self.basename.split('.')[:-1])
-
     def visit(self, visitor):
         if visitor(self) is False:
             return
@@ -73,3 +69,22 @@ class Node:
             self.path
         )
 
+
+from unittest import TestCase
+
+class _(TestCase):
+
+    def test_init(self):
+        n = Node(None, '/pif/paf')
+
+    def test_invalid_path(self):
+        invalid_paths = [
+            '.', './', 'pif', '..'
+        ]
+        for p in invalid_paths:
+            try:
+                n = Node(None, p)
+            except:
+                pass
+            else:
+                self.fail("The path '%s' shouldn't be allowed" % p)

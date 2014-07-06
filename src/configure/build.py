@@ -1,5 +1,4 @@
 # -*- encoding: utf-8 -*-
-
 import os
 import sys
 import types
@@ -40,12 +39,29 @@ def _command(cmd, build = None, cwd = None):
 
 class Build:
     def __init__(self,
-                 project: "The project instance",
-                 directory: "The build directory",
-                 generator_name: "generator name" = None,
+                 project,
+                 directory,
+                 generator_name = None,
                  save_generator = True,
                  dependencies_directory = 'dependencies',
                  env = None):
+        """Construct a build instance.
+
+        positional arguments:
+
+            project: The project instance
+            directory: The build directory
+
+        optional arguments:
+
+            generator_name: The name of generator to be used.
+            save_generator: Should the generator name be saved in the env. When
+                            not specified, tup will be used as first choice, or
+                            makefile if the latter is not present.
+            dependencies_directory: Specify an alternate name for the
+                                    dependencies directory.
+            env: Specify an environment, or use an empty one.
+        """
         self.env = env or Env()
         self.directory = directory
         self.root_directory = project.directory
@@ -58,12 +74,7 @@ class Build:
         self.__seen_commands = None
 
         if not generator_name:
-            generator_name = project.env.get(
-                'BUILD_GENERATOR',
-                default = 'Makefile'
-            )
-        elif save_generator:
-            project.env.build_set('BUILD_GENERATOR', generator_name)
+            generator_name = self.env.get('build_generator')
 
         if not generator_name:
             if tools.which('tup'):
@@ -71,6 +82,9 @@ class Build:
             else:
                 tools.warning("Using makefile generator (tup not found)")
                 generator_name = 'Makefile'
+
+        if save_generator:
+            self.env.build_generator = generator_name
 
         from . import generators
         cls = getattr(generators, generator_name)

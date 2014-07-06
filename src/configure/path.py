@@ -56,6 +56,35 @@ def is_executable(p, *path):
 
 def split(p, *path):
     dirname, basename = os.path.split(os.path.join(p, *path))
-    return (clean(dirname), basename)
+    dirname, basename = (clean(dirname), basename or '.')
+    if basename == '..':
+        dirname, basename = join(dirname, '..'), '.'
+    return dirname, basename
 
 make_path = os.makedirs
+
+
+from unittest import TestCase
+
+class _(TestCase):
+
+    def test_clean(self):
+        self.assertEqual(clean('c:\\pif\\paf'), 'c:/pif/paf')
+        self.assertEqual(clean('./pif'), 'pif')
+        self.assertEqual(clean('./pif/'), 'pif')
+        self.assertEqual(clean('./pif/paf'), 'pif/paf')
+        self.assertEqual(clean('.', 'pif', 'paf'), 'pif/paf')
+        self.assertEqual(clean('.'), '.')
+
+    def test_split(self):
+        self.assertEqual(split('.'), ('.', '.'))
+        self.assertEqual(split('..'), ('..', '.'))
+        self.assertEqual(split('./'), ('.', '.'))
+        self.assertEqual(split('../'), ('..', '.'))
+        self.assertEqual(split('/'), ('/', '.'))
+        self.assertEqual(split('/..'), ('/', '.'))
+        self.assertEqual(split('pif/../'), ('.', '.'))
+        self.assertEqual(split('pif/..'), ('.', '.'))
+        self.assertEqual(split('pif/../paf'), ('.', 'paf'))
+        self.assertEqual(split('pif/paf'), ('pif', 'paf'))
+

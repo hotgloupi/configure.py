@@ -1,4 +1,5 @@
 # -*- encoding: utf-8 -*-
+from __future__ import print_function
 
 import os
 import sys
@@ -10,7 +11,7 @@ DEBUG = False
 VERBOSE = True
 
 def err(*args, **kwargs):
-    kwargs['file'] = sys.stderr
+    kwargs.setdefault('file', sys.stderr)
     print(*args, **kwargs)
 
 warning = err
@@ -82,7 +83,7 @@ def rglob(pattern, dir=None):
     return glob(pattern, dir=dir, recursive = True)
 
 def isiterable(obj):
-    return isinstance(obj, (list, tuple, types.GeneratorType))
+    return not isinstance(obj, str) and hasattr(obj, '__iter__')
 
 def _match_file(root, file_, name, extensions, prefixes, suffixes, validator):
     from fnmatch import fnmatch
@@ -181,3 +182,27 @@ def python_command(file = None, module = None, args = []):
         return ['PYTHONPATH=%s' % path, sys.executable, file] + args
     else:
         raise Exception("You must specify file or module argument")
+
+
+from unittest import TestCase
+
+class _(TestCase):
+
+    def test_unique(self):
+        seq = ['a', 1, 'b', 'a', 2, 1, 'c']
+        self.assertEqual(
+            unique(seq),
+            ['a', 1, 'b', 2, 'c']
+        )
+
+    def test_isiterable(self):
+        self.assertTrue(isiterable(set()))
+        self.assertTrue(isiterable(list()))
+        self.assertTrue(isiterable(tuple()))
+        self.assertTrue(isiterable(range(10)))
+        self.assertTrue(isiterable(i for i in range(10)))
+        def gen():
+            while True:
+                yield "something"
+        self.assertTrue(isiterable(gen()))
+

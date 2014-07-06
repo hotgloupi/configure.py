@@ -43,8 +43,8 @@ class Env:
         """Create an environment instance. if parent is set, it will be used
         as a fallback when a variable is not found.
         """
-        self.__vars = {}
-        self.__parent = parent
+        object.__setattr__(self, '_Env__vars', {})
+        object.__setattr__(self, '_Env__parent', parent)
         assert self.__parent is None or isinstance(self.__parent, Env)
         self.update(vars)
 
@@ -149,9 +149,13 @@ class Env:
 
     def __setitem__(self, key, value):
         self.__vars[key.upper()] = value
+        return value
 
     def __getattr__(self, key):
         return self.__getitem__(key)
+
+    def __setattr__(self, key, value):
+        return self.__setitem__(key, value)
 
     def __iter__(self):
         for item in self.__dict.items():
