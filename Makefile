@@ -11,12 +11,16 @@ SOURCES = $(shell find src -name '*.py')
 all: $(PIP)
 	( . $(ACTIVATE); $(PIP) install -e . )
 
-check/fast:
+check/unittests:
 	( . $(ACTIVATE); python setup.py test; )
-	( . $(ACTIVATE); $(BEHAVE) tests/features -q -m )
+
+check/features:
+	( . $(ACTIVATE); $(BEHAVE) tests/features -q -m -k )
+
+check/fast: check/unittests check/features
 
 $(BEHAVE):
-	test -f $(BEHAVE) || ( . $(ACTIVATE); $(PIP) install behave )
+	test -f $(BEHAVE) || ( . $(ACTIVATE); $(PIP) install git+https://github.com/hotgloupi/behave )
 
 check: all $(BEHAVE) check/fast
 
