@@ -9,6 +9,7 @@ from .filesystem import Filesystem
 from .command import Command
 from .target import Target
 from .dependency import Dependency
+from .env import Env
 
 def command(cmd, build=None, cwd=None):
     """Yield a build command relative to cwd if provided or build.directory"""
@@ -43,7 +44,9 @@ class Build:
                  directory: "The build directory",
                  generator_name: "generator name" = None,
                  save_generator = True,
-                 dependencies_directory = 'dependencies'):
+                 dependencies_directory = 'dependencies',
+                 env = None):
+        self.env = env or Env()
         self.directory = directory
         self.root_directory = project.directory
         self.dependencies_directory = path.join(directory, dependencies_directory)

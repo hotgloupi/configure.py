@@ -3,7 +3,7 @@
 import os
 import sys
 
-from . import env
+from .env import Env
 from . import path
 from . import tools
 from . import templates
@@ -51,41 +51,72 @@ class Project:
         with open(config_file, 'w') as conf:
             conf.write(data)
 
+    def __init__(self, directory, config_dir,
+                 config_filename = "project.py",
+                 build_env_filename = ".build-env",
+                 project_env_filename = ".project-env",
+                 new_project_env = {}):
+        self.directory = path.absolute(directory)
+        self.config_directory = config_dir
+        self.config_file = path.join(config_dir, config_filename)
+        self.build_env_filename = build_env_filename
+        self.project_env_filename = project_env_filename
+
+        self.__configure_function = None
+        self.__env = None
+        if not path.exists(self.config_file):
+            raise Exception("This directory '%s' does not seem to contains a configuration")
+        self.__read_conf()
+        self.project_env_file = path.join(self.config_directory, self.project_env_filename)
+        self.env.update(new_project_env)
+
     def __enter__(self):
         return self
 
     def __exit__(self, type_, value, traceback):
-        project_vars_file = path.join(self.config_directory, self.project_vars_filename)
-        self.env.save_project_vars(project_vars_file)
+        self.env.save(self.project_env_file)
 
     @property
     def env(self):
         return self.__env
 
     class BuildProxy:
-        def __init__(self, project, build_dir, new_build_vars, configure_function, generator_names):
+        def __init__(self,
+                     project,
+                     build_dir,
+                     new_build_env,
+                     configure_function,
+                     generator_names):
             self.project = project
             self.build_dir = build_dir
             self.configure_function  = configure_function
-            self.new_build_vars = new_build_vars
+            self.new_build_env = new_build_env
             self.generator_names = generator_names
             self.build = None
+            self.build_env_file = path.join(
+                self.build_dir,
+                self.project.build_env_filename
+            )
 
         def __enter__(self):
-            self.build_vars_file = path.join(
+            kw = {'parent': self.project.env,
+                  'vars': self.new_build_env}
+            if os.path.exists(self.build_env_file):
+                env = Env.load(self.build_env_file, **kw)
+            else:
+                env = Env(**kw)
+            env.update(self.new_build_env)
+            self.build = Build(
+                self.project,
                 self.build_dir,
-                self.project.build_vars_filename
+                self.generator_names,
+                env = env
             )
-            self.project.env.enable_build_vars(
-                self.build_vars_file,
-                new_vars = self.new_build_vars
-            )
-            self.build = Build(self.project, self.build_dir, self.generator_names)
-            self.configure_function(self.project, self.build)
+            self.configure_function(self.build)
             return self.build
 
         def __exit__(self, type_, value, traceback):
-            self.project.env.save_build_vars(self.build_vars_file)
+            self.build.env.save(self.build_env_file)
             self.build.cleanup()
 
     def configure(self, build_dir, new_build_vars, generator_names):
@@ -101,12 +132,8 @@ class Project:
             generator_names,
         )
 
-
-    def __default_env(self):
-        return env.Env(self)
-
     def __read_conf(self):
-        self.__env = env.Env(self)
+        self.__env = Env()
         backup = sys.path[:]
         try:
             sys.path.insert(0, self.config_directory)
@@ -116,7 +143,7 @@ class Project:
                 exec(f.read(), globals_)
 
             for k, v in globals_.items():
-                if env.Env.var_re.match(k):
+                if Env.var_re.match(k):
                     self.env[k] = v
                 elif k == 'main':
                     self.__configure_function = v

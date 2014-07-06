@@ -1,6 +1,6 @@
 #!/bin/sh
 # Python file written with a shell helper (mainly for windows).
-# vim: set syntax=python:
+# vim: set syntax=python ts=4 sts=4 sw=4 expandtab:
 __SHELL_PROTECT=""" "
 SCRIPT="$0"
 PYTHON=`which python3`
@@ -188,74 +188,60 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
     from configure.path import exists, join, absolute
 
     build_dir = args.build_dir
-    try:
-        project = configure.Project(
-            root_dir,
-            project_config_dir,
-            config_filename = PROJECT_CONFIG_FILENAME,
-            new_project_vars = exports,
-        )
+    project = configure.Project(
+        root_dir,
+        project_config_dir,
+        config_filename = PROJECT_CONFIG_FILENAME,
+        new_project_env = exports,
+    )
 
-        env_build_dirs = list(
-            d for d in project.env.get('BUILD_DIRECTORIES', [])
-            if exists(d, '.configure.py_build')
-        )
-        configure.tools.verbose("Found build directories:", ' '.join(env_build_dirs))
-        build_dirs = []
-        if build_dir is not None:
-            build_dirs = [build_dir]
-            tup_build_marker = join(build_dir, '.configure.py_build')
-            if not exists(build_dir):
-                os.makedirs(build_dir)
-                with open(tup_build_marker, 'w') as f:
-                    pass
-            elif not exists(tup_build_marker):
-                fatal('\n'.join([
-                    "'%(build_dir)s' doest not seem to be a tup build directory:",
-                    "\t* Remove this directory",
-                    "\t* Touch the file %(tup_build_marker)s",
-                ]) % locals())
-        else:
-            build_dirs = env_build_dirs
+    env_build_dirs = list(
+        d for d in project.env.get('BUILD_DIRECTORIES', [])
+        if exists(d, '.configure.py_build')
+    )
+    configure.tools.verbose("Found build directories:", ' '.join(env_build_dirs))
+    build_dirs = []
+    if build_dir is not None:
+        build_dirs = [build_dir]
+        tup_build_marker = join(build_dir, '.configure.py_build')
+        if not exists(build_dir):
+            os.makedirs(build_dir)
+            with open(tup_build_marker, 'w') as f:
+                pass
+        elif not exists(tup_build_marker):
+            fatal('\n'.join([
+                "'%(build_dir)s' doest not seem to be a tup build directory:",
+                "\t* Remove this directory",
+                "\t* Touch the file %(tup_build_marker)s",
+            ]) % locals())
+    else:
+        build_dirs = env_build_dirs
 
-        if not build_dirs:
-            fatal("No build directory specified on command line. (try -h switch)")
+    if not build_dirs:
+        fatal("No build directory specified on command line. (try -h switch)")
 
-        project.env.project_set(
-            'BUILD_DIRECTORIES',
-            list(set(build_dirs + env_build_dirs))
-        )
+    project.env.build_directories = list(set(build_dirs + env_build_dirs))
 
-        if args.dump_vars:
-            status("Project variables:")
-            for k, v in project.env.project_vars.items():
-                status("\t - %s = %s" % (k, v))
+    if args.dump_vars:
+        status("Project variables:")
+        for k, v in project.env.items():
+            status("\t - %s = %s" % (k, v))
 
-        with project:
-            for build_dir in build_dirs:
-                with project.configure(build_dir, defines, args.generator) as build:
-                    if args.dump_vars:
-                        status("Build variables for directory '%s':" % build_dir)
-                        build_vars = project.env.build_vars
-                        keys = sorted(build_vars.keys())
-                        for k in keys:
-                            status("\t - %s = %s" % (k, build_vars[k]))
-                        continue
+    with project:
+        for build_dir in build_dirs:
+            with project.configure(build_dir, defines, args.generator) as build:
+                if args.dump_vars:
+                    status("Build variables for directory '%s':" % build_dir)
+                    keys = sorted(build.env.keys())
+                    for k in keys:
+                        status("\t - %s = %s" % (k, build.env[k]))
+                    continue
 
-                    if args.dump_build:
-                        build.dump()
-                    else:
-                        build.generate()
+                if args.dump_build:
+                    build.dump()
+                else:
+                    build.generate()
 
-    except configure.Project.NeedUserEdit:
-        print(
-            "Please edit %s and re-run the configure script" % join(
-                project_config_dir,
-                PROJECT_CONFIG_FILENAME,
-                replace_home = True,
-            )
-        )
-        sys.exit(0)
 
 
 def parse_args():
@@ -498,7 +484,7 @@ def main():
         else:
             prepare_build(args, defines, exports, root_dir, project_config_dir)
 
-    except configure.Env.VariableNotFound as e:
+    except configure.VariableNotFound as e:
         fatal('\n'.join([
             "Couldn't find any variable '%s', do one of the following:" % e.name,
             "\t* Export it with: `%s=something ./configure`" % e.name,

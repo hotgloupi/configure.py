@@ -12,7 +12,7 @@ from . import tools, path, platform, lang
 from .build import Build
 from .command import Command
 from .dependency import Dependency
-from .env import Env
+from .env import Env, VariableNotFound
 from .generator import Generator
 from .node import Node
 from .project import Project
