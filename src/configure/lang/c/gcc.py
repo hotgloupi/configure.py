@@ -200,10 +200,11 @@ class Compiler(c_compiler.Compiler):
         #    link_flags.append('-Wl,-Bdynamic')
         rpath_dirs.extend(library_directories)
         rpath_dirs = tools.unique(path.clean(p) for p in rpath_dirs)
-        if platform.IS_MACOSX:
-            link_flags.extend(('-Wl,-rpath,%s' % d) for d in rpath_dirs)
-        elif not platform.IS_WINDOWS:
-            link_flags.append('-Wl,-rpath,' + ':'.join(rpath_dirs))
+        if rpath_dirs:
+            if platform.IS_MACOSX:
+                link_flags.extend(('-Wl,-rpath,%s' % d) for d in rpath_dirs)
+            elif not platform.IS_WINDOWS:
+                link_flags.append('-Wl,-rpath,' + ':'.join(rpath_dirs))
         link_flags.extend(self.additional_link_flags.get(self.name, []))
         if self.attr('static_libstd', kw):
             link_flags.append('-L%s' % self.static_stdlib_directory)
