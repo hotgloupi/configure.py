@@ -11,11 +11,11 @@ from .target import Target
 from .dependency import Dependency
 from .env import Env
 
-def command(cmd, build=None, cwd=None):
+def command(cmd, build = None, cwd = None):
     """Yield a build command relative to cwd if provided or build.directory"""
-    return list(_command(cmd, build=build, cwd=cwd))
+    return list(_command(cmd, build = build, cwd = cwd))
 
-def _command(cmd, build=None, cwd=None):
+def _command(cmd, build = None, cwd = None):
     assert build is not None
     if cwd is None:
         cwd = build.directory
@@ -74,9 +74,7 @@ class Build:
 
         from . import generators
         cls = getattr(generators, generator_name)
-        self.generator = cls(project = project, build = self)
-        self.__make_program = None
-        self.__sh_program = None
+        self.generator = cls(build = self)
         self.__target_commands = {}
 
     @property
@@ -161,26 +159,19 @@ class Build:
     def cleanup(self):
         pass
 
+    def find_binary(self, name, env_name = None):
+        """Find a binary with tools.find_binary using build env.
+        If env_name is not given, it defaults to the uppercased binary name.
+        """
+        return tools.find_binary(name, self.env, env_name or name.upper())
+
     @property
     def make_program(self):
-        if self.__make_program is None:
-            self.__make_program = tools.find_binary(
-                'make',
-                self.project.env,
-                'MAKE'
-            )
-        return self.__make_program
+        return self.find_binary('make')
 
     @property
     def sh_program(self):
-        if self.__sh_program is None:
-            self.__sh_program = tools.find_binary(
-                'sh',
-                self.project.env,
-                'SH'
-            )
-        return self.__sh_program
-
+        return self.find_binary('sh')
 
     def generate_commands(self,
                           commands,
@@ -227,6 +218,7 @@ class Build:
             for el in cmd.relative_command(working_directory):
                 args.append(repr(el))
             script += '\nprint(%s, %s)' % (repr(cmd.action), repr(cmd.target.relative_path(working_directory)))
+            script += '\nprint(%s)' % ', '.join(repr(e) for e in cmd.command)
             script += '\nsys.exit('
             script += '\n\tsubprocess.call('
             script += '\n\t\t[\n\t\t\t%s\n\t\t],' % ',\n\t\t\t'.join(args)

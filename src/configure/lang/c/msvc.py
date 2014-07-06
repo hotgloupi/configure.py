@@ -49,16 +49,12 @@ class Compiler(c_compiler.Compiler):
     ]
 
 
-    def __init__(self, project, build, **kw):
+    def __init__(self, build, **kw):
         kw.setdefault('lang', 'c')
-        super(Compiler, self).__init__(project, build, **kw)
-        self.lib_binary = tools.find_binary(self.lib_binary_name, project.env, 'LIBEXE')
-        project.env.project_set('LIBEXE', self.lib_binary)
-
-        self.link_binary = tools.find_binary(self.link_binary_name, project.env, 'LINKEXE')
-        project.env.project_set('LINKEXE', self.link_binary)
-        self.as_binary = tools.find_binary(self.as_binary_name, project.env, 'AS')
-        project.env.build_set('AS', self.as_binary)
+        super(Compiler, self).__init__(build, **kw)
+        self.lib_binary = build.find_binary(self.lib_binary_name, 'LIBEXE')
+        self.link_binary = build.find_binary(self.link_binary_name, 'LINKEXE')
+        self.as_binary = build.find_binary(self.as_binary_name, 'AS')
 
     # Prefix a flag (with '-' or '/')
     def _flag(self, flag):

@@ -35,13 +35,10 @@ class Compiler(c_compiler.Compiler):
 
     Library = library.Library
 
-    def __init__(self, project, build, **kw):
-        super().__init__(project, build, **kw)
-        self.ar_binary = tools.find_binary(self.ar_binary_name, project.env, 'AR')
-        project.env.build_set('AR', self.ar_binary)
-        self.as_binary = tools.find_binary(self.as_binary_name, project.env, 'AS')
-        project.env.build_set('AS', self.as_binary)
-
+    def __init__(self, build, **kw):
+        super().__init__(build, **kw)
+        self.ar_binary = self.build.find_binary('ar')
+        self.as_binary = self.build.find_binary('as')
 
     def _get_build_flags(self, kw):
         flags = [

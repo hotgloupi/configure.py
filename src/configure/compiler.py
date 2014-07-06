@@ -98,19 +98,18 @@ class Compiler:
         ('forbidden_warnings', [])
     ]
 
-    def __init__(self, project, build, **kw):
+    def __init__(self, build, **kw):
         assert self.name is not None
         assert self.binary_name is not None
         assert self.binary_env_varname is not None
-        self.project = project
+        self.project = build.project
         self.build = build
 
-        binary = project.env.get('FORCE_%s' % self.binary_env_varname)
-        if not binary:
-            binary = tools.find_binary(self.binary_name, project.env, self.binary_env_varname)
-        project.env.build_set(self.binary_env_varname, binary)
-        self.binary = binary
-
+        self.binary_name = kw.pop('binary_name', self.binary_name)
+        self.binary = self.build.find_binary(
+                self.binary_name,
+                self.binary_env_varname
+            )
         self.__set_attributes(self.attributes, kw)
 
         if kw:
