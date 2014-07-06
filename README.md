@@ -8,6 +8,8 @@ implemented generators (Makefiles and Tupfiles) and supported platforms
 (Windows, OS X and Linux) is intented to grow, especially towards mobile and
 embedded platforms.
 
+[![Coverage Status](https://img.shields.io/coveralls/hotgloupi/configure.py.svg)](https://coveralls.io/r/hotgloupi/configure.py)
+
 Motivations
 -----------
 
