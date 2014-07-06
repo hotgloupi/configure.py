@@ -8,7 +8,7 @@ Feature: C++ executable
 		from configure.lang.cxx import find_compiler
 		from configure.tools import status
 		def main(build):
-			cxx = find_compiler(build, name = "<compiler>", standard = 'c++03')
+			cxx = find_compiler(build, name = "<compiler>", standard = 'c++98')
 			status("Found CXX compiler", cxx.binary)
 			cxx.link_executable(
 				'hello-world',
@@ -25,7 +25,9 @@ Feature: C++ executable
 
 		Examples: C++ compilers
 			| compiler |
-			| g++     |
+			| g++-4.4 |
+			| g++-4.5 |
+			| g++-4.6 |
 			| g++-4.7 |
 			| g++-4.8 |
 			| clang++ |
