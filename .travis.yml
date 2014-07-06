@@ -5,7 +5,7 @@ python:
     - "3.3"
     - "3.4"
 install:
-    - pip install behave
+    - pip install git+https://github.com/hotgloupi/behave
     - python setup.py install
     - sudo apt-get install g++
 script:
