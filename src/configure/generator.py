@@ -19,14 +19,13 @@ class Generator:
     be overridden.
     """
 
-    def __init__(self, project=None, build=None):
+    def __init__(self, build = None):
         """Constructor for the generator.
 
         Assign `build' and `project' attributes.
         """
-        assert project is not None
         assert build is not None
-        self.project = project
+        self.project = build.project
         self.build = build
 
     def __call__(self, node):

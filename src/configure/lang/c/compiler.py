@@ -20,9 +20,9 @@ class Compiler(configure.compiler.Compiler):
         ('build_import_library', False),
     ] + configure.compiler.Compiler.attributes
 
-    def __init__(self, project, build, **kw):
+    def __init__(self, build, **kw):
         kw.setdefault('lang', 'c')
-        super().__init__(project, build, **kw)
+        super().__init__(build, **kw)
 
     def build_object(self, src, **kw):
         target = super().build_object(src, **kw)

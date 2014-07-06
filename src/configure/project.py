@@ -12,33 +12,9 @@ from .build import Build
 
 class Project:
 
-    class NeedUserEdit(Exception):
-        """Raised if the configuration was generated."""
-        pass
-
-    def __init__(self, root_dir, config_dir,
-                 config_filename = "project.py",
-                 build_vars_filename = ".build_vars",
-                 project_vars_filename = ".project_vars",
-                 new_project_vars = {}):
-        self.root_dir = root_dir #deprecated
-        self.directory = path.absolute(root_dir)
-        self.config_directory = config_dir
-        self.config_file = path.join(config_dir, config_filename)
-        self.build_vars_filename = build_vars_filename
-        self.project_vars_filename = project_vars_filename
-
-        self.__configure_function = None
-        self.__env = None
-        if not path.exists(self.config_file):
-            raise Exception("This directory '%s' does not seem to contains a configuration")
-        else:
-            self.__read_conf()
-        project_vars_file = path.join(self.config_directory, self.project_vars_filename)
-        self.env.enable_project_vars(project_vars_file, new_vars=new_project_vars)
-
     @classmethod
     def initialize(self, config_directory, config_filename):
+        """Prepare a project skeleton."""
         config_file = path.join(config_directory, config_filename)
         if path.exists(config_file):
             tools.fatal(

@@ -5,9 +5,9 @@ from ..c import msvc
 
 class Compiler(cxx_compiler.Compiler, msvc.Compiler):
 
-    def __init__(self, project, build, **kw):
+    def __init__(self, build, **kw):
         kw.setdefault('lang', 'c++')
-        super(Compiler, self).__init__(project, build, **kw)
+        super(Compiler, self).__init__(build, **kw)
 
     @property
     def _lang_flag(self):

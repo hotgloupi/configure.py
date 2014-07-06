@@ -12,10 +12,10 @@ class Compiler(cxx_compiler.Compiler, gcc.Compiler):
         'c++11': 'c++11',
     }
 
-    def __init__(self, project, build, **kw):
+    def __init__(self, build, **kw):
         kw.setdefault('lang', 'c++')
         kw.setdefault('standard', 'c++11')
-        super().__init__(project, build, **kw)
+        super().__init__(build, **kw)
 
     def _get_build_flags(self, kw):
         base_build_flags =  super()._get_build_flags(kw)
