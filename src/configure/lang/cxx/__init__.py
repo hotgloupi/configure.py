@@ -13,8 +13,5 @@ Compiler.compilers = [
     gcc.Compiler,
 ]
 
-def compiler_from_bin(bin, *args, **kw):
-    return Compiler.compiler_from_bin(bin, *args, **kw)
-
-def find_compiler(project, build, **kw):
-    return Compiler.find_compiler(project, build, **kw)
+def find_compiler(build, name = None, **kw):
+    return Compiler.find_compiler(build, name = name, **kw)

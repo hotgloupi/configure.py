@@ -132,22 +132,34 @@ class Compiler:
     def from_bin(cls, bin, *args, **kw):
         for c in cls.compilers:
             if c.binary_match(bin):
-                return c(*args, **kw)
+                return c(*args, binary_name = bin, **kw)
         raise Exception(
             "Cannot detect compiler from binary %s" % bin
         )
 
     @classmethod
-    def find_compiler(cls, project, build, **kw):
-        cc = project.env.get(cls.binary_env_varname)
+    def find_compiler(cls, build, name = None, **kw):
+        if name is not None:
+            for c in cls.compilers:
+                if name == c.name or name == c.binary_name:
+                    return c(build, **kw)
+            for c in cls.compilers:
+                if name in c.name or name in c.binary_name:
+                    return c(build, **kw)
+            for c in cls.compilers:
+                if c.binary_match(name):
+                    return c(build, binary_name = name, **kw)
+            raise Exception("Couldn't find any compiler with name %s" % name)
+
+        cc = build.project.env.get(cls.binary_env_varname)
         if cc is not None:
             bin = tools.find_binary(cc)
-            return cls.from_bin(bin, project, build, **kw)
+            return cls.from_bin(bin, build, **kw)
 
         search_binary_files = [c.binary_name for c in cls.compilers]
         for i, bin in enumerate(search_binary_files):
             if tools.which(bin):
-                return cls.compilers[i](project, build, **kw)
+                return cls.compilers[i](build, **kw)
         raise Exception("Cannot detect any %s compiler" % cls.lang)
 
 
