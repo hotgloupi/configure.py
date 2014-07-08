@@ -208,4 +208,9 @@ def main(args):
         out.close()
 
 if __name__ == '__main__':
+    try:
+        import coverage
+        coverage.process_startup()
+    except:
+        pass
     main(parse_args())
