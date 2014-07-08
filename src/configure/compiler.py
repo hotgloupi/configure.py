@@ -54,7 +54,7 @@ class Compiler:
     Library = None
 
     # Needed environment variables.
-    os_env = ['PATH']
+    os_env = ['PATH', 'COVERAGE_PROCESS_STARTUP', 'COVERAGE_FILE']
 
     supported_warnings = [
         'unused-typedefs',
