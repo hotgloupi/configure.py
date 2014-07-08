@@ -49,7 +49,7 @@ class Dependency:
                     Type of the library.
                 * source_include_directories: (defaults to [])
                     List of include directories relative to source directory.
-                * include_directories: (defaults to ['include'] if install
+                * include_directories: (defaults to ['install/include'] if install
                                         is True, or [] otherwise)
                     List of include directories relative to build directory.
         """
