@@ -275,14 +275,14 @@ def parse_args():
     parser.add_argument(
         '-D', '--define',
         action = 'append',
-        help = "Define build specific variables",
+        help = "Define a variable for the entire project",
         default = [],
     )
     parser.add_argument(
-        '-E', '--export',
+        '-U', '--undef',
         action = 'append',
-        help ="Define project specific variables",
-        default = []
+        help = "Remove a variable from selected builds and from the project",
+        default = [],
     )
     parser.add_argument(
         '-v', '--verbose',
