@@ -350,10 +350,11 @@ def parse_cmdline_variables(args):
             if not v.endswith(']'):
                 fatal("Missing ']' when defining %s" % k)
             v = [e.strip() for e in v[1:-1].split(',')]
-        res[k] = {
-            'op': op,
-            'value': v,
-        }
+        res[k] = v
+        #{
+        #    'op': op,
+        #    'value': v,
+        #}
     return res
 
 
