@@ -32,17 +32,15 @@ class Library:
                  system = False):
         self.name = name
         self.compiler = compiler
-        self.env = self.compiler.project.env
+        self.env = self.compiler.build.env
         self.binary_file_names = binary_file_names
         self.name_suffixes = name_suffixes
         self.name_prefixes = name_prefixes
         self.compiler = compiler
-        self.env = self.compiler.project.env
         self.shared = shared
         self.preferred_shared = self.env_var(
             "SHARED",
             default = preferred_shared,
-            type = bool
         )
         self.macosx_framework = macosx_framework
         self.use_system_paths = use_system_paths
@@ -104,29 +102,29 @@ class Library:
     def _env_varname(self, name):
         return self.name.upper() + '_' + name.upper()
 
-    def env_var(self, name, type=None, default=None):
-        res = self.env.get(self._env_varname(name), type=type, default=default)
+    def env_var(self, name, default=None):
+        res = self.env.get(self._env_varname(name), default=default)
         tools.debug('retreive var:', self._env_varname(name), '=', res)
         return res
 
     def _save_env(self):
-        self.env.build_set(self._env_varname('prefixes'), self.prefixes)
-        self.env.build_set(self._env_varname('directories'), self.directories)
-        self.env.build_set(self._env_varname('include_directories'), self.include_directories)
+        self.env[self._env_varname('prefixes')] = self.prefixes
+        self.env[self._env_varname('directories')] = self.directories
+        self.env[self._env_varname('include_directories')] = self.include_directories
         if self.shared is not None:
             prefix = self.shared and 'SHARED' or 'STATIC'
-            self.env.build_set(self._env_varname('%s_FILES' % prefix), self.files)
-            assert self.files == self.env_var('%s_FILES' % prefix, type=list)
+            self.env[self._env_varname('%s_FILES' % prefix)] = self.files
+            assert self.files == self.env_var('%s_FILES' % prefix)
         tools.debug("Saving %s files" % self.name, self.files)
 
 
     def _env_list(self, singular, plural):
         dir_ = self.env_var(singular)
         dirs = dir_ is not None and [dir_] or []
-        dirs += self.env_var(plural, type=list)
+        dirs += self.env_var(plural, [])
         dir_ = self.env.get(singular.upper())
         dirs += dir_ is not None and [dir_] or []
-        dirs += self.env.get(plural.upper(), type=list)
+        dirs += self.env.get(plural.upper(), [])
         return tools.unique(path.clean(d) for d in dirs)
 
 
@@ -144,7 +142,7 @@ class Library:
             prefix = self.shared and 'SHARED_' or 'STATIC_'
         else:
             prefix = ''
-        return self.env_var('%sFILES' % prefix, type=list)
+        return self.env_var('%sFILES' % prefix, default = [])
 
     def _set_directories_and_files(self, directories):
         dirs = self._env_directories()
