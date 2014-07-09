@@ -38,6 +38,7 @@ class Env:
     """Store/Load variables."""
 
     var_re = re.compile('^[A-Z][A-Z0-9_]*$')
+    valid_types = (str, bool, int, list)
 
     def __init__(self, vars = {}, parent = None):
         """Create an environment instance. if parent is set, it will be used
@@ -148,6 +149,7 @@ class Env:
             return default
 
     def __setitem__(self, key, value):
+        assert type(value) in self.valid_types
         self.__vars[key.upper()] = value
         return value
 

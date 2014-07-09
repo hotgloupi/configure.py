@@ -147,10 +147,15 @@ class Project:
                 exec(f.read(), globals_)
 
             for k, v in globals_.items():
-                if Env.var_re.match(k):
-                    self.env[k] = v
-                elif k == 'main':
+                if k == 'main':
                     self.__configure_function = v
+                elif type(v) not in Env.valid_types:
+                    tools.debug("Ignore global variable", k, '=', v, "(invalid value type)")
+                elif not Env.var_re.match(k):
+                    tools.debug("Ignore global variable", k, '=', v, "(invalid variable name)")
+                else:
+                    tools.debug("Save global variable", k, '=', v)
+                    self.env[k] = v
         finally:
             sys.path = backup
 
