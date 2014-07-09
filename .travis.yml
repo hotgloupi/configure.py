@@ -20,6 +20,7 @@ install:
     - sudo apt-get install -qq g++-4.6
     - sudo apt-get install -qq g++-4.7
     - sudo apt-get install -qq g++-4.8
+    - sudo apt-get install -qq libfuse-dev
 script:
     - coverage erase
     - coverage run -a --source=src/configure setup.py test
