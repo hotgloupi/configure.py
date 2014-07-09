@@ -7,7 +7,7 @@ python:
 env:
     global:
         - COVERAGE_PROCESS_START=$PWD/.coveragerc
-        - COVERAGE_FILE=$PWD/.coverage-partial
+        - COVERAGE_FILE=$PWD/.coverage
 before_install:
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get update -qq
