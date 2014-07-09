@@ -119,36 +119,36 @@ PROJECT_CONFIG_FILENAME = "project.py"
 TUP_INSTALL_DIR = None
 TUP_GIT_URL = "git://github.com/gittup/tup.git"
 TUP_WINDOWS_URL = "http://gittup.org/tup/win32/tup-latest.zip"
-CONFIGURE_PY_INSTALL_DIR = None
 CONFIGURE_PY_GIT_URL = "git://github.com/hotgloupi/configure.py"
 CONFIGURE_PY_GENERATORS = ['Tup', 'Makefile']
 
-def self_install(args):
-    status("Installing configure.py in", CONFIGURE_PY_INSTALL_DIR)
-    if not os.path.exists(CONFIGURE_PY_INSTALL_DIR):
-        os.makedirs(CONFIGURE_PY_INSTALL_DIR)
-        status("Getting tup from", CONFIGURE_PY_GIT_URL)
-        cmd(['git', 'clone', CONFIGURE_PY_GIT_URL, CONFIGURE_PY_INSTALL_DIR])
+def self_install(project_config_dir, args):
+    configure_py_install_dir = cleanjoin(project_config_dir, 'configure.py')
+    status("Installing configure.py in", configure_py_install_dir)
+    if not os.path.exists(configure_py_install_dir):
+        os.makedirs(configure_py_install_dir)
+        status("Cloning configure.py from", CONFIGURE_PY_GIT_URL)
+        cmd(['git', 'clone', CONFIGURE_PY_GIT_URL, configure_py_install_dir])
     else:
         status("Updating configure.py")
-        cmd(['git', 'pull'], cwd=CONFIGURE_PY_INSTALL_DIR)
+        cmd(['git', 'pull'], cwd = configure_py_install_dir)
 
-def tup_install(args):
+def tup_install(root_dir, install_dir):
     from configure import platform
     if platform.IS_WINDOWS:
-        tup_install_windows(args)
+        tup_install_windows(install_dir)
     else:
-        tup_install_git(args)
+        tup_install_git(root_dir, install_dir)
     from configure import tools
     print("Tup installed in", tools.which('tup'))
 
 
-def tup_install_windows(args):
+def tup_install_windows(dir):
     import urllib.request as r
     req = r.urlopen(TUP_WINDOWS_URL)
-    if not os.path.exists(TUP_INSTALL_DIR):
-        os.makedirs(TUP_INSTALL_DIR)
-    tarball = os.path.join(TUP_INSTALL_DIR, 'tup.zip')
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    tarball = os.path.join(dir, 'tup.zip')
     with open(tarball, 'wb') as f:
         while True:
             data = req.read(4096)
@@ -157,34 +157,34 @@ def tup_install_windows(args):
             f.write(data)
     import zipfile
     with zipfile.ZipFile(tarball) as f:
-        f.extractall(TUP_INSTALL_DIR)
+        f.extractall(dir)
 
 
-def tup_install_git(args):
+def tup_install_git(root_dir, dir):
     from configure import path
-    status("Installing tup in", TUP_INSTALL_DIR)
-    if not path.exists(TUP_INSTALL_DIR):
-        os.makedirs(TUP_INSTALL_DIR)
+    status("Installing tup in", dir)
+    if not path.exists(dir):
+        os.makedirs(dir)
         status("Getting tup from", TUP_GIT_URL)
-        cmd(['git', 'clone', TUP_GIT_URL, TUP_INSTALL_DIR])
+        cmd(['git', 'clone', TUP_GIT_URL, dir])
     else:
         status("Updating tup")
-        cmd(['git', 'pull'], cwd=TUP_INSTALL_DIR)
+        cmd(['git', 'pull'], cwd = dir)
 
-    tup_shell_bin = path.join(TUP_INSTALL_DIR, "build", "tup")
-    if not path.exists(TUP_INSTALL_DIR, "build", "tup"):
-        cmd(['sh', 'build.sh'], cwd=TUP_INSTALL_DIR)
+    tup_shell_bin = path.join(dir, "build", "tup")
+    if not path.exists(dir, "build", "tup"):
+        cmd(['sh', 'build.sh'], cwd=dir)
     else:
         status("Found shell version of tup at", tup_shell_bin)
 
-    tup_dir = path.join(ROOT_DIR, '.tup')
+    tup_dir = path.join(root_dir, '.tup')
     if os.path.exists(tup_dir):
         os.rename(tup_dir, tup_dir + '.bak')
 
     try:
-        if not path.exists(TUP_INSTALL_DIR, '.tup'):
-            cmd(['./build/tup', 'init'], cwd=TUP_INSTALL_DIR)
-        cmd(['./build/tup', 'upd'], cwd=TUP_INSTALL_DIR)
+        if not path.exists(dir, '.tup'):
+            cmd(['./build/tup', 'init'], cwd=dir)
+        cmd(['./build/tup', 'upd'], cwd=dir)
     finally:
         if path.exists(tup_dir + '.bak'):
             os.rename(tup_dir + '.bak', tup_dir)
@@ -194,7 +194,6 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
     import configure # Should work at this point
     from configure.path import exists, join, absolute
 
-    build_dir = args.build_dir
     project = configure.Project(
         root_dir,
         project_config_dir,
@@ -208,19 +207,20 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
     )
     configure.tools.verbose("Found build directories:", ' '.join(env_build_dirs))
     build_dirs = []
-    if build_dir is not None:
-        build_dirs = [build_dir]
-        tup_build_marker = join(build_dir, '.configure.py_build')
-        if not exists(build_dir):
-            os.makedirs(build_dir)
-            with open(tup_build_marker, 'w') as f:
-                pass
-        elif not exists(tup_build_marker):
-            fatal('\n'.join([
-                "'%(build_dir)s' doest not seem to be a tup build directory:",
-                "\t* Remove this directory",
-                "\t* Touch the file %(tup_build_marker)s",
-            ]) % locals())
+    if args.build_dir is not None:
+        build_dirs = args.build_dir
+        for build_dir in build_dirs:
+            tup_build_marker = join(build_dir, '.configure.py_build')
+            if not exists(build_dir):
+                os.makedirs(build_dir)
+                with open(tup_build_marker, 'w') as f:
+                    pass
+            elif not exists(tup_build_marker):
+                fatal('\n'.join([
+                    "'%(build_dir)s' doest not seem to be a tup build directory:",
+                    "\t* Remove this directory",
+                    "\t* Touch the file %(tup_build_marker)s",
+                ]) % locals())
     else:
         build_dirs = env_build_dirs
 
@@ -249,15 +249,20 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
                 else:
                     build.generate()
 
-
-
 def parse_args():
-    def Dir(s):
-        if not os.path.isdir(s):
-            raise argparse.ArgumentTypeError
-        return s
+    class StoreBuildDirsAndDefines(argparse.Action):
+        def __call__(self, parser, ns, values, option_string = None):
+            for attr in ['build_variable', 'build_dir']:
+                if not hasattr(ns, attr) or getattr(ns, attr) is None:
+                    setattr(ns, attr, [])
+            for i, v in enumerate(values):
+                if '=' in v:
+                    getattr(ns, 'build_variable').append(v)
+                else:
+                    getattr(ns, 'build_dir').append(v)
+
     parser = argparse.ArgumentParser(
-        description = "Configure your project"
+        description = "Configure your project's builds"
     )
     parser.add_argument(
         '-i', '--init',
@@ -268,15 +273,21 @@ def parse_args():
     )
     parser.add_argument(
         'build_dir',
-        action = "store",
-        help = "Where to build your project",
-        nargs = '?'
+        action = StoreBuildDirsAndDefines,
+        help = "Build directories to configure",
+        nargs = '*',
+    )
+    parser.add_argument(
+        'build_variable',
+        action = StoreBuildDirsAndDefines,
+        help = "Build specific variables",
+        nargs = '*',
     )
     parser.add_argument(
         '-D', '--define',
+        dest = 'project_variable',
         action = 'append',
-        help = "Define a variable for the entire project",
-        default = [],
+        help = "Project variables",
     )
     parser.add_argument(
         '-U', '--undef',
@@ -329,6 +340,8 @@ def parse_args():
 
 def parse_cmdline_variables(args):
     res = {}
+    if not args:
+        return res
     for arg in args:
         arg = arg.strip()
         if '=' not in arg:
@@ -419,7 +432,7 @@ def main():
     except ImportError: pass
 
     if args.self_install or (args.install and not have_configure):
-        self_install(args)
+        self_install(project_config_dir, args)
         try:
             import imp
             file_, pathname, descr = imp.find_module("configure", [join(project_config_dir,'configure.py/src')])
@@ -457,7 +470,7 @@ def main():
     configure.tools.PATH.insert(0, configure.path.absolute(tup_install_dir))
 
     if args.tup_install or (args.install and not configure.tools.which('tup')):
-        tup_install(args)
+        tup_install(root_dir, tup_install_dir)
 
     if 'Tup' == args.generator and not configure.tools.which('tup'):
         fatal(
@@ -472,9 +485,8 @@ def main():
         )
 
     try:
-        defines = parse_cmdline_variables(args.define)
-        exports = parse_cmdline_variables(args.export)
-
+        defines = parse_cmdline_variables(args.build_variable)
+        exports = parse_cmdline_variables(args.project_variable)
 
         if args.init is not False:
             configure.Project.initialize(
