@@ -151,7 +151,7 @@ class Compiler:
                     return c(build, binary_name = name, **kw)
             raise Exception("Couldn't find any compiler with name %s" % name)
 
-        cc = build.project.env.get(cls.binary_env_varname)
+        cc = build.env.get(cls.binary_env_varname)
         if cc is not None:
             bin = tools.find_binary(cc)
             return cls.from_bin(bin, build, **kw)
