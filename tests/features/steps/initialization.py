@@ -1,4 +1,5 @@
 import os
+import shlex
 import sys
 
 @given('a temporary directory')
@@ -15,6 +16,18 @@ def step_impl(context):
     )
     assert context.initialized
 
+@given('an empty project')
+def step_impl(ctx):
+    ctx.execute_steps(
+        '''
+        Given a project configuration
+        """
+        def main(build):
+            pass
+        """
+        '''
+    )
+
 @then('configure failed')
 def step_impl(context):
     assert not context.initialized
@@ -26,7 +39,6 @@ def step_impl(context):
 @when('I configure the build')
 def step_impl(context):
     context.configured = context.cmd('configure', 'build') == 0
-
 
 @then('A .config directory is created')
 def step_impl(context):
@@ -71,3 +83,7 @@ def step_impl(context):
         And I build everything
         """
     )
+
+@when('I configure with {args}')
+def impl(context, args):
+    context.configured = context.cmd('configure', 'build', *tuple(shlex.split(args))) == 0
