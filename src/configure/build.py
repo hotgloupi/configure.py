@@ -266,3 +266,13 @@ class Build:
             os.chmod(cmd_path, 0o744)
 
 
+
+from unittest import TestCase
+from .project import TemporaryProject
+import textwrap
+
+class _(TestCase):
+
+    def test_init(self):
+        with TemporaryProject() as p:
+            build = Build(p, 'build', 'Makefile')
