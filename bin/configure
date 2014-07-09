@@ -497,7 +497,7 @@ def main():
             "Couldn't find any variable '%s', do one of the following:" % e.name,
             "\t* Export it with: `%s=something ./configure`" % e.name,
             "\t* Define it with: `./configure -D%s=something`" % e.name,
-            "\t* Define it in your project config file (%s)" % cleanjoin(project_config_dir, project_config_filename),
+            "\t* Define it in your project config file (%s)" % cleanjoin(project_config_dir, PROJECT_CONFIG_FILENAME),
         ]))
 
 
