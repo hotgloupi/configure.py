@@ -108,6 +108,9 @@ class Env:
 
     def save(self, path):
         """Save this env to the given path."""
+        tools.debug("Saving env to", path)
+        for k, v in self.__vars.items():
+            tools.debug('\t', k, '=', v)
         with open(path, 'wb') as f:
             pickle.dump(self.__vars, f)
 
@@ -162,6 +165,12 @@ class Env:
     def __iter__(self):
         for item in self.__dict.items():
             yield item
+
+    def keys(self):
+        return self.__vars.keys()
+
+    def items(self):
+        return self.__vars.items()
 
 
 from unittest import TestCase
