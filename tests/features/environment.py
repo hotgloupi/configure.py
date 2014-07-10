@@ -1,5 +1,6 @@
 from __future__ import print_function # beeing nice with jedi-vim
 
+import copy
 import os
 import shutil
 import subprocess
@@ -24,6 +25,22 @@ def cmd(*args, **kw):
 
 def before_all(ctx):
     ctx.cmd = cmd
+    ctx.disable_coverage = False
+    def _cmd(*args, **kw):
+        if ctx.disable_coverage:
+            env = copy.deepcopy(kw.get('env', os.environ))
+            env.pop('COVERAGE_PROCESS_STARTUP', None)
+            env.pop('COVERAGE_FILE', None)
+            kw['env'] = env
+        return cmd(*args, **kw)
+    ctx.cmd = _cmd
+
+def before_tag(ctx, tag):
+    if tag == 'no-coverage':
+        ctx.disable_coverage = True
+
+def after_tag(ctx, tag):
+    ctx.disable_coverage = False
 
 def before_scenario(ctx, scenario):
     ctx.directory = tempfile.mkdtemp(prefix = 'configure.py-%s-' % scenario.name.replace(' ', ''))
@@ -38,4 +55,5 @@ def after_scenario(ctx, scenario):
     else:
         shutil.rmtree(ctx.directory, ignore_errors = True)
     os.chdir(ctx.old_cwd)
+
 
