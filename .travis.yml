@@ -24,7 +24,7 @@ install:
 script:
     - coverage erase
     - coverage run -a --source=src/configure setup.py test
-    - coverage run -a --source=src/configure `which behave` tests/features -q -m -k -T --no-summary --no-snippets
+    - coverage run -a --source=src/configure `which behave` tests/features -q -m -k -T --no-summary --no-snippets --tags=~tup
     - coverage combine
     - coverage report
     - coveralls
