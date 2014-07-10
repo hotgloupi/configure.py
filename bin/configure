@@ -4,7 +4,7 @@
 __SHELL_PROTECT=""" "
 SCRIPT="$0"
 
-for f in "c:/Python3*"
+for f in c:/Python3*
 do
     [ -f "$f/python.exe" ] && PYTHON="$f/python.exe" && break
 done > /dev/null 2>&1
