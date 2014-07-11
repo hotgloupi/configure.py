@@ -42,34 +42,34 @@ of using environment:
 NAME = 'my_project_name'
 
 import configure
+import configure.lang.c
 
-def main(project, build):
+def main(build):
     """ This is a configure function """
 
     ## Retreive BUILD_TYPE (defaults to DEBUG)
-    build_type = project.env.get('BUILD_TYPE', 'DEBUG')
+    build_type = build.env.get('BUILD_TYPE', 'DEBUG')
 
     ## Print a status message
     configure.tools.status(
-        "Configuring", project.env.NAME, 'in', build.directory,
+        "Configuring", build.env.NAME, 'in', build.directory,
         '(%s)' % build_type
     )
 
 
     ## Find a C compileer
-    compiler = configure.lang.c.find_compiler(project, build)
-    configure.tools.status("C compiler is", compiler.binary)
-
+    #compiler = configure.lang.c.find_compiler(build)
+    #configure.tools.status("C compiler is", compiler.binary)
 
     ## You can create a library
-    my_lib = compiler.link_library(
-        'libmy_lib',
-        glob("src/my_lib/*.cpp", recursive=True),
-        directory  = 'release/lib',
-        libraries = [],
-        defines = ['MY_LIB_BUILD_DLL'],
-        shared = True #and not platform.IS_MACOSX #bug with tup on macosx
-    )
+    #my_lib = compiler.link_library(
+    #    'libmy_lib',
+    #    configure.tools.rglob("*.cpp", dir = 'src/my_lib'),
+    #    directory  = 'release/lib',
+    #    libraries = [],
+    #    defines = ['MY_LIB_BUILD_DLL'],
+    #    shared = True
+    #)
 
     ## to link an executable, simply use the link_executable method.
     # my_program_exe = compiler.link_executable(
