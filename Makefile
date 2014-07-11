@@ -21,7 +21,13 @@ check/unittests:
 	( . $(ACTIVATE); python setup.py test; )
 
 check/features: $(BEHAVE) all
-	( . $(ACTIVATE); $(BEHAVE) tests/features -q -m -k )
+	( . $(ACTIVATE); $(BEHAVE) tests/features -q -m -k --no-capture )
+
+check/features/fast: $(BEHAVE) all
+	( . $(ACTIVATE); $(BEHAVE) tests/features -q -m -k --no-capture --tags=~slow )
+
+check/features/wip: $(BEHAVE) all
+	( . $(ACTIVATE); $(BEHAVE) tests/features -q -m -k --no-capture --tags=wip )
 
 coverage/clean: $(COVERAGE)
 	( . $(ACTIVATE); $(COVERAGE) erase )
