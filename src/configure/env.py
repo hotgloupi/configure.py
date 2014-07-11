@@ -122,6 +122,9 @@ class Env:
         """
         with open(path, 'rb') as f:
             vars = pickle.load(f)
+        tools.debug("Loading env from", path)
+        for k, v in vars.items():
+            tools.debug('\t', k, '=', v)
         vars.update(kw.pop('vars', {}))
         return cls(vars = vars, **kw)
 
