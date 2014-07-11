@@ -68,8 +68,8 @@ class Project:
         self.__env = None
         if not path.exists(self.config_file):
             raise Exception("This directory '%s' does not seem to contains a configuration")
-        self.__read_conf()
         self.project_env_file = path.join(self.config_directory, self.project_env_filename)
+        self.__read_conf()
         self.env.update(new_project_env)
 
     def __enter__(self):
@@ -137,7 +137,10 @@ class Project:
         )
 
     def __read_conf(self):
-        self.__env = Env()
+        if os.path.exists(self.project_env_file):
+            self.__env = Env.load(self.project_env_file)
+        else:
+            self.__env = Env()
         backup = sys.path[:]
         try:
             sys.path.insert(0, self.config_directory)
