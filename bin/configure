@@ -207,11 +207,10 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
         d for d in project.env.get('BUILD_DIRECTORIES', [])
         if exists(d, '.configure.py_build')
     )
-    configure.tools.verbose("Found build directories:", ' '.join(env_build_dirs))
-    build_dirs = []
+    configure.tools.debug("Found env build directories:", ' '.join(env_build_dirs))
+    build_dirs = env_build_dirs
     if args.build_dir is not None:
-        build_dirs = args.build_dir
-        for build_dir in build_dirs:
+        for build_dir in args.build_dir:
             tup_build_marker = join(build_dir, '.configure.py_build')
             if not exists(build_dir):
                 os.makedirs(build_dir)
@@ -223,18 +222,20 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
                     "\t* Remove this directory",
                     "\t* Touch the file %(tup_build_marker)s",
                 ]) % locals())
+            build_dirs.append(build_dir)
     else:
         build_dirs = env_build_dirs
-
-    if not build_dirs:
-        fatal("No build directory specified on command line. (try -h switch)")
-
-    project.env.build_directories = list(set(build_dirs + env_build_dirs))
 
     if args.dump_vars:
         status("Project variables:")
         for k, v in project.env.items():
             status("\t - %s = %s" % (k, v))
+
+    if not build_dirs:
+        fatal("No build directory specified on command line. (try -h switch)")
+    configure.tools.verbose("Selected build directories:", build_dirs)
+
+    project.env.build_directories = list(set(build_dirs + env_build_dirs))
 
     with project:
         for build_dir in build_dirs:
