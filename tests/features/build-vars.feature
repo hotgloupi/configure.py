@@ -6,5 +6,5 @@ Feature: Configure build variables
 		def main(build):
 			assert build.env.TEST_VAR == "LOL"
 		"""
-		When I configure with test_var=LOL
+		When I configure with build test_var=LOL
 		Then build variable TEST_VAR equals "LOL"

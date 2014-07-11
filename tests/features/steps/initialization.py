@@ -11,7 +11,7 @@ def step_impl(context):
     context.execute_steps(
         '''
         Given a temporary directory
-        When I launch configure --init
+        When I configure with --init
         '''
     )
     assert context.initialized
@@ -32,13 +32,19 @@ def step_impl(ctx):
 def step_impl(context):
     assert not context.initialized
 
-@when('I launch configure --init')
-def step_impl(context):
-    context.initialized = context.cmd('configure', '--init') == 0
+@when('the build is configured')
+@then('the build is configured')
+def impl(ctx):
+    assert ctx.configured
 
 @when('I configure the build')
 def step_impl(context):
     context.configured = context.cmd('configure', 'build') == 0
+
+@when('I configure')
+@then('I configure')
+def step_impl(context):
+    context.configured = context.cmd('configure') == 0
 
 @then('A .config directory is created')
 def step_impl(context):
@@ -86,4 +92,7 @@ def step_impl(context):
 
 @when('I configure with {args}')
 def impl(context, args):
-    context.configured = context.cmd('configure', 'build', *tuple(shlex.split(args))) == 0
+    context.configured = context.cmd('configure', *tuple(shlex.split(args))) == 0
+    if '--init' in args:
+        context.initialized = context.configured
+
