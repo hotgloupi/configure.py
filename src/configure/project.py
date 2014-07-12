@@ -167,8 +167,9 @@ import tempfile
 class TemporaryProject:
     """Test class for projects"""
 
-    def __init__(self, config = ''):
+    def __init__(self, config = '', build_dirs = None):
         self.config = config
+        self.build_dirs = build_dirs
 
     def __enter__(self):
         self.tempdir = tempfile.TemporaryDirectory()
@@ -176,6 +177,9 @@ class TemporaryProject:
             directory = self.tempdir.name,
             template = self.config,
         )
+        if self.build_dirs:
+            for d in self.build_dirs:
+                os.mkdir(os.path.join(self.project.directory, d))
         return self.project
 
     def __exit__(self, *args):
@@ -200,10 +204,21 @@ class _(TestCase):
             self.assertTrue(os.path.isdir(p.config_directory))
 
     def test_configure(self):
-        with TemporaryProject(config = self.empty_config) as p:
-            build_dir = path.join(p.directory, 'build')
-            os.mkdir(build_dir)
-            with p.configure(build_dir, generator_name = 'Makefile') as build:
+        with TemporaryProject(config = self.empty_config, build_dirs = ['build']) as p:
+            with p.configure('build', generator_name = 'Makefile') as build:
                 pass
-            self.assertTrue(os.path.isfile(path.join(build_dir, '.build-env')))
+            self.assertTrue(os.path.isfile(path.join('build', '.build-env')))
 
+
+    def test_global_var(self):
+        cfg = textwrap.dedent(
+            """
+            MY_VAR = 42
+            LOL = "lol"
+            def main(bld):
+                pass
+            """
+        )
+        with TemporaryProject(cfg) as p:
+            self.assertEqual(p.env.MY_VAR, 42)
+            self.assertEqual(p.env.LOL, "lol")
