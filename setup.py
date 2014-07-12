@@ -7,7 +7,7 @@ if sys.version_info[0] < 3:
 
 setup(
     name = 'configure.py',
-    version = '1.0',
+    version = '1.1',
     description = "Configure your project's builds in plain Python",
     author = 'Raphaël Londeix',
     author_email = 'raphael.londeix@gmail.com',
