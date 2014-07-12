@@ -31,14 +31,14 @@ class Project:
                       configuration, otherwise if it evaluate to True, the
                       default project configuration template is used.
         """
-        config_directory = path.join(directory, config_directory)
-        config_file = path.join(config_directory, config_filename)
+        config_directory_path = path.join(directory, config_directory)
+        config_file = path.join(config_directory_path, config_filename)
         if path.exists(config_file):
             tools.fatal(
                 "This project seems to be already initialized, see '%s'" % path.clean(config_file, replace_home = True)
             )
-        if not path.exists(config_directory):
-            os.mkdir(config_directory)
+        if not path.exists(config_directory_path):
+            os.makedirs(config_directory_path)
         if isinstance(template, str):
             data = template
         elif template:
@@ -67,7 +67,9 @@ class Project:
         self.__configure_function = None
         self.__env = None
         if not path.exists(self.config_file):
-            raise Exception("This directory '%s' does not seem to contains a configuration")
+            raise Exception(
+                "The directory '%s' does not seem to contain a configuration" % self.directory
+            )
         self.project_env_file = path.join(self.config_directory, self.project_env_filename)
         self.__read_conf()
         self.env.update(new_project_env)
