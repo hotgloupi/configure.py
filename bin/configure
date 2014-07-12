@@ -411,6 +411,14 @@ def main():
     DEBUG = args.debug
     VERBOSE = args.verbose
     root_dir = find_root_dir(args)
+    if root_dir is None:
+        fatal(
+            '\n'.join([
+                "No configure.py project found, you can:",
+                "\t* Move to the project's directory",
+                "\t* Create a new project with --init",
+            ])
+        )
     project_config_dir = cleanjoin(root_dir, PROJECT_CONFIG_DIR_NAME)
     tup_install_dir = cleanjoin(project_config_dir, 'tup')
 
