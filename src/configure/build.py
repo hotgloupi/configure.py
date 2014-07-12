@@ -276,3 +276,16 @@ class _(TestCase):
     def test_init(self):
         with TemporaryProject() as p:
             build = Build(p, 'build', 'Makefile')
+
+    def test_generate_makefile(self):
+        cfg = textwrap.dedent(
+            """
+            def main(bld):
+                pass
+            """
+        )
+        with TemporaryProject(cfg, build_dirs = ['pif']) as p:
+            with p.configure('pif', generator_name = 'Makefile') as bld:
+                bld.generate()
+            self.assertTrue(os.path.isfile(path.join(p.directory, 'pif', 'Makefile')))
+
