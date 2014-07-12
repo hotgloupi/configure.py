@@ -1,5 +1,9 @@
 # -*- encoding: utf-8 -*-
 from setuptools import setup, find_packages
+import sys
+if sys.version_info[0] < 3:
+    print("Sorry, Python 2 is not supported.")
+    sys.exit(1)
 
 setup(
     name = 'configure.py',
