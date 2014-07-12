@@ -17,7 +17,7 @@ export COVERAGE_PROCESS_START=$(PWD)/.coveragerc
 all: $(PIP)
 	( . $(ACTIVATE); $(PIP) install -e . )
 
-check/unittests:
+check/tests:
 	( . $(ACTIVATE); python setup.py test; )
 
 check/features: $(BEHAVE) all
@@ -36,7 +36,7 @@ coverage/tests: $(COVERAGE)
 	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure setup.py test )
 
 coverage/features: $(COVERAGE) $(BEHAVE) all
-	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure $(BEHAVE) tests/features -q -m -k -T --no-summary --no-snippets --no-capture )
+	( . $(ACTIVATE); $(COVERAGE) run -a --source=src/configure $(BEHAVE) tests/features -q -m -k -T --no-summary --no-snippets --no-capture --tags=~slow --tags=~no-coverage )
 
 coverage/report: $(COVERAGE) $(BEHAVE) all
 	( . $(ACTIVATE); $(COVERAGE) combine )
