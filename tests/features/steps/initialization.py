@@ -70,6 +70,9 @@ def step_impl(context):
 def step_impl(context, filename):
     with open(filename, 'w') as f:
         f.write(context.text)
+    with open(filename, 'r') as f:
+        print("Source file", filename, "content:")
+        print(f.read())
 
 @when('I build everything')
 def step_impl(context):
