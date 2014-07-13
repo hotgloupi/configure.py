@@ -105,9 +105,8 @@ class Compiler:
         self.project = build.project
         self.build = build
 
-        self.binary_name = kw.pop('binary_name', self.binary_name)
         self.binary = self.build.find_binary(
-                self.binary_name,
+                kw.pop('binary', self.binary_name),
                 self.binary_env_varname
             )
         self.__set_attributes(self.attributes, kw)
@@ -132,7 +131,7 @@ class Compiler:
     def from_bin(cls, bin, *args, **kw):
         for c in cls.compilers:
             if c.binary_match(bin):
-                return c(*args, binary_name = bin, **kw)
+                return c(*args, binary = bin, **kw)
         raise Exception(
             "Cannot detect compiler from binary %s" % bin
         )
