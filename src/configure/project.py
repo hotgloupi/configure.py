@@ -209,7 +209,7 @@ class _(TestCase):
         with TemporaryProject(config = self.empty_config, build_dirs = ['build']) as p:
             with p.configure('build', generator_name = 'Makefile') as build:
                 pass
-            self.assertTrue(os.path.isfile(path.join('build', '.build-env')))
+            self.assertTrue(os.path.isfile(path.join(p.directory, 'build', '.build-env')))
 
 
     def test_global_var(self):
