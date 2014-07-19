@@ -223,7 +223,7 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
                     "\t* Touch the file %(tup_build_marker)s",
                 ]) % locals())
             build_dirs.append(build_dir)
-    else:
+    if not build_dirs:
         build_dirs = env_build_dirs
 
     if args.dump_vars:
