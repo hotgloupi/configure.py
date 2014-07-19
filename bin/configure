@@ -239,6 +239,8 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
         cleanabspath(p) for p in set(build_dirs + env_build_dirs)
     ]
 
+    build_dirs = [cleanabspath(p) for p in set(build_dirs)]
+
     with project:
         for build_dir in build_dirs:
             with project.configure(build_dir, defines, args.generator) as build:
