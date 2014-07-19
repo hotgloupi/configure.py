@@ -208,7 +208,7 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
         if exists(d, '.configure.py_build')
     )
     configure.tools.debug("Found env build directories:", ' '.join(env_build_dirs))
-    build_dirs = env_build_dirs
+    build_dirs = []
     if args.build_dir is not None:
         for build_dir in args.build_dir:
             tup_build_marker = join(build_dir, '.configure.py_build')
@@ -235,7 +235,9 @@ def prepare_build(args, defines, exports, root_dir, project_config_dir):
         fatal("No build directory specified on command line. (try -h switch)")
     configure.tools.verbose("Selected build directories:", build_dirs)
 
-    project.env.build_directories = list(set(build_dirs + env_build_dirs))
+    project.env.build_directories = [
+        cleanabspath(p) for p in set(build_dirs + env_build_dirs)
+    ]
 
     with project:
         for build_dir in build_dirs:
