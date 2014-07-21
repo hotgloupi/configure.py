@@ -17,6 +17,7 @@ class CMakeDependency(Dependency):
                  libraries = [],
                  configure_env = {},
                  os_env = [],
+                 position_independant_code = True,
                 ):
         """
             build_system:
@@ -40,6 +41,10 @@ class CMakeDependency(Dependency):
 
             os_env:
                 OS env var to forward (additionally to those of the compiler).
+
+            position_independant_code:
+                When compiling C/C++ static libraries, -fPIC is passed to the
+                compilers
         """
         super().__init__(
             build,
@@ -63,7 +68,12 @@ class CMakeDependency(Dependency):
         self.verbose = verbose
         self.build_type = build_type
         self.configure_target = configure_target
-        self.configure_variables = configure_variables
+        self.configure_variables = dict(configure_variables)
+        if compiler.name != 'msvc' and position_independant_code:
+            for k in ['CMAKE_C_FLAGS', 'CMAKE_CXX_FLAGS']:
+                flags = self.configure_variables.get(k, '')
+                if '-fPIC' not in flags:
+                    self.__append_to_configure_var(k, '-fPIC')
         self.configure_env = configure_env
         self.os_env = os_env + self.compiler.os_env
 
@@ -83,57 +93,53 @@ class CMakeDependency(Dependency):
             ).target
         ]
 
+    def __append_to_configure_var(self, key, str):
+            var = self.configure_variables.get(key)
+            if var:
+                self.configure_variables[key] = ' '.join([var, str])
+            else:
+                self.configure_variables[key] = str
+
     @property
     def __configure_target(self):
-        command = [
-            'cmake',
-            path.absolute(self.source_directory),
-        ]
+        vars = self.configure_variables
         if self.compiler.lang == 'c':
-            command.append(
-                '-DCMAKE_C_COMPILER=%s' % self.compiler.binary
-            )
+            vars.setdefault('CMAKE_C_COMPILER', self.compiler.binary)
         elif self.compiler.lang == 'c++':
-            command.append(
-                '-DCMAKE_CXX_COMPILER=%s' % self.compiler.binary
-            )
+            vars.setdefault('CMAKE_CXX_COMPILER', self.compiler.binary)
             if self.compiler.stdlib and isinstance(self.compiler.stdlib, str):
                 if self.compiler.name != 'msvc':
-                    command.append(
-                        '-DCMAKE_CXX_FLAGS="-stdlib=%s"' % self.compiler.stdlib
+                    self.__append_to_configure_var(
+                        'CMAKE_CXX_FLAGS',
+                        "-stdlib=%s" % self.compiler.stdlib
                     )
         else:
             raise Exception("Unknown compiler language")
         if self.verbose:
-            command.append(
-                '-DCMAKE_VERBOSE_MAKEFILE=ON'
-            )
+            vars.setdefault('CMAKE_VERBOSE_MAKEFILE', True)
         if self.build_type is not None:
-            command.append(
-                '-DCMAKE_BUILD_TYPE=%s' % self.build_type
-            )
+            vars.setdefault('CMAKE_BUILD_TYPE', self.build_type)
         if self.compiler.name != 'msvc':
-            command.extend([
-                '-DCMAKE_MAKE_PROGRAM=%s' % self.build.make_program,
-            ])
+            vars.setdefault('CMAKE_MAKE_PROGRAM', self.build.make_program)
 
-        command.extend([
-            '-DCMAKE_SH=%s' % self.build.sh_program,
-            '-DCMAKE_INSTALL_PREFIX=%s' % self.absolute_build_path('install')
-        ])
+        vars.setdefault('CMAKE_SH', self.build.sh_program)
+        assert 'CMAKE_INSTALL_PREFIX' not in vars
+        vars['CMAKE_INSTALL_PREFIX'] = self.absolute_build_path('install')
         if self.compiler.name == 'msvc':
-            command.extend([
-                '-DCMAKE_LINKER=%s' % self.compiler.link_binary,
-            ])
+            vars.setdefault('CMAKE_LINKER', self.compiler.link_binary)
 
         def sanitize(k, v):
             if isinstance(v, bool):
                 return (k, v and 'YES' or 'NO')
             return (k, v)
 
+        command = [
+            'cmake',
+            path.absolute(self.source_directory),
+        ]
         command.extend(
             '-D%s=%s' % sanitize(*var)
-            for var in self.configure_variables
+            for var in sorted(self.configure_variables.items())
         )
         if self.build_system is not None:
             command.extend(['-G', self.build_system])
