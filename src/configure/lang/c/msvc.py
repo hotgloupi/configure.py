@@ -318,7 +318,7 @@ class Compiler(c_compiler.Compiler):
                 target.path,
                 shell_formatter = lambda p: [self._flag('out:') + p]
             ),
-            self._flag('subsystem:') + 'console',
+            self._flag('subsystem:') + 'windows',
             self._link_flags(kw),
         ]
         if self.attr('generate_debug', kw):
