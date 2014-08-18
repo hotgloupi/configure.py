@@ -51,6 +51,13 @@ class SDLDependency(CMakeDependency):
         else:
             name = 'SDL2'
 
+        if not shared:
+            with open(path.join(source_directory, 'src/dynapi/SDL_dynapi.h')) as f:
+                hdr = f.read()
+            if '#define SDL_DYNAMIC_API 1' in hdr:
+                with open(path.join(source_directory, 'src/dynapi/SDL_dynapi.h'), 'w') as f:
+                    f.write(hdr.replace('#define SDL_DYNAMIC_API 1', '#define SDL_DYNAMIC_API 0'))
+
         super().__init__(
             build,
             'SDL',
