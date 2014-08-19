@@ -58,6 +58,30 @@ class SDLDependency(CMakeDependency):
                 with open(path.join(source_directory, 'src/dynapi/SDL_dynapi.h'), 'w') as f:
                     f.write(hdr.replace('#define SDL_DYNAMIC_API 1', '#define SDL_DYNAMIC_API 0'))
 
+        configure_variables = {
+            'DIRECTX': directx,
+            'SDL_SHARED': shared,
+            'SDL_STATIC': not shared,
+            'RPATH': True,
+            'SDL_AUDIO': audio,
+            'SDL_ATOMIC': atomic,
+            'SDL_CPUINFO': cpuinfo,
+            'SDL_DLOPEN': dlopen,
+            'SDL_EVENTS': events,
+            'SDL_FILE': file,
+            'SDL_FILESYSTEM': filesystem,
+            'SDL_HAPTIC': haptic,
+            'SDL_JOYSTICK': joystick,
+            'SDL_LOADSO': loadso,
+            'SDL_POWER': power,
+            'SDL_RENDER': render,
+            'SDL_THREADS': threads,
+            'SDL_TIMERS': timers,
+            'SDL_VIDEO': video,
+        }
+        if platform.IS_WINDOWS and not shared:
+            # XXX Bug in SDL CMake files
+            configure_variables['SDL_SHARED'] = True
         super().__init__(
             build,
             'SDL',
@@ -73,27 +97,7 @@ class SDLDependency(CMakeDependency):
                     'imp_directory': 'lib',
                 }
             ],
-            configure_variables = [
-                ('DIRECTX', directx),
-                ('SDL_SHARED', shared),
-                ('SDL_STATIC', not shared),
-                ('RPATH', True),
-                ('SDL_AUDIO', audio),
-                ('SDL_ATOMIC', atomic),
-                ('SDL_CPUINFO', cpuinfo),
-                ('SDL_DLOPEN', dlopen),
-                ('SDL_EVENTS', events),
-                ('SDL_FILE', file),
-                ('SDL_FILESYSTEM', filesystem),
-                ('SDL_HAPTIC', haptic),
-                ('SDL_JOYSTICK', joystick),
-                ('SDL_LOADSO', loadso),
-                ('SDL_POWER', power),
-                ('SDL_RENDER', render),
-                ('SDL_THREADS', threads),
-                ('SDL_TIMERS', timers),
-                ('SDL_VIDEO', video),
-            ]
+            configure_variables = configure_variables,
         )
 
 class SDLImageDependency(Dependency):
