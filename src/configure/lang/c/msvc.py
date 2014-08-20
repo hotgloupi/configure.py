@@ -190,15 +190,16 @@ class Compiler(c_compiler.Compiler):
             ]
             build = self.attr('build', kw)
             if self.attr('generate_debug', kw):
-                command.append(self._flag('Zi'))
-                debug_db = Target(
-                    build,
-                    object.relative_path(build.directory) + ".pdb",
-                    shell_formatter = \
-                        lambda p: [self._flag('Fd') + object.path + ".pdb"]
-                )
-                command.append(debug_db)
-                additional_outputs.append(debug_db)
+                command.append(self._flag('Z7'))
+                #command.append(self._flag('Zi'))
+                #debug_db = Target(
+                #    build,
+                #    object.relative_path(build.directory) + ".pdb",
+                #    shell_formatter = \
+                #        lambda p: [self._flag('Fd') + object.path + ".pdb"]
+                #)
+                #command.append(debug_db)
+                #additional_outputs.append(debug_db)
         return Command(
             action = kw.get('action', "Build object"),
             target = object,
@@ -281,7 +282,9 @@ class Compiler(c_compiler.Compiler):
                 )
                 cmd.extend([
                     self._flag('DEBUG'),
-                    debug_db
+                    debug_db,
+                    self._flag('OPT:REF'),
+                    self._flag('OPT:ICF'),
                 ])
                 ao.append(debug_db)
             cmd.extend([
@@ -331,7 +334,9 @@ class Compiler(c_compiler.Compiler):
             )
             cmd.extend([
                 self._flag('DEBUG'),
-                debug_db
+                debug_db,
+                self._flag('OPT:REF'),
+                self._flag('OPT:ICF'),
             ])
             ao.append(debug_db)
         return Command(
