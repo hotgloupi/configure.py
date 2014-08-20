@@ -12,7 +12,7 @@ class CMakeDependency(Dependency):
                  build_system = None,
                  configure_target = 'Makefile',
                  verbose = True,
-                 build_type = 'RelWithDebInfo',
+                 build_type = 'Release',
                  configure_variables = [],
                  libraries = [],
                  configure_env = {},
