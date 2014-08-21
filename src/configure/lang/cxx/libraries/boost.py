@@ -394,6 +394,10 @@ class BoostDependency(Dependency):
             libraries.extend(self.python.libraries)
             dependencies.extend(self.python.targets)
         component_dependencies = self.__component_dependencies(name)
+        for dep in component_dependencies:
+            if not self.is_header_only(dep):
+                libraries.append(self.component_library(dep))
+                dependencies.append(self._target(dep))
         target = self.__targets[name] = self.compiler.link_library(
             'libboost_' + name,
             directory = self.build_path('install/lib'),
