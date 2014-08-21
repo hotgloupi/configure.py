@@ -78,7 +78,7 @@ class Compiler(c_compiler.Compiler):
             self._flag('c'),        # compiles without linking
             #self._flag('GL'), # Whole program optimization (disable crt init ...)
             #self._flag('Gz'),       #__stdcall convention
-            #self._flag('Gd'), #__cdecl convention
+            self._flag('Gd'), #__cdecl convention
             #self._flag('Gr'), #__fastcall convention
             '-GS',
             '-W3',
@@ -128,6 +128,7 @@ class Compiler(c_compiler.Compiler):
             if tgt.shared:
                 defines.append('_DLL')
                 flags.extend(['-LD'])
+            defines.append('_MT')
             flags.extend(['-MD'])
         else:
             static_std = self.attr('static_libstd', kw)
@@ -261,9 +262,9 @@ class Compiler(c_compiler.Compiler):
             cmd = [
                 self.link_binary,
                 self._flag('nologo'),   # no print while invoking cl.exe
-                '-entry:_DllMainCRTStartup@12',
+                #'-entry:_DllMainCRTStartup@12',
                 self._flag('DLL'), # dynamic library
-                self._flag('incremental:no'),
+                #self._flag('incremental:no'),
                 objects,
             ]
             build = self.attr('build', kw)
