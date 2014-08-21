@@ -210,7 +210,7 @@ class BoostDependency(Dependency):
         for name in self.component_names:
             for k, v in kw.items():
                 if k.split('_')[0] == name:
-                    self.component_options[name][k.split('_')[1:]] = v
+                    self.component_options[name][k.split('_')[1]] = v
         self.python = python
         self.__targets = {}
         self.__header_targets = {}

@@ -78,7 +78,7 @@ class Compiler(c_compiler.Compiler):
             self._flag('c'),        # compiles without linking
             #self._flag('GL'), # Whole program optimization (disable crt init ...)
             #self._flag('Gz'),       #__stdcall convention
-            self._flag('Gd'), #__cdecl convention
+            #self._flag('Gd'), #__cdecl convention
             #self._flag('Gr'), #__fastcall convention
             '-GS',
             '-W3',
@@ -103,10 +103,10 @@ class Compiler(c_compiler.Compiler):
             defines.append((key, value))
             return value
 
-        if not defined('CRTAPI1'):
-            defines.append(('CRTAPI1', '_cdecl'))
-        if not defined('CRTAPI2'):
-            defines.append(('CRTAPI2', '_cdecl'))
+        #if not defined('CRTAPI1'):
+        #    defines.append(('CRTAPI1', '_cdecl'))
+        #if not defined('CRTAPI2'):
+        #    defines.append(('CRTAPI2', '_cdecl'))
 
         if True: # XXX arch
             defines.extend([
@@ -121,12 +121,13 @@ class Compiler(c_compiler.Compiler):
         set_default('NTDDI_VERSION', '%s0000' % winver)
         set_default('_WIN32_WINNT', winver)
 
-        defines.append('_MT') # XXX Only multithreaded app
+        #defines.append('_MT') # XXX Only multithreaded app
 
         # XXX debug builds not supported
         if isinstance(tgt, self.LibraryTarget):
             if tgt.shared:
                 defines.append('_DLL')
+                flags.extend(['-LD'])
             flags.extend(['-MD'])
         else:
             static_std = self.attr('static_libstd', kw)
