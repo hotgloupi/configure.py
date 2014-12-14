@@ -150,7 +150,7 @@ class Compiler(c_compiler.Compiler):
         return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 
     def _get_link_flags(self, kw):
-        link_flags = ['-no-canonical-prefixes']
+        link_flags = ['-Wl,--exclude-libs,ALL']
         if self.attr('allow_unresolved_symbols', kw):
             #link_flags.append('-Wl,--allow-shlib-undefined')
             #link_flags.append('-Wl,--unresolved-symbols=ignore-all')
