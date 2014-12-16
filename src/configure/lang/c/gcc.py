@@ -150,7 +150,7 @@ class Compiler(c_compiler.Compiler):
         return '-Wl,-rpath=\\$ORIGIN/' + path.dirname(lib.relpath(kw['target'], **kw))
 
     def _get_link_flags(self, kw):
-        link_flags = ['-Wl,--exclude-libs,ALL']
+        link_flags = []
         if self.attr('allow_unresolved_symbols', kw):
             #link_flags.append('-Wl,--allow-shlib-undefined')
             #link_flags.append('-Wl,--unresolved-symbols=ignore-all')
@@ -175,6 +175,22 @@ class Compiler(c_compiler.Compiler):
         if self.attr('recursive_linking', kw):
             link_flags.append('-Wl,-(')
         rpath_dirs = []
+        export_static_libraries = self.list_attr('export_static_libraries', kw)
+        excluded_libs = []
+        for lib in self.list_attr('libraries', kw):
+            if lib not in export_static_libraries:
+                if isinstance(lib, Target):
+                    if not lib.shared:
+                        excluded_libs.append(lib.path)
+                elif not (lib.macosx_framework or lib.system):
+                    if not lib.shared:
+                        excluded_libs.extend(lib.files)
+        if excluded_libs:
+            # Specifying multiple comma separated libs here does not work
+            # Specifying full path does not work ... (but no error)
+            link_flags.extend(
+                '-Wl,--exclude-libs,%s' % path.basename(f) for f in excluded_libs
+            )
         for lib in self.list_attr('libraries', kw):
             if isinstance(lib, Target):
                 link_flags.append(lib)
@@ -195,6 +211,7 @@ class Compiler(c_compiler.Compiler):
                     library_directories.append(dir_)
         if self.attr('recursive_linking', kw):
             link_flags.append('-Wl,-)')
+
 
         #if not platform.IS_MACOSX:
         #    link_flags.append('-Wl,-Bdynamic')

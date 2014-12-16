@@ -95,7 +95,8 @@ class Compiler:
         ('precompiled_headers', []),
         ('force_includes', []),
         ('disabled_warnings', ['unused-typedefs',]),
-        ('forbidden_warnings', [])
+        ('forbidden_warnings', []),
+        ('export_static_libraries', []),
     ]
 
     def __init__(self, build, **kw):
