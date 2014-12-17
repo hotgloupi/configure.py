@@ -269,8 +269,8 @@ class BoostDependency(Dependency):
                 #'detail/segmented_stack_allocator.cpp',
                 (
                     platform.IS_WINDOWS and
-                    'detail/standard_stack_allocator_windows.cpp' or
-                    'detail/standard_stack_allocator_posix.cpp'
+                    'windows/stack_traits.cpp' or
+                    'posix/stack_traits.cpp'
                 ),
             ]
         elif component == 'context':
@@ -317,6 +317,36 @@ class BoostDependency(Dependency):
             binary_format = platform.BINARY_FORMAT.lower()
             pattern = '_%s_%s_%s' % (processor, abi, binary_format)
             srcs = [s for s in all_srcs if pattern in s]
+        elif component == 'serialization':
+            srcs = [
+                'basic_archive.cpp',
+                'basic_iarchive.cpp',
+                'basic_iserializer.cpp',
+                'basic_oarchive.cpp',
+                'basic_oserializer.cpp',
+                'basic_pointer_iserializer.cpp',
+                'basic_pointer_oserializer.cpp',
+                'basic_serializer_map.cpp',
+                'basic_text_iprimitive.cpp',
+                'basic_text_oprimitive.cpp',
+                'basic_xml_archive.cpp',
+                'binary_iarchive.cpp',
+                'binary_oarchive.cpp',
+                'extended_type_info.cpp',
+                'extended_type_info_typeid.cpp',
+                'extended_type_info_no_rtti.cpp',
+                'polymorphic_iarchive.cpp',
+                'polymorphic_oarchive.cpp',
+                'stl_port.cpp',
+                'text_iarchive.cpp',
+                'text_oarchive.cpp',
+                'void_cast.cpp',
+                'archive_exception.cpp',
+                'xml_grammar.cpp',
+                'xml_iarchive.cpp',
+                'xml_oarchive.cpp',
+                'xml_archive_exception.cpp',
+            ]
 
         if srcs is not None:
             srcs = list(
@@ -333,6 +363,7 @@ class BoostDependency(Dependency):
                     start = self.project.directory
                 )
             ))
+        print(component, srcs)
         self.__component_sources[component] = srcs
         return srcs
 
