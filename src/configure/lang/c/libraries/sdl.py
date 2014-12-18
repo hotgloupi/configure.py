@@ -45,13 +45,14 @@ class SDLDependency(CMakeDependency):
                  render = True,
                  threads = True,
                  timers = True,
-                 video = True):
+                 video = True,
+                 dynamic_api = True):
         if platform.IS_MACOSX and shared:
             name = 'SDL2-2.0'
         else:
             name = 'SDL2'
 
-        if not shared:
+        if not dynamic_api:
             with open(path.join(source_directory, 'src/dynapi/SDL_dynapi.h')) as f:
                 hdr = f.read()
             if '#define SDL_DYNAMIC_API 1' in hdr:
