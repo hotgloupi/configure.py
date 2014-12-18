@@ -363,7 +363,6 @@ class BoostDependency(Dependency):
                     start = self.project.directory
                 )
             ))
-        print(component, srcs)
         self.__component_sources[component] = srcs
         return srcs
 
