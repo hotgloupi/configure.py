@@ -11,7 +11,7 @@ def step_impl(context, exe):
             "(executable %s not found)" % exe,
             file = sys.stderr
         )
-        context.scenario.mark_skipped()
+        context.scenario.skip("The executable '%s' is not present" % exe)
     else:
         print(
             "Found executable '%s' at '%s'" % (exe, configure.tools.which(exe)),

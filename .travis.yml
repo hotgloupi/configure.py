@@ -12,7 +12,7 @@ before_install:
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get update -qq
 install:
-    - pip install git+https://github.com/hotgloupi/behave
+    - pip install git+https://github.com/behave/behave
     - pip install python-coveralls
     - python setup.py develop
     - sudo apt-get install -qq g++-4.4

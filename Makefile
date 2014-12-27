@@ -50,7 +50,7 @@ $(COVERAGE): $(PIP)
 	test -f $(COVERAGE) || ( . $(ACTIVATE); $(PIP) install python-coveralls )
 
 $(BEHAVE): $(PIP)
-	test -f $(BEHAVE) || ( . $(ACTIVATE); $(PIP) install git+https://github.com/hotgloupi/behave )
+	test -f $(BEHAVE) || ( . $(ACTIVATE); $(PIP) install git+https://github.com/behave/behave )
 
 $(PIP): $(ENV_DIR)
 	test -f $(PIP) || ( . $(ACTIVATE); python third-parties/get-pip.py )
