@@ -428,6 +428,9 @@ class BoostDependency(Dependency):
             if not self.is_header_only(dep):
                 libraries.append(self.component_library(dep))
                 dependencies.append(self._target(dep))
+        force_includes = []
+        if name == 'python':
+            force_includes.append('cmath')
         target = self.__targets[name] = self.compiler.link_library(
             'libboost_' + name,
             directory = self.build_path('install/lib'),
@@ -438,7 +441,7 @@ class BoostDependency(Dependency):
                 #str(self.build_path('install', 'include', abs = True)),
                 str(self.source_path()),
             ],
-            #force_includes = ['cmath'],
+            force_includes = force_includes,
             libraries = libraries,
             build = self.build,
             defines = [
