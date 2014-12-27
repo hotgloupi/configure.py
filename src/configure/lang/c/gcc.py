@@ -154,7 +154,7 @@ class Compiler(c_compiler.Compiler):
         if self.attr('allow_unresolved_symbols', kw):
             #link_flags.append('-Wl,--allow-shlib-undefined')
             #link_flags.append('-Wl,--unresolved-symbols=ignore-all')
-            if self.binary_name in ['clang', 'clang++']: #XXX does not recognize =
+            if self.name == 'clang':
                 link_flags.extend(['-undefined', 'dynamic_lookup'])
             else:
                 link_flags.extend(['-undefined=dynamic_lookup'])
@@ -172,28 +172,33 @@ class Compiler(c_compiler.Compiler):
         if platform.IS_WINDOWS:
             link_flags.append('--enable-stdcall-fixup')
 
+        export_static_libraries = self.list_attr('export_static_libraries', kw)
+        if self.name == 'clang':
+            excluded_libs = []
+            for lib in self.list_attr('libraries', kw):
+                if lib not in export_static_libraries:
+                    if isinstance(lib, Target):
+                        if not lib.shared:
+                            excluded_libs.append(lib.path)
+                    elif not (lib.macosx_framework or lib.system):
+                        if not lib.shared:
+                            excluded_libs.extend(lib.files)
+            if excluded_libs:
+                # Specifying multiple comma separated libs here does not work
+                # Specifying full path does not work ... (but no error)
+                link_flags.extend(
+                    '-Wl,--exclude-libs,%s' % path.basename(f) for f in excluded_libs
+                )
+
+        rpath_dirs = []
         if self.attr('recursive_linking', kw):
             link_flags.append('-Wl,-(')
-        rpath_dirs = []
-        export_static_libraries = self.list_attr('export_static_libraries', kw)
-        excluded_libs = []
-        for lib in self.list_attr('libraries', kw):
-            if lib not in export_static_libraries:
-                if isinstance(lib, Target):
-                    if not lib.shared:
-                        excluded_libs.append(lib.path)
-                elif not (lib.macosx_framework or lib.system):
-                    if not lib.shared:
-                        excluded_libs.extend(lib.files)
-        if excluded_libs:
-            # Specifying multiple comma separated libs here does not work
-            # Specifying full path does not work ... (but no error)
-            link_flags.extend(
-                '-Wl,--exclude-libs,%s' % path.basename(f) for f in excluded_libs
-            )
         for lib in self.list_attr('libraries', kw):
             if isinstance(lib, Target):
-                link_flags.append(lib)
+                if self.name == 'clang' and not lib.shared and lib in export_static_libraries:
+                    link_flags.extend(['-Xlinker', '-reexport_library', '-Xlinker', lib])
+                else:
+                    link_flags.append(lib)
                 rpath_dirs.append(path.dirname(lib.path))
             elif lib.macosx_framework:
                 link_flags.extend(['-framework', lib.name])
@@ -206,7 +211,10 @@ class Compiler(c_compiler.Compiler):
                     #        link_flags.append('-Wl,-Bdynamic')
                     #    else:
                     #        link_flags.append('-Wl,-Bstatic')
-                    link_flags.append(f)
+                    if self.name == 'clang' and not lib.shared and lib in export_static_libraries:
+                        link_flags.extend(['-Xlinker', '-reexport_library', '-Xlinker', f])
+                    else:
+                        link_flags.append(f)
                 for dir_ in lib.directories:
                     library_directories.append(dir_)
         if self.attr('recursive_linking', kw):
