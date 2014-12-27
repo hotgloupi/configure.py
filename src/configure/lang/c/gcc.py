@@ -173,7 +173,7 @@ class Compiler(c_compiler.Compiler):
             link_flags.append('--enable-stdcall-fixup')
 
         export_static_libraries = self.list_attr('export_static_libraries', kw)
-        if self.name == 'clang':
+        if self.name != 'clang':
             excluded_libs = []
             for lib in self.list_attr('libraries', kw):
                 if lib not in export_static_libraries:
