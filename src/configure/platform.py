@@ -32,6 +32,10 @@ except AttributeError:
     # python3.2 has not yet named tuple.
     PROCESSOR = _platform.uname()[4]
 
+if IS_OSX:
+    OSX_VERSION, _, _ = _platform.mac_ver()
+    OSX_VERSION_MAJOR, OSX_VERSION_MINOR, OSX_VERSION_PATCH = map(int, OSX_VERSION.split('.'))
+
 #print("PROCESSOR:", PROCESSOR)
 #print("BINARY_FORMAT:", BINARY_FORMAT)
 #print("ARCHITECTURE:", ARCHITECTURE)
