@@ -8,10 +8,11 @@ from configure.command import Command
 class SDLLibrary(Library):
     def __init__(self, compiler, components=[], **kw):
         super(SDLLibrary, self).__init__(
-            'SDL',
+            'SDL2',
             compiler,
             find_includes = ['SDL/SDL.h'],
-            shared = kw.get('shared', True),
+            shared = kw.pop('shared', True),
+            **kw
         )
         self.components = list(
             Library('SDL_' + c, compiler, shared = kw.get('shared', True))
