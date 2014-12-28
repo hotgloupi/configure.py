@@ -3,7 +3,7 @@
 import sys
 
 IS_WINDOWS = sys.platform.lower().startswith('win')
-IS_MACOSX = sys.platform.lower().startswith('darwin')
+IS_OSX = IS_MACOSX = sys.platform.lower().startswith('darwin')
 IS_LINUX = sys.platform.lower().startswith('linux')
 
 # make sure the platform is recognized
@@ -16,7 +16,7 @@ import platform as _platform
 
 ARCHITECTURE = _platform.architecture()[0]
 BINARY_FORMAT = _platform.architecture()[1]
-if IS_MACOSX and not BINARY_FORMAT:
+if IS_OSX and not BINARY_FORMAT:
     BINARY_FORMAT = 'macho'
 try:
     BINARY_FORMAT = {
