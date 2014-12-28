@@ -167,7 +167,7 @@ class Library:
             dirs.extend(self.library_system_paths())
 
         if self.macosx_framework:
-            dirs = (path.join(dir_, self.name + '.framework', 'Libraries') for dir_ in dirs)
+            dirs = (path.join(dir_, self.name + '.framework', 'lib') for dir_ in dirs)
 
         dirs = list(path.clean(d) for d in tools.unique(dirs) if path.exists(d))
 
@@ -319,9 +319,15 @@ class Library:
 
 
     def include_system_paths(self):
-        return [
+        res = [
             '/usr/include',
         ]
+        if platform.IS_OSX and self.macosx_framework:
+            res.extend(
+                    path.join(dir_, self.name + '.framework', 'include')
+                    for dir_ in self.library_system_paths()
+            )
+        return res
 
     def library_system_paths(self):
         libs = []

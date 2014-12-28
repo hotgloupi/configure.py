@@ -18,8 +18,6 @@ class SDLLibrary(Library):
             Library('SDL_' + c, compiler, shared = kw.get('shared', True))
             for c in components
         )
-        if platform.IS_MACOSX:
-            self.components.append(Library('SDLmain', compiler, shared = False)) # Fixture from SDL is needed
 
         self.libraries = [self] + self.components
 
