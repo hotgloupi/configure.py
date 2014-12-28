@@ -16,6 +16,8 @@ def splitext(p, *paths, **kw):
 
 def clean(p, *paths, **kw):
     p = os.path.normpath(os.path.expanduser(os.path.join(p, *paths)))
+    if kw.get('real'):
+        p = os.path.realpath(p)
     if p.startswith('./'):
         return p[2:]
     if kw.get('replace_home'):
