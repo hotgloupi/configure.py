@@ -10,7 +10,7 @@ class SDLLibrary(Library):
         super(SDLLibrary, self).__init__(
             'SDL2',
             compiler,
-            find_includes = ['SDL/SDL.h'],
+            find_includes = ['SDL2/SDL.h'],
             shared = kw.pop('shared', True),
             **kw
         )
