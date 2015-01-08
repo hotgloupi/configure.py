@@ -163,7 +163,7 @@ class PythonDependency(Dependency):
             'CC': self.compiler.binary,
         }
         if self.shared and platform.IS_OSX:
-            env['LDFLAGS'] = '-Wl,-search_path_first' # http://bugs.python.org/issue11445
+            env['LDFLAGS'] = '-Wl,-search_paths_first' # http://bugs.python.org/issue11445
         configure_script = self.absolute_source_path('configure')
         configure_target = Command(
             action = "Configuring %s" % self.name,
