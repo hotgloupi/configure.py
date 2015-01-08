@@ -74,7 +74,8 @@ class PythonDependency(Dependency):
                  with_valgrind_support: "Compile with valgrind support" = False,
                  debug: "Compile with Py_DEBUG defined" = False,
                  pymalloc: "Compile with py_malloc" = False,
-                 wide_unicode: "Compile with wide unicode" = True):
+                 wide_unicode: "Compile with wide unicode" = True,
+                 threads: "Compile with threads" = True):
 
         build_config = build_config + [
             c_compiler.name,
@@ -102,6 +103,7 @@ class PythonDependency(Dependency):
         self.debug = debug
         self.pymalloc = pymalloc
         self.wide_unicode = wide_unicode
+        self.threads = threads
         library_ext = self.compiler.library_extension(shared)
         self.library_filename = 'libpython%s.%s%s.%s' % (
             version + (self.suffix, library_ext,)
@@ -158,6 +160,7 @@ class PythonDependency(Dependency):
             '--%s-pydebug' % bool_with(self.debug),
             '--%s-pymalloc' % bool_with(self.pymalloc),
             #'--%s-wide-unicode' % bool_with(self.wide_unicode), #XXX version?
+            '--%s-threads' % bool_with(self.threads),
         ])
         env = {
             'CC': self.compiler.binary,
