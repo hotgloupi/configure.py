@@ -159,13 +159,17 @@ class PythonDependency(Dependency):
             '--%s-pymalloc' % bool_with(self.pymalloc),
             #'--%s-wide-unicode' % bool_with(self.wide_unicode), #XXX version?
         ])
-
+        env = {
+            'CC': self.compiler.binary,
+        }
+        if self.shared and platform.IS_OSX:
+            env['LDFLAGS'] = '-Wl,-search_path_first' # http://bugs.python.org/issue11445
         configure_script = self.absolute_source_path('configure')
         configure_target = Command(
             action = "Configuring %s" % self.name,
             target = Target(self.build, self.build_path('build/Makefile')),
             command = [configure_script] + configure_args,
-            env = {'CC': self.compiler.binary},
+            env = env,
             working_directory = self.absolute_build_path('build')
         ).target
 
