@@ -196,7 +196,7 @@ class Compiler(c_compiler.Compiler):
         for lib in self.list_attr('libraries', kw):
             if isinstance(lib, Target):
                 if self.name == 'clang' and not lib.shared and lib in export_static_libraries:
-                    link_flags.extend(['-Xlinker', '-reexport_library', '-Xlinker', lib])
+                    link_flags.extend(['-Xlinker', '-force_load', '-Xlinker', lib])
                 else:
                     link_flags.append(lib)
                 rpath_dirs.append(path.dirname(lib.path))
@@ -212,7 +212,7 @@ class Compiler(c_compiler.Compiler):
                     #    else:
                     #        link_flags.append('-Wl,-Bstatic')
                     if self.name == 'clang' and not lib.shared and lib in export_static_libraries:
-                        link_flags.extend(['-Xlinker', '-reexport_library', '-Xlinker', f])
+                        link_flags.extend(['-Xlinker', '-force_load', '-Xlinker', f])
                     else:
                         link_flags.append(f)
                 for dir_ in lib.directories:
