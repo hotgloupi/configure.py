@@ -97,6 +97,7 @@ class Compiler:
         ('disabled_warnings', ['unused-typedefs',]),
         ('forbidden_warnings', []),
         ('export_static_libraries', []),
+        ('multithreading', True),
     ]
 
     def __init__(self, build, **kw):

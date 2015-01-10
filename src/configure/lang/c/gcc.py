@@ -158,6 +158,8 @@ class Compiler(c_compiler.Compiler):
                 link_flags.extend(['-undefined', 'dynamic_lookup'])
             else:
                 link_flags.extend(['-undefined=dynamic_lookup'])
+        if self.attr('multithreading', kw):
+            link_flags.append('-pthread')
         library_directories = self.library_directories[:]
         pic = self.attr('position_independent_code', kw)
         if pic and not platform.IS_WINDOWS:
