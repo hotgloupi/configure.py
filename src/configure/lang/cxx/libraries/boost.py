@@ -178,6 +178,7 @@ class BoostDependency(Dependency):
                  debug: "Compile in debug mode" = False,
                  multithreading: "Support for multithreading" = True,
                  python: "Specify the python library" = None,
+                 export_python: "Linking with Boost.Python also expose Python lib" = False,
                  **kw: "specify component options with <COMPONENT>-<OPTION>"
                 ):
         if cxx_compiler.lang != 'c++':
@@ -207,6 +208,7 @@ class BoostDependency(Dependency):
         self.multithreading = multithreading
         self.component_names = components
         self.component_options = dict((k, self.default_options.get(k, {})) for k in components)
+        self.export_python = export_python
         for name in self.component_names:
             for k, v in kw.items():
                 if k.split('_')[0] == name:
@@ -215,6 +217,7 @@ class BoostDependency(Dependency):
         self.__targets = {}
         self.__header_targets = {}
         self.__component_sources = {}
+        self.__component_libraries = {}
         names = (name for name in self.component_names if not self.is_header_only(name))
         self.libraries = [
             self.component_library(component) for component in names
@@ -420,9 +423,12 @@ class BoostDependency(Dependency):
             return self.__targets[name]
         libraries = []
         dependencies = []
+        export_libraries = []
         if name == 'python' and self.python:
             libraries.extend(self.python.libraries)
             dependencies.extend(self.python.targets)
+            if self.export_python:
+                export_libraries.extend(self.python.libraries)
         component_dependencies = self.__component_dependencies(name)
         for dep in component_dependencies:
             if not self.is_header_only(dep):
@@ -455,13 +461,20 @@ class BoostDependency(Dependency):
                     self.component_shared(name) and 'DLL' or 'LIB'
                 ),
             ],
+            export_libraries = export_libraries,
         )
         for dep in dependencies:
             target.dependencies.insert(0, dep)
         return target
 
     def component_library(self, component):
-        return Library(
+        if component in self.__component_libraries:
+            return self.__component_libraries[component]
+        include_directories = []
+        if component == 'python' and self.export_python:
+            for lib in self.python.libraries:
+                include_directories.extend(lib.include_directories)
+        self.__component_libraries[component] = Library(
             self.name + '-' + component,
             self.compiler,
             shared = self.component_shared(component),
@@ -469,11 +482,12 @@ class BoostDependency(Dependency):
             include_directories = [
                 #self.build_path('install', 'include', abs = True)
                 self.include_directory
-            ],
+            ] + include_directories,
             directories = [self.absolute_build_path('install/lib')],
             files = [self.component_library_path(component)],
             save_env_vars = False,
         )
+        return self.__component_libraries[component]
 
     #@property
     #def targets(self):
