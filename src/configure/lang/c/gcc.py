@@ -216,7 +216,7 @@ class Compiler(c_compiler.Compiler):
                     #        link_flags.append('-Wl,-Bdynamic')
                     #    else:
                     #        link_flags.append('-Wl,-Bstatic')
-                    if self.name == 'clang' and lib in export_static_libraries:
+                    if self.name == 'clang' and lib in export_libraries:
                         if lib.shared:
                             link_flags.extend(['-Xlinker', '-reexport_library', '-Xlinker', f])
                         else:
