@@ -96,7 +96,7 @@ class Compiler:
         ('force_includes', []),
         ('disabled_warnings', ['unused-typedefs',]),
         ('forbidden_warnings', []),
-        ('export_static_libraries', []),
+        ('export_libraries', []),
         ('multithreading', True),
     ]
 

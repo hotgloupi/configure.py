@@ -174,11 +174,11 @@ class Compiler(c_compiler.Compiler):
         if platform.IS_WINDOWS:
             link_flags.append('--enable-stdcall-fixup')
 
-        export_static_libraries = self.list_attr('export_static_libraries', kw)
+        export_libraries = self.list_attr('export_libraries', kw)
         if self.name != 'clang':
             excluded_libs = []
             for lib in self.list_attr('libraries', kw):
-                if lib not in export_static_libraries:
+                if lib not in export_libraries:
                     if isinstance(lib, Target):
                         if not lib.shared:
                             excluded_libs.append(lib.path)
@@ -197,8 +197,11 @@ class Compiler(c_compiler.Compiler):
             link_flags.append('-Wl,-(')
         for lib in self.list_attr('libraries', kw):
             if isinstance(lib, Target):
-                if self.name == 'clang' and not lib.shared and lib in export_static_libraries:
-                    link_flags.extend(['-Xlinker', '-force_load', '-Xlinker', lib])
+                if self.name == 'clang' and lib in export_libraries:
+                    if lib.shared:
+                        link_flags.extend(['-Xlinker', '-reexport_library', '-Xlinker', lib])
+                    else:
+                        link_flags.extend(['-Xlinker', '-force_load', '-Xlinker', lib])
                 else:
                     link_flags.append(lib)
                 rpath_dirs.append(path.dirname(lib.path))
@@ -213,8 +216,11 @@ class Compiler(c_compiler.Compiler):
                     #        link_flags.append('-Wl,-Bdynamic')
                     #    else:
                     #        link_flags.append('-Wl,-Bstatic')
-                    if self.name == 'clang' and not lib.shared and lib in export_static_libraries:
-                        link_flags.extend(['-Xlinker', '-force_load', '-Xlinker', f])
+                    if self.name == 'clang' and lib in export_static_libraries:
+                        if lib.shared:
+                            link_flags.extend(['-Xlinker', '-reexport_library', '-Xlinker', f])
+                        else:
+                            link_flags.extend(['-Xlinker', '-force_load', '-Xlinker', f])
                     else:
                         link_flags.append(f)
                 for dir_ in lib.directories:
