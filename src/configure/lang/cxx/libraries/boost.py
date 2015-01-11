@@ -471,9 +471,11 @@ class BoostDependency(Dependency):
         if component in self.__component_libraries:
             return self.__component_libraries[component]
         include_directories = []
+        library_directories = []
         if component == 'python' and self.export_python:
             for lib in self.python.libraries:
                 include_directories.extend(lib.include_directories)
+                library_directories.extend(lib.directories)
         self.__component_libraries[component] = Library(
             self.name + '-' + component,
             self.compiler,
@@ -483,7 +485,9 @@ class BoostDependency(Dependency):
                 #self.build_path('install', 'include', abs = True)
                 self.include_directory
             ] + include_directories,
-            directories = [self.absolute_build_path('install/lib')],
+            directories = [
+                self.absolute_build_path('install/lib')
+            ] + library_directories,
             files = [self.component_library_path(component)],
             save_env_vars = False,
         )
